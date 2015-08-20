@@ -30,6 +30,9 @@ func main() {
 }
 
 
+/*******************************************************************************
+ * Verify that we can create a new realm.
+ */
 func TryCreateRealm() string {
 	
 	fmt.Println("TryCreateRealm")
@@ -52,6 +55,10 @@ func TryCreateRealm() string {
 	return realmId
 }
 
+/*******************************************************************************
+ * Verify that we can create a new repo. This requires that we first created
+ * a realm that the repo can belong to.
+ */
 func TryCreateRepo(realmId string) string {
 	fmt.Println("TryCreateRepo")
 	var resp *http.Response = sendPost(
@@ -74,10 +81,18 @@ func TryCreateRepo(realmId string) string {
 	return repoId
 }
 
+/*******************************************************************************
+ * Verify that we can upload a dockerfile. This requries that we first created
+ * a repo to uplaod it into.
+ */
 func TryUploadDockerfile(repoId string, dockerfilePath string) string {
 	return ""
 }
 
+/*******************************************************************************
+ * Verify that we can build an image, from a dockerfile that has already been
+ * uploaded into a repo and for which we have the SafeHarborServer image id.
+ */
 func TryBuildImage(dockerfileId string) string {
 	return ""
 }

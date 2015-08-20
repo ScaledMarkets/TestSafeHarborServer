@@ -1,3 +1,7 @@
+/*******************************************************************************
+ * Functions requried by main.go.
+ */
+
 package main
 
 import (
@@ -12,7 +16,9 @@ import (
 
 
 /*******************************************************************************
- * 
+ * Send an HTTP POST formatted according to what is required by the SafeHarborServer
+ * REST API, as defined in the slides "SafeHarbor REST API" of the design,
+ * https://drive.google.com/open?id=1r6Xnfg-XwKvmF4YppEZBcxzLbuqXGAA2YCIiPb_9Wfo
  */
 func sendPost(reqName string, names []string, values []string) *http.Response {
 	// Send REST POST request to server.
@@ -64,26 +70,22 @@ func parseResponseBody(body io.ReadCloser) map[string]string {
 
 
 /*******************************************************************************
- * 
+ * If the response is not 200, then throw an exception.
  */
 func verify200Response(resp *http.Response) {
-	if resp.StatusCode != 200 {
-		fmt.Println(fmt.Sprintf("Response code %s", resp.StatusCode))
-		return
-	}
-	
+	assertThat(resp.StatusCode == 200, fmt.Sprintf("Response code %s", resp.StatusCode))
 	fmt.Println("Response code ", resp.StatusCode)
 }
 
 /*******************************************************************************
- * 
+ * If the specified condition is not true, then thrown an exception with the message.
  */
 func assertThat(condition bool, msg string) {
 	if ! condition { panic(errors.New(fmt.Sprintf("ERROR: %s", msg))) }
 }
 
 /*******************************************************************************
- * 
+ * Write the specified map to stdout.
  */
 func printMap(m map[string]string) {
 	fmt.Println("Map:")
