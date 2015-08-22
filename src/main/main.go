@@ -13,20 +13,35 @@ import (
 func main() {
 	
 	// Test ability to create a realm.
-	realmId := TryCreateRealm()
+	var realmId string = TryCreateRealm()
 	assertThat(realmId != "", "TryCreateRealm failed")
 	
 	// Test ability create a repo.
-	repoId := TryCreateRepo(realmId)
+	var repoId string = TryCreateRepo(realmId)
 	assertThat(repoId != "", "TryCreateRepo failed")
 		
 	// Test ability to upload a Dockerfile.
-	//dockerfileId := TryUploadDockerfile(repoId, dockerfilePath)
+	//var dockerfileId string = TryUploadDockerfile(repoId, dockerfilePath)
 	//assertThat(dockerfileId != "", "TryUploadDockerfile failed")
 	
+	// Test ability to list the Dockerfiles in a repo.
+	//var dockerfiles []DockerfileDesc := TryGetDockerfiles(repoId)
+	//assertThat(len(dockerfiles) == 1, "Wrong number of dockerfiles")
+	
 	// Test ability to build image from a dockerfile.
-	//imageId := TryBuildImage(dockerfileId)
+	//var imageId string = TryBuildDockerfile(dockerfileId)
 	//assertThat(imageId != "", "TryBuildImage failed")
+	
+	// Test ability to list the images in a repo.
+	//var images []ImageDesc = TryGetImages(repoId)
+	//assertThat(len(images) == 1, "Wrong number of images")
+	
+	// Test ability to receive progress while a Dockerfile is processed.
+		
+	// Test ability to make a private image available to the SafeHarbor closed community.
+	
+	// Test ability to make a private image available to another user.
+	
 }
 
 
@@ -49,7 +64,7 @@ func TryCreateRealm() string {
 	
 	var responseMap map[string]string = parseResponseBody(resp.Body)
 	var realmId string = responseMap["Id"]
-	if realmId == "" { printMap(responseMap) }
+	printMap(responseMap)
 	assertThat(realmId != "", "Realm Id not found in response body")
 	
 	return realmId
@@ -74,7 +89,7 @@ func TryCreateRepo(realmId string) string {
 	
 	var responseMap map[string]string = parseResponseBody(resp.Body)
 	var repoId string = responseMap["Id"]
-	if repoId == "" { printMap(responseMap) }
+	printMap(responseMap)
 	//var repoName string = responseMap["Name"]
 	assertThat(repoId != "", "Repo Id not found in response body")
 	
@@ -93,6 +108,10 @@ func TryUploadDockerfile(repoId string, dockerfilePath string) string {
  * Verify that we can build an image, from a dockerfile that has already been
  * uploaded into a repo and for which we have the SafeHarborServer image id.
  */
-func TryBuildImage(dockerfileId string) string {
+func TryBuildDockerfile(dockerfileId string) string {
+	return ""
+}
+
+func TryListRepoContents(repoId string) string {
 	return ""
 }
