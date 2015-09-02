@@ -9,11 +9,14 @@ import (
 	"net/http"
 	"net/url"
 	"io"
+	"os"
+	//"path/filepath"
+	"mime/multipart"
 	"bufio"
+	"bytes"
 	"strings"
 	"errors"
 )
-
 
 /*******************************************************************************
  * Send an HTTP POST formatted according to what is required by the SafeHarborServer
@@ -45,6 +48,63 @@ func sendPost(reqName string, names []string, values []string) *http.Response {
 	resp, err = client.Do(request)
 	if err != nil { panic(err) }
 	return resp
+}
+
+/*******************************************************************************
+ * Similar to sendPost, but send as a multi-part so that a file can be attached.
+ */
+func sendFilePost(reqName string, names []string, values []string, path string) *http.Response {
+
+	var urlstr string = fmt.Sprintf(
+		"http://%s:%s/%s",
+		"127.0.0.1", "6000", reqName)
+
+	// Prepare a form that you will submit to that URL.
+	var b bytes.Buffer
+	w := multipart.NewWriter(&b)
+	
+	// Add file
+	f, err := os.Open(path)
+	if err != nil {
+		panic(err)
+	}
+	fw, err := w.CreateFormFile("Filename", path)
+	if err != nil {
+		panic(err)
+	}
+	if _, err = io.Copy(fw, f); err != nil {
+		panic(err)
+	}
+	// Add the other fields
+	for index, each := range names {
+		if fw, err = w.CreateFormField(each); err != nil {
+			panic(err)
+		}
+		if _, err = fw.Write([]byte(values[index])); err != nil {
+			panic(err)
+		}
+	}
+	
+	// Don't forget to close the multipart writer.
+	// If you don't close it, your request will be missing the terminating boundary.
+	w.Close()
+
+	// Now that you have a form, you can submit it to your handler.
+	req, err := http.NewRequest("POST", urlstr, &b)
+	if err != nil {
+		panic(err)
+	}
+	// Don't forget to set the content type, this will contain the boundary.
+	req.Header.Set("Content-Type", w.FormDataContentType())
+
+	// Submit the request
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		panic(err)
+	}
+
+	return res
 }
 
 /*******************************************************************************
@@ -91,5 +151,15 @@ func printMap(m map[string]string) {
 	fmt.Println("Map:")
 	for k, v := range m {
 		fmt.Println(k, v)
+	}
+}
+
+/*******************************************************************************
+ * Write the specified map to stdout.
+ */
+func printMap2(m map[string][]string) {
+	fmt.Println("Map:")
+	for k, v := range m {
+		fmt.Println(k, v[0])
 	}
 }

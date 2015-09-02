@@ -21,7 +21,8 @@ func main() {
 	assertThat(repoId != "", "TryCreateRepo failed")
 		
 	// Test ability to upload a Dockerfile.
-	//var dockerfileId string = TryUploadDockerfile(repoId, dockerfilePath)
+	//var dockerfileId string = 
+	TryUploadDockerfile(repoId, "Dockerfile")
 	//assertThat(dockerfileId != "", "TryUploadDockerfile failed")
 	
 	// Test ability to list the Dockerfiles in a repo.
@@ -61,7 +62,6 @@ func TryCreateRealm() string {
 	verify200Response(resp)
 	
 	// Get the realm Id that is returned in the response body.
-	
 	var responseMap map[string]string = parseResponseBody(resp.Body)
 	var realmId string = responseMap["Id"]
 	printMap(responseMap)
@@ -86,12 +86,12 @@ func TryCreateRepo(realmId string) string {
 	verify200Response(resp)
 	
 	// Get the repo Id that is returned in the response body.
-	
 	var responseMap map[string]string = parseResponseBody(resp.Body)
 	var repoId string = responseMap["Id"]
+	var repoName string = responseMap["Name"]
 	printMap(responseMap)
-	//var repoName string = responseMap["Name"]
 	assertThat(repoId != "", "Repo Id not found in response body")
+	assertThat(repoName != "", "Repo Name not found in response body")
 	
 	return repoId
 }
@@ -101,7 +101,28 @@ func TryCreateRepo(realmId string) string {
  * a repo to uplaod it into.
  */
 func TryUploadDockerfile(repoId string, dockerfilePath string) string {
-	return ""
+	
+	fmt.Println("TryUploadDockerfile")
+	fmt.Println("\t", dockerfilePath)
+	var resp *http.Response = sendFilePost(
+		"addDockerfile",
+		[]string{"RepoId"},
+		[]string{repoId},
+		dockerfilePath)
+	
+	defer resp.Body.Close()
+
+	verify200Response(resp)
+	
+	// Get the DockerfileDesc that is returned.
+	var responseMap map[string]string = parseResponseBody(resp.Body)
+	var dockerfileId string = responseMap["Id"]
+	//var dockerfileName string = responseMap["Name"]
+	printMap(responseMap)
+	//assertThat(dockerfileId != "", "Dockerfile Id not found in response body")
+	//assertThat(dockerfileName != "", "Dockerfile Name not found in response body")
+	
+	return dockerfileId
 }
 
 /*******************************************************************************

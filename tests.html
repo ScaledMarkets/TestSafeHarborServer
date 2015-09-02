@@ -1,7 +1,21 @@
 <html>
 <body>
-<form method="POST" action="http://127.0.0.1:6000/createRealm">
-	<input type="text" name="Name">
+<h1>Create Realm</h1>
+<form method="POST" action="http://localhost:6000/createRealm">
+	Realm name: <input type="text" name="Name">
+	<input type="submit" value="Submit">
+</form>
+<h1>Create Repo</h1>
+<form method="POST" action="http://localhost:6000/createRepo">
+	Realm Id: <input type="text" name="RealmId">
+	Repo Name: <input type="text" name="Name">
+	<input type="submit" value="Submit">
+</form>
+<h1>Add Dockerfile</h1>
+<form method="POST" action="http://localhost:6000/addDockerfile"
+	enctype="multipart/form-data" >
+	Repo Id: <input type="text" name="RepoId">
+	Dockerfile: <input type="file" name="filename" filename="Filename" size="40">
 	<input type="submit" value="Submit">
 </form>
 </body>
