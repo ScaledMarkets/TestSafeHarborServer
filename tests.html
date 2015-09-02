@@ -18,5 +18,16 @@
 	Dockerfile: <input type="file" name="filename" filename="Filename" size="40">
 	<input type="submit" value="Submit">
 </form>
+<h1>Create Group</h1>
+<form method="POST" action="http://localhost:6000/createGroup">
+	Realm Id: <input type="text" name="RealmId">
+	Group Name: <input type="text" name="Name">
+	<input type="submit" value="Submit">
+</form>
+<h1>Get (List) Dockerfiles</h1>
+<form method="POST" action="http://localhost:6000/getDockerfiles">
+	Repo Id: <input type="text" name="RepoId">
+	<input type="submit" value="Submit">
+</form>
 </body>
 </html>
