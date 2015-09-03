@@ -1,32 +1,50 @@
 <html>
 <body>
-<h1>Create Realm</h1>
+<h3>Create Realm</h3>
 <form method="POST" action="http://localhost:6000/createRealm">
 	Realm name: <input type="text" name="Name">
 	<input type="submit" value="Submit">
 </form>
-<h1>Create Repo</h1>
+<h3>Create a User</h3>
+<form method="POST" action="http://localhost:6000/createUser">
+	User Id: <input type="text" name="UserId">
+	User Name: <input type="text" name="UserName">
+	Realm Id: <input type="text" name="RealmId">
+	<input type="submit" value="Submit">
+</form>
+<h3>Create Repo</h3>
 <form method="POST" action="http://localhost:6000/createRepo">
 	Realm Id: <input type="text" name="RealmId">
 	Repo Name: <input type="text" name="Name">
 	<input type="submit" value="Submit">
 </form>
-<h1>Add Dockerfile</h1>
+<h3>Add Dockerfile</h3>
 <form method="POST" action="http://localhost:6000/addDockerfile"
 	enctype="multipart/form-data" >
 	Repo Id: <input type="text" name="RepoId">
 	Dockerfile: <input type="file" name="filename" filename="Filename" size="40">
 	<input type="submit" value="Submit">
 </form>
-<h1>Create Group</h1>
+<h3>Create Group</h3>
 <form method="POST" action="http://localhost:6000/createGroup">
 	Realm Id: <input type="text" name="RealmId">
 	Group Name: <input type="text" name="Name">
 	<input type="submit" value="Submit">
 </form>
-<h1>Get (List) Dockerfiles</h1>
+<h3>Get (List) Dockerfiles</h3>
 <form method="POST" action="http://localhost:6000/getDockerfiles">
 	Repo Id: <input type="text" name="RepoId">
+	<input type="submit" value="Submit">
+</form>
+<h3>Get Group Users</h3>
+<form method="POST" action="http://localhost:6000/getGroupUsers">
+	Group Id: <input type="text" name="GroupId">
+	<input type="submit" value="Submit">
+</form>
+<h3>Add a User To a Group</h3>
+<form method="POST" action="http://localhost:6000/addGroupUser">
+	Group Id: <input type="text" name="GroupId">
+	User Obj Id: <input type="text" name="UserObjId">
 	<input type="submit" value="Submit">
 </form>
 </body>
