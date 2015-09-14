@@ -122,7 +122,7 @@ func parseResponseBody(body io.ReadCloser) map[string]string {
 		var tokens []string = strings.Split(line, "=")
 		if len(tokens) != 2 { panic(errors.New(fmt.Sprintf("Ill-formatted response: %s", line))) }
 		var name string = strings.Trim(tokens[0], " ")
-		var value string = strings.Trim(tokens[1], " ")
+		var value string = strings.Trim(tokens[1], " \r\n")
 		responseMap[name] = value
 	}
 	return responseMap
