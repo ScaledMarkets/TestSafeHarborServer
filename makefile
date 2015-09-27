@@ -1,5 +1,5 @@
-# Makefile for building the Safe Harbor Server.
-# This does not deploy any servers: it merely complies and packages the code.
+# Makefile for building the tests for Safe Harbor Server.
+# This does not run any tests: it merely complies the code.
 
 
 PRODUCTNAME=Safe Harbor Server
@@ -30,7 +30,4 @@ all: compile test
 
 compile:
 	@echo GOPATH=$(GOPATH)
-	go build -o $(build_dir)/testmain main
-
-test:
-	../bin/testmain
+	GOPATH=$(CURDIR) go build -o $(build_dir)/testmain main

@@ -1,1 +1,2 @@
-This is a dockerfile
+FROM centos
+RUN echo moo > oink

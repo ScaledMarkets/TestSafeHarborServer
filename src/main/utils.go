@@ -23,11 +23,13 @@ import (
  * REST API, as defined in the slides "SafeHarbor REST API" of the design,
  * https://drive.google.com/open?id=1r6Xnfg-XwKvmF4YppEZBcxzLbuqXGAA2YCIiPb_9Wfo
  */
-func sendPost(reqName string, names []string, values []string) *http.Response {
+func (testContext *TestContext) sendPost(reqName string, names []string,
+	values []string) *http.Response {
+
 	// Send REST POST request to server.
 	var urlstr string = fmt.Sprintf(
 		"http://%s:%s/%s",
-		"127.0.0.1", "6000", reqName)
+		testContext.hostname, testContext.port, reqName)
 	
 	var data url.Values = url.Values{}
 	for index, each := range names {
@@ -53,11 +55,12 @@ func sendPost(reqName string, names []string, values []string) *http.Response {
 /*******************************************************************************
  * Similar to sendPost, but send as a multi-part so that a file can be attached.
  */
-func sendFilePost(reqName string, names []string, values []string, path string) *http.Response {
+func (testContext *TestContext) sendFilePost(reqName string, names []string,
+	values []string, path string) *http.Response {
 
 	var urlstr string = fmt.Sprintf(
 		"http://%s:%s/%s",
-		"127.0.0.1", "6000", reqName)
+		testContext.hostname, testContext.port, reqName)
 
 	// Prepare a form that you will submit to that URL.
 	var b bytes.Buffer
@@ -112,22 +115,36 @@ func sendFilePost(reqName string, names []string, values []string, path string) 
  * See slide "API REST Binding" in
  * https://drive.google.com/open?id=1r6Xnfg-XwKvmF4YppEZBcxzLbuqXGAA2YCIiPb_9Wfo
  */
-func parseResponseBody(body io.ReadCloser) map[string]string {
+func parseResponseBody(body io.ReadCloser) (map[string]string, *bufio.Scanner) {
 	//var reader *bufio.Reader = bufio.NewReader(body)
 	//if reader == nil { panic(errors.New("reader is nil")) }
-	var responseMap map[string]string = map[string]string{}
 	scanner := bufio.NewScanner(body)
+	var responseMap map[string]string = parseNextBodyPart(scanner)
+	return responseMap, scanner
+}
+
+/*******************************************************************************
+ * Use this for successive sets of name=value pairs. This is needed for methods
+ * that return lists of data.
+ */
+func parseNextBodyPart(scanner *bufio.Scanner) map[string]string {
+	var responseMap map[string]string = nil
 	for scanner.Scan() {
+		if responseMap == nil { responseMap = make(map[string]string) }
 		var line string = scanner.Text()
-		var tokens []string = strings.Split(line, "=")
-		if len(tokens) != 2 { panic(errors.New(fmt.Sprintf("Ill-formatted response: %s", line))) }
-		var name string = strings.Trim(tokens[0], " ")
-		var value string = strings.Trim(tokens[1], " \r\n")
-		responseMap[name] = value
+		
+		// Form name=value pairs are separated by ampersands.
+		var assignments []string = strings.Split(strings.Trim(line, " \r\n"), "&")
+		for _, assignment := range assignments {
+			var tokens []string = strings.Split(assignment, "=")
+			if len(tokens) != 2 { break }
+			var name string = strings.Trim(tokens[0], " ")
+			var value string = strings.Trim(tokens[1], " ")
+			responseMap[name] = value
+		}
 	}
 	return responseMap
 }
-
 
 /*******************************************************************************
  * If the response is not 200, then throw an exception.
