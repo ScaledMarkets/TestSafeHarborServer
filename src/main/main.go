@@ -77,6 +77,9 @@ func main() {
 	
 	// Test ability to make a private image available to another user.
 	
+	// Test ability to clear the entire database and docker repository.
+	testContext.TryClearAll()
+	
 }
 
 
@@ -215,7 +218,7 @@ func (testContext *TestContext) TryGetDockerfiles(repoId string) []string {
 	
 	var responseMap map[string]string
 	var scanner *bufio.Scanner
-	var result []string = make([]string, 1)
+	var result []string = make([]string, 0)
 	responseMap, scanner = parseResponseBody(resp.Body)
 	for responseMap != nil {
 		var dockerfileId string = responseMap["Id"]
@@ -279,7 +282,7 @@ func (testContext *TestContext) TryGetImages(repoId string) []string {
 	
 	var responseMap map[string]string
 	var scanner *bufio.Scanner
-	var result []string = make([]string, 1)
+	var result []string = make([]string, 0)
 	responseMap, scanner = parseResponseBody(resp.Body)
 	for responseMap != nil {
 		var objId string = responseMap["ObjId"]
@@ -328,4 +331,19 @@ func (testContext *TestContext) TryGetUserByUserId(realmId, userId string) strin
 		" does not match the original realm Id")
 	
 	return retUserObjId
+}
+
+/*******************************************************************************
+ * 
+ */
+func (testContext *TestContext) TryClearAll() {
+	fmt.Println("TryClearAll")
+	
+	var resp *http.Response = testContext.sendGet(
+		"clearAll",
+		[]string{},
+		[]string{},
+		)
+	
+	verify200Response(resp)
 }

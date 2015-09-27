@@ -19,11 +19,31 @@ import (
 )
 
 /*******************************************************************************
+ * 
+ */
+func (testContext *TestContext) sendGet(reqName string, names []string,
+	values []string) *http.Response {
+
+	return testContext.sendReq("GET", reqName, names, values)
+}
+
+/*******************************************************************************
  * Send an HTTP POST formatted according to what is required by the SafeHarborServer
  * REST API, as defined in the slides "SafeHarbor REST API" of the design,
  * https://drive.google.com/open?id=1r6Xnfg-XwKvmF4YppEZBcxzLbuqXGAA2YCIiPb_9Wfo
  */
 func (testContext *TestContext) sendPost(reqName string, names []string,
+	values []string) *http.Response {
+
+	return testContext.sendReq("POST", reqName, names, values)
+}
+
+/*******************************************************************************
+ * Send an HTTP POST formatted according to what is required by the SafeHarborServer
+ * REST API, as defined in the slides "SafeHarbor REST API" of the design,
+ * https://drive.google.com/open?id=1r6Xnfg-XwKvmF4YppEZBcxzLbuqXGAA2YCIiPb_9Wfo
+ */
+func (testContext *TestContext) sendReq(reqMethod string, reqName string, names []string,
 	values []string) *http.Response {
 
 	// Send REST POST request to server.
@@ -38,7 +58,7 @@ func (testContext *TestContext) sendPost(reqName string, names []string,
 	var reader io.Reader = strings.NewReader(data.Encode())
 	var request *http.Request
 	var err error
-	request, err = http.NewRequest("POST", urlstr, reader)
+	request, err = http.NewRequest(reqMethod, urlstr, reader)
 		if err != nil { panic(err) }
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	
@@ -71,7 +91,7 @@ func (testContext *TestContext) sendFilePost(reqName string, names []string,
 	if err != nil {
 		panic(err)
 	}
-	fw, err := w.CreateFormFile("Filename", path)
+	fw, err := w.CreateFormFile("filename", path)
 	if err != nil {
 		panic(err)
 	}
@@ -150,7 +170,7 @@ func parseNextBodyPart(scanner *bufio.Scanner) map[string]string {
  * If the response is not 200, then throw an exception.
  */
 func verify200Response(resp *http.Response) {
-	assertThat(resp.StatusCode == 200, fmt.Sprintf("Response code %s", resp.StatusCode))
+	assertThat(resp.StatusCode == 200, fmt.Sprintf("Response code %d", resp.StatusCode))
 	fmt.Println("Response code ", resp.StatusCode)
 }
 
