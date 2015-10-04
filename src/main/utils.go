@@ -12,14 +12,16 @@ import (
 	"os"
 	//"path/filepath"
 	"mime/multipart"
-	"bufio"
+	//"bufio"
 	"bytes"
 	"strings"
 	"errors"
+	"encoding/json"
 )
 
 /*******************************************************************************
- * 
+ * Send a GET request to the SafeHarborServer, at the specified REST endpoint method
+ * (reqName), with the specified query parameters.
  */
 func (testContext *TestContext) sendGet(reqName string, names []string,
 	values []string) *http.Response {
@@ -59,7 +61,7 @@ func (testContext *TestContext) sendReq(reqMethod string, reqName string, names 
 	var request *http.Request
 	var err error
 	request, err = http.NewRequest(reqMethod, urlstr, reader)
-		if err != nil { panic(err) }
+		assertErrIsNil(err, "")
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	
 	var resp *http.Response
@@ -68,7 +70,7 @@ func (testContext *TestContext) sendReq(reqMethod string, reqName string, names 
 	}
 	client := &http.Client{Transport: tr}
 	resp, err = client.Do(request)
-	if err != nil { panic(err) }
+	assertErrIsNil(err, "")
 	return resp
 }
 
@@ -88,24 +90,18 @@ func (testContext *TestContext) sendFilePost(reqName string, names []string,
 	
 	// Add file
 	f, err := os.Open(path)
-	if err != nil {
-		panic(err)
-	}
+	assertErrIsNil(err, "Cannot open path: " + path)
 	fw, err := w.CreateFormFile("filename", path)
-	if err != nil {
-		panic(err)
-	}
-	if _, err = io.Copy(fw, f); err != nil {
-		panic(err)
-	}
+	assertErrIsNil(err, "Cannot create form file: " + path)
+	_, err = io.Copy(fw, f)
+	assertErrIsNil(err, "Could not copy file")
+	
 	// Add the other fields
 	for index, each := range names {
-		if fw, err = w.CreateFormField(each); err != nil {
-			panic(err)
-		}
-		if _, err = fw.Write([]byte(values[index])); err != nil {
-			panic(err)
-		}
+		fw, err = w.CreateFormField(each)
+		assertErrIsNil(err, "Could not create form field, " + each)
+		_, err = fw.Write([]byte(values[index]))
+		assertErrIsNil(err, "Could not write to file; index=" + string(index))
 	}
 	
 	// Don't forget to close the multipart writer.
@@ -114,56 +110,65 @@ func (testContext *TestContext) sendFilePost(reqName string, names []string,
 
 	// Now that you have a form, you can submit it to your handler.
 	req, err := http.NewRequest("POST", urlstr, &b)
-	if err != nil {
-		panic(err)
-	}
+	assertErrIsNil(err, "When creating a POST request for " + urlstr)
+	
 	// Don't forget to set the content type, this will contain the boundary.
 	req.Header.Set("Content-Type", w.FormDataContentType())
 
 	// Submit the request
 	client := &http.Client{}
 	res, err := client.Do(req)
-	if err != nil {
-		panic(err)
-	}
+	assertErrIsNil(err, "When doing request")
 
 	return res
 }
 
 /*******************************************************************************
- * Retrieve name=value pairs from the HTTP response body.
- * See slide "API REST Binding" in
- * https://drive.google.com/open?id=1r6Xnfg-XwKvmF4YppEZBcxzLbuqXGAA2YCIiPb_9Wfo
+ * Parse an HTTP JSON response that can be converted to a map.
  */
-func parseResponseBody(body io.ReadCloser) (map[string]string, *bufio.Scanner) {
-	//var reader *bufio.Reader = bufio.NewReader(body)
-	//if reader == nil { panic(errors.New("reader is nil")) }
-	scanner := bufio.NewScanner(body)
-	var responseMap map[string]string = parseNextBodyPart(scanner)
-	return responseMap, scanner
+func parseResponseBodyToMap(body io.ReadCloser) map[string]interface{} {
+	var obj interface{} = parseResponseBody(body)
+	var result map[string]interface{}
+	var isType bool
+	
+	result, isType = obj.(map[string]interface{})
+	assertThat(isType, "Wrong type: obj is not a map[string]interface{}")
+	return result
 }
 
 /*******************************************************************************
- * Use this for successive sets of name=value pairs. This is needed for methods
- * that return lists of data.
+ * Parse an HTTP JSON response that can be converted to an array of maps.
  */
-func parseNextBodyPart(scanner *bufio.Scanner) map[string]string {
-	var responseMap map[string]string = nil
-	for scanner.Scan() {
-		if responseMap == nil { responseMap = make(map[string]string) }
-		var line string = scanner.Text()
-		
-		// Form name=value pairs are separated by ampersands.
-		var assignments []string = strings.Split(strings.Trim(line, " \r\n"), "&")
-		for _, assignment := range assignments {
-			var tokens []string = strings.Split(assignment, "=")
-			if len(tokens) != 2 { break }
-			var name string = strings.Trim(tokens[0], " ")
-			var value string = strings.Trim(tokens[1], " ")
-			responseMap[name] = value
-		}
+func parseResponseBodyToMaps(body io.ReadCloser) []map[string]interface{} {
+	var obj interface{} = parseResponseBody(body)
+	var result []map[string]interface{}
+	var isType bool
+	
+	result, isType = obj.([]map[string]interface{})
+	assertThat(isType, "Wrong type: obj is not a map[string]interface{}")
+	return result
+}
+
+/*******************************************************************************
+ * Parse an arbitrary HTTP JSON response.
+ */
+func parseResponseBody(body io.ReadCloser) interface{} {
+	
+	var dec *json.Decoder = json.NewDecoder(body)
+	var obj interface{}
+	err := dec.Decode(&obj)
+	assertErrIsNil(err, "When unmarshalling obj")
+	return obj
+}
+
+/*******************************************************************************
+ * Write the specified map to stdout.
+ */
+func printMap(m map[string]interface{}) {
+	fmt.Println("Map:")
+	for k, v := range m {
+		fmt.Println(k, v)
 	}
-	return responseMap
 }
 
 /*******************************************************************************
@@ -182,21 +187,10 @@ func assertThat(condition bool, msg string) {
 }
 
 /*******************************************************************************
- * Write the specified map to stdout.
+ * 
  */
-func printMap(m map[string]string) {
-	fmt.Println("Map:")
-	for k, v := range m {
-		fmt.Println(k, v)
-	}
-}
-
-/*******************************************************************************
- * Write the specified map to stdout.
- */
-func printMap2(m map[string][]string) {
-	fmt.Println("Map:")
-	for k, v := range m {
-		fmt.Println(k, v[0])
-	}
+func assertErrIsNil(err error, msg string) {
+	if err == nil { return }
+	fmt.Print(msg)
+	panic(err)
 }
