@@ -39,6 +39,7 @@ func main() {
 	// Log in so that we can do stuff.
 	var sessionId string = testContext.TryAuthenticate("testuser1", "password1")
 	testContext.sessionId = sessionId
+	fmt.Println("sessionId =", sessionId)
 	
 	// Test ability to create a realm.
 	var realmId string = testContext.TryCreateRealm()
@@ -289,7 +290,7 @@ func (testContext *TestContext) TryAddDockerfile(repoId string, dockerfilePath s
 	
 	fmt.Println("TryAddDockerfile")
 	fmt.Println("\t", dockerfilePath)
-	var resp *http.Response = testContext.sendFilePost(
+	var resp *http.Response = testContext.sendFilePost(testContext.sessionId,
 		"addDockerfile",
 		[]string{"RepoId"},
 		[]string{repoId},

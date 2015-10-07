@@ -63,7 +63,7 @@ func (testContext *TestContext) sendReq(sessionId string, reqMethod string,
 	request, err = http.NewRequest(reqMethod, urlstr, reader)
 		assertErrIsNil(err, "")
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	if sessionId != "" { request.Header.Set("SessionId", sessionId) }
+	if sessionId != "" { request.Header.Set("Session-Id", sessionId) }
 	
 	var resp *http.Response
 	var tr *http.Transport = &http.Transport{
@@ -78,7 +78,7 @@ func (testContext *TestContext) sendReq(sessionId string, reqMethod string,
 /*******************************************************************************
  * Similar to sendPost, but send as a multi-part so that a file can be attached.
  */
-func (testContext *TestContext) sendFilePost(reqName string, names []string,
+func (testContext *TestContext) sendFilePost(sessionId string, reqName string, names []string,
 	values []string, path string) *http.Response {
 
 	var urlstr string = fmt.Sprintf(
@@ -115,6 +115,7 @@ func (testContext *TestContext) sendFilePost(reqName string, names []string,
 	
 	// Don't forget to set the content type, this will contain the boundary.
 	req.Header.Set("Content-Type", w.FormDataContentType())
+	if sessionId != "" { req.Header.Set("Session-Id", sessionId) }
 
 	// Submit the request
 	client := &http.Client{}
