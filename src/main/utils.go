@@ -23,10 +23,10 @@ import (
  * Send a GET request to the SafeHarborServer, at the specified REST endpoint method
  * (reqName), with the specified query parameters.
  */
-func (testContext *TestContext) sendGet(reqName string, names []string,
+func (testContext *TestContext) sendGet(sessionId string, reqName string, names []string,
 	values []string) *http.Response {
 
-	return testContext.sendReq("GET", reqName, names, values)
+	return testContext.sendReq(sessionId, "GET", reqName, names, values)
 }
 
 /*******************************************************************************
@@ -34,10 +34,10 @@ func (testContext *TestContext) sendGet(reqName string, names []string,
  * REST API, as defined in the slides "SafeHarbor REST API" of the design,
  * https://drive.google.com/open?id=1r6Xnfg-XwKvmF4YppEZBcxzLbuqXGAA2YCIiPb_9Wfo
  */
-func (testContext *TestContext) sendPost(reqName string, names []string,
+func (testContext *TestContext) sendPost(sessionId string, reqName string, names []string,
 	values []string) *http.Response {
 
-	return testContext.sendReq("POST", reqName, names, values)
+	return testContext.sendReq(sessionId, "POST", reqName, names, values)
 }
 
 /*******************************************************************************
@@ -45,8 +45,8 @@ func (testContext *TestContext) sendPost(reqName string, names []string,
  * REST API, as defined in the slides "SafeHarbor REST API" of the design,
  * https://drive.google.com/open?id=1r6Xnfg-XwKvmF4YppEZBcxzLbuqXGAA2YCIiPb_9Wfo
  */
-func (testContext *TestContext) sendReq(reqMethod string, reqName string, names []string,
-	values []string) *http.Response {
+func (testContext *TestContext) sendReq(sessionId string, reqMethod string,
+	reqName string, names []string, values []string) *http.Response {
 
 	// Send REST POST request to server.
 	var urlstr string = fmt.Sprintf(
@@ -63,6 +63,7 @@ func (testContext *TestContext) sendReq(reqMethod string, reqName string, names 
 	request, err = http.NewRequest(reqMethod, urlstr, reader)
 		assertErrIsNil(err, "")
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	if sessionId != "" { request.Header.Set("SessionId", sessionId) }
 	
 	var resp *http.Response
 	var tr *http.Transport = &http.Transport{

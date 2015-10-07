@@ -15,6 +15,7 @@ import (
 type TestContext struct {
 	hostname string
 	port string
+	sessionId string
 }
 
 func main() {
@@ -27,6 +28,7 @@ func main() {
 	var testContext *TestContext = &TestContext{
 		hostname: os.Args[1],
 		port: os.Args[2],
+		sessionId: "",
 	}
 	
 	fmt.Println("Note: Ensure that the docker daemon is running on the server,",
@@ -35,7 +37,8 @@ func main() {
 	fmt.Println()
 	
 	// Log in so that we can do stuff.
-	_ = testContext.TryAuthenticate("testuser1", "password1")
+	var sessionId string = testContext.TryAuthenticate("testuser1", "password1")
+	testContext.sessionId = sessionId
 	
 	// Test ability to create a realm.
 	var realmId string = testContext.TryCreateRealm()
@@ -48,7 +51,8 @@ func main() {
 	assertThat(johnDoeUserObjId != "", "TryCreateUser failed")
 	
 	// Login as the user that we just created.
-	_ = testContext.TryAuthenticate(userId, "password1")
+	sessionId = testContext.TryAuthenticate(userId, "password1")
+	testContext.sessionId = sessionId
 	
 	// Test ability create a repo.
 	var repoId string = testContext.TryCreateRepo(realmId, "John's Repo")
@@ -169,7 +173,7 @@ func main() {
 func (testContext *TestContext) TryCreateRealm() string {
 	
 	fmt.Println("TryCreateRealm")
-	var resp *http.Response = testContext.sendPost(
+	var resp *http.Response = testContext.sendPost(testContext.sessionId,
 		"createRealm",
 		[]string{"Name"},
 		[]string{"My Realm"})
@@ -195,7 +199,7 @@ func (testContext *TestContext) TryCreateUser(userId string, userName string,
 	realmId string) string {
 	fmt.Println("TryCreateUser")
 	
-	var resp *http.Response = testContext.sendPost(
+	var resp *http.Response = testContext.sendPost(testContext.sessionId,
 		"createUser",
 		[]string{"UserId", "UserName", "RealmId"},
 		[]string{userId, userName, realmId})
@@ -229,9 +233,9 @@ func (testContext *TestContext) TryCreateUser(userId string, userName string,
 func (testContext *TestContext) TryAuthenticate(userId string, pswd string) string {
 	fmt.Println("TryAuthenticate")
 	
-	var resp *http.Response = testContext.sendPost(
+	var resp *http.Response = testContext.sendPost(testContext.sessionId,
 		"authenticate",
-		[]string{"UserUd", "Password"},
+		[]string{"UserId", "Password"},
 		[]string{userId, pswd})
 	
 	defer resp.Body.Close()
@@ -256,7 +260,7 @@ func (testContext *TestContext) TryAuthenticate(userId string, pswd string) stri
  */
 func (testContext *TestContext) TryCreateRepo(realmId string, name string) string {
 	fmt.Println("TryCreateRepo")
-	var resp *http.Response = testContext.sendPost(
+	var resp *http.Response = testContext.sendPost(testContext.sessionId,
 		"createRepo",
 		[]string{"RealmId", "Name"},
 		[]string{realmId, name})
@@ -314,7 +318,7 @@ func (testContext *TestContext) TryAddDockerfile(repoId string, dockerfilePath s
 func (testContext *TestContext) TryGetDockerfiles(repoId string) []string {
 	fmt.Println("TryGetDockerfiles")
 	
-	var resp *http.Response = testContext.sendPost(
+	var resp *http.Response = testContext.sendPost(testContext.sessionId,
 		"getDockerfiles",
 		[]string{"RepoId"},
 		[]string{repoId})
@@ -351,7 +355,7 @@ func (testContext *TestContext) TryExecDockerfile(repoId string, dockerfileId st
 	imageName string) (string, string) {
 	fmt.Println("TryExecDockerfile")
 	
-	var resp *http.Response = testContext.sendPost(
+	var resp *http.Response = testContext.sendPost(testContext.sessionId,
 		"execDockerfile",
 		[]string{"RepoId", "DockerfileId", "ImageName"},
 		[]string{repoId, dockerfileId, imageName})
@@ -375,7 +379,7 @@ func (testContext *TestContext) TryExecDockerfile(repoId string, dockerfileId st
 func (testContext *TestContext) TryGetImages(repoId string) []string {
 	fmt.Println("TryGetImages")
 	
-	var resp *http.Response = testContext.sendPost(
+	var resp *http.Response = testContext.sendPost(testContext.sessionId,
 		"getImages",
 		[]string{"RepoId"},
 		[]string{repoId})
@@ -407,7 +411,7 @@ func (testContext *TestContext) TryGetImages(repoId string) []string {
 func (testContext *TestContext) TryGetRealmUser(realmId, userId string) string {
 	fmt.Println("TryGetUserById")
 	
-	var resp *http.Response = testContext.sendPost(
+	var resp *http.Response = testContext.sendPost(testContext.sessionId,
 		"getRealmUser",
 		[]string{"RealmId", "UserId"},
 		[]string{realmId, userId})
@@ -458,7 +462,7 @@ func (testContext *TestContext) TryAddGroupUser() {
 func (testContext *TestContext) TryAddRealmUser(realmId string, userObjId string) string {
 	fmt.Println("TryAddRealmUser")
 	
-	var resp *http.Response = testContext.sendPost(
+	var resp *http.Response = testContext.sendPost(testContext.sessionId,
 		"addRealmUser",
 		[]string{"RealmId", "UserObjId"},
 		[]string{realmId, userObjId})
@@ -489,7 +493,7 @@ func (testContext *TestContext) TryGetRealmGroups() {
 func (testContext *TestContext) TryGetRealmRepos(realmId string) []string {
 	fmt.Println("TryGetRealmRepos")
 	
-	var resp *http.Response = testContext.sendPost(
+	var resp *http.Response = testContext.sendPost(testContext.sessionId,
 		"getRealmRepos",
 		[]string{"RealmId"},
 		[]string{realmId})
@@ -521,7 +525,7 @@ func (testContext *TestContext) TryGetRealmRepos(realmId string) []string {
 func (testContext *TestContext) TryGetAllRealms() []string {
 	fmt.Println("TryGetAllRealms")
 	
-	var resp *http.Response = testContext.sendPost(
+	var resp *http.Response = testContext.sendPost(testContext.sessionId,
 		"getRealmRepos",
 		[]string{},
 		[]string{})
@@ -647,7 +651,7 @@ func (testContext *TestContext) TryRemPermission() {
 func (testContext *TestContext) TryClearAll() {
 	fmt.Println("TryClearAll")
 	
-	var resp *http.Response = testContext.sendGet(
+	var resp *http.Response = testContext.sendGet("",
 		"clearAll",
 		[]string{},
 		[]string{},
