@@ -16,6 +16,7 @@ type TestContext struct {
 	hostname string
 	port string
 	sessionId string
+	testName string
 }
 
 func main() {
@@ -43,13 +44,13 @@ func main() {
 	
 	// Test ability to create a realm.
 	var realmId string = testContext.TryCreateRealm()
-	assertThat(realmId != "", "TryCreateRealm failed")
+	testContext.assertThat(realmId != "", "TryCreateRealm failed")
 	
 	// Test ability to create a user for the realm.
 	var userId string = "jdoe"
 	var userName string = "John Doe"
 	var johnDoeUserObjId string = testContext.TryCreateUser(userId, userName, realmId)
-	assertThat(johnDoeUserObjId != "", "TryCreateUser failed")
+	testContext.assertThat(johnDoeUserObjId != "", "TryCreateUser failed")
 	
 	// Login as the user that we just created.
 	sessionId = testContext.TryAuthenticate(userId, "password1")
@@ -57,44 +58,44 @@ func main() {
 	
 	// Test ability create a repo.
 	var repoId string = testContext.TryCreateRepo(realmId, "John's Repo")
-	assertThat(repoId != "", "TryCreateRepo failed")
+	testContext.assertThat(repoId != "", "TryCreateRepo failed")
 		
 	// Test ability create another repo.
 	var repo2Id string = testContext.TryCreateRepo(realmId, "Susan's Repo")
-	assertThat(repo2Id != "", "TryCreateRepo failed")
+	testContext.assertThat(repo2Id != "", "TryCreateRepo failed")
 		
 	// Test ability to upload a Dockerfile.
 	var dockerfileId string = testContext.TryAddDockerfile(repoId, "Dockerfile")
-	assertThat(dockerfileId != "", "TryAddDockerfile failed")
+	testContext.assertThat(dockerfileId != "", "TryAddDockerfile failed")
 	
 	// Test ability to list the Dockerfiles in a repo.
 	var dockerfileNames []string = testContext.TryGetDockerfiles(repoId)
-	assertThat(len(dockerfileNames) == 1, "Wrong number of dockerfiles")
+	testContext.assertThat(len(dockerfileNames) == 1, "Wrong number of dockerfiles")
 	
 	// Test ability to build image from a dockerfile.
 	var dockerImageObjId string
 	var imageId string
 	dockerImageObjId, imageId = testContext.TryExecDockerfile(repoId, dockerfileId, "myimage")
-	assertThat(dockerImageObjId != "", "TryExecDockerfile failed - obj id is nil")
-	assertThat(imageId != "", "TryExecDockerfile failed - docker image id is nil")
+	testContext.assertThat(dockerImageObjId != "", "TryExecDockerfile failed - obj id is nil")
+	testContext.assertThat(imageId != "", "TryExecDockerfile failed - docker image id is nil")
 	
 	// Test ability to list the images in a repo.
 	var imageNames []string = testContext.TryGetImages(repoId)
-	assertThat(len(imageNames) == 1, "Wrong number of images")
+	testContext.assertThat(len(imageNames) == 1, "Wrong number of images")
 	
 	// Test ability to retrieve user by user id from realm.
-	var userObjId = testContext.TryGetRealmUser(realmId, userId)
-	assertThat(userObjId == johnDoeUserObjId, "Looking up user by user id failed")
+	var userObjId = testContext.TryGetUserById(realmId, userId)
+	testContext.assertThat(userObjId == johnDoeUserObjId, "Looking up user by user id failed")
 	
 	//var msg string = testContext.TryAddRealmUser(....realmId, userObjId)
 	
 	var repoIds []string = testContext.TryGetRealmRepos(realmId)
-	assertThat(len(repoIds) == 2, "Number of repo Ids returned was " +
+	testContext.assertThat(len(repoIds) == 2, "Number of repo Ids returned was " +
 		string(len(repoIds)) + ", expected 2")
 	
 	var realmIds []string = testContext.TryGetAllRealms()
 	// Assumes that server is in debug mode, which creates test data.
-	assertThat(len(realmIds) == 2, "Wrong number of realms found")
+	testContext.assertThat(len(realmIds) == 2, "Wrong number of realms found")
 	
 	
 	
@@ -165,6 +166,8 @@ func main() {
 	
 	// Test ability to make a private image available to another user.
 	
+	fmt.Println()
+	fmt.Println(fmt.Sprintf("%d tests failed out of %d", noOfTestsThatFailed, noOfTests))
 }
 
 
@@ -173,7 +176,7 @@ func main() {
  */
 func (testContext *TestContext) TryCreateRealm() string {
 	
-	fmt.Println("TryCreateRealm")
+	testContext.StartTest("TryCreateRealm")
 	var resp *http.Response = testContext.sendPost(testContext.sessionId,
 		"createRealm",
 		[]string{"Name"},
@@ -181,14 +184,14 @@ func (testContext *TestContext) TryCreateRealm() string {
 	
 	defer resp.Body.Close()
 	
-	verify200Response(resp)
+	testContext.verify200Response(resp)
 	
 	// Get the realm Id that is returned in the response body.
 	var responseMap map[string]interface{}
 	responseMap  = parseResponseBodyToMap(resp.Body)
 	var realmId string = responseMap["Id"].(string)
 	printMap(responseMap)
-	assertThat(realmId != "", "Realm Id not found in response body")
+	testContext.assertThat(realmId != "", "Realm Id not found in response body")
 	
 	return realmId
 }
@@ -198,7 +201,7 @@ func (testContext *TestContext) TryCreateRealm() string {
  */
 func (testContext *TestContext) TryCreateUser(userId string, userName string,
 	realmId string) string {
-	fmt.Println("TryCreateUser")
+	testContext.StartTest("TryCreateUser")
 	
 	var resp *http.Response = testContext.sendPost(testContext.sessionId,
 		"createUser",
@@ -207,7 +210,7 @@ func (testContext *TestContext) TryCreateUser(userId string, userName string,
 	
 	defer resp.Body.Close()
 
-	verify200Response(resp)
+	testContext.verify200Response(resp)
 	
 	var responseMap map[string]interface{}
 	responseMap  = parseResponseBodyToMap(resp.Body)
@@ -217,12 +220,12 @@ func (testContext *TestContext) TryCreateUser(userId string, userName string,
 	var retRealmId string = responseMap["RealmId"].(string)
 	printMap(responseMap)
 	
-	assertThat(retUserObjId != "", "User obj Id not returned")
-	assertThat(retUserId == userId, "Returned user id, " + retUserId +
+	testContext.assertThat(retUserObjId != "", "User obj Id not returned")
+	testContext.assertThat(retUserId == userId, "Returned user id, " + retUserId +
 		" does not match the original user id")
-	assertThat(retUserName == userName, "Returned user name, " + retUserName +
+	testContext.assertThat(retUserName == userName, "Returned user name, " + retUserName +
 		" does not match the original user name")
-	assertThat(retRealmId == realmId, "Returned realm Id, " + retRealmId +
+	testContext.assertThat(retRealmId == realmId, "Returned realm Id, " + retRealmId +
 		" does not match the original realm Id")
 	
 	return retUserObjId
@@ -232,7 +235,7 @@ func (testContext *TestContext) TryCreateUser(userId string, userName string,
  * 
  */
 func (testContext *TestContext) TryAuthenticate(userId string, pswd string) string {
-	fmt.Println("TryAuthenticate")
+	testContext.StartTest("TryAuthenticate")
 	
 	var resp *http.Response = testContext.sendPost(testContext.sessionId,
 		"authenticate",
@@ -241,7 +244,7 @@ func (testContext *TestContext) TryAuthenticate(userId string, pswd string) stri
 	
 	defer resp.Body.Close()
 
-	verify200Response(resp)
+	testContext.verify200Response(resp)
 	
 	// Get the repo Id that is returned in the response body.
 	var responseMap map[string]interface{}
@@ -250,8 +253,8 @@ func (testContext *TestContext) TryAuthenticate(userId string, pswd string) stri
 	var retUserId string = responseMap["AuthenticatedUserid"].(string)
 	printMap(responseMap)
 	
-	assertThat(retSessionId != "", "Session id is empty string")
-	assertThat(retUserId == userId, "Returned user id '" + retUserId + "' does not match user id")
+	testContext.assertThat(retSessionId != "", "Session id is empty string")
+	testContext.assertThat(retUserId == userId, "Returned user id '" + retUserId + "' does not match user id")
 	return retSessionId
 }
 
@@ -260,7 +263,7 @@ func (testContext *TestContext) TryAuthenticate(userId string, pswd string) stri
  * a realm that the repo can belong to.
  */
 func (testContext *TestContext) TryCreateRepo(realmId string, name string) string {
-	fmt.Println("TryCreateRepo")
+	testContext.StartTest("TryCreateRepo")
 	var resp *http.Response = testContext.sendPost(testContext.sessionId,
 		"createRepo",
 		[]string{"RealmId", "Name"},
@@ -268,7 +271,7 @@ func (testContext *TestContext) TryCreateRepo(realmId string, name string) strin
 	
 	defer resp.Body.Close()
 
-	verify200Response(resp)
+	testContext.verify200Response(resp)
 	
 	// Get the repo Id that is returned in the response body.
 	var responseMap map[string]interface{}
@@ -276,8 +279,8 @@ func (testContext *TestContext) TryCreateRepo(realmId string, name string) strin
 	var repoId string = responseMap["Id"].(string)
 	var repoName string = responseMap["Name"].(string)
 	printMap(responseMap)
-	assertThat(repoId != "", "Repo Id not found in response body")
-	assertThat(repoName != "", "Repo Name not found in response body")
+	testContext.assertThat(repoId != "", "Repo Id not found in response body")
+	testContext.assertThat(repoName != "", "Repo Name not found in response body")
 	
 	return repoId
 }
@@ -288,7 +291,7 @@ func (testContext *TestContext) TryCreateRepo(realmId string, name string) strin
  */
 func (testContext *TestContext) TryAddDockerfile(repoId string, dockerfilePath string) string {
 	
-	fmt.Println("TryAddDockerfile")
+	testContext.StartTest("TryAddDockerfile")
 	fmt.Println("\t", dockerfilePath)
 	var resp *http.Response = testContext.sendFilePost(testContext.sessionId,
 		"addDockerfile",
@@ -298,7 +301,7 @@ func (testContext *TestContext) TryAddDockerfile(repoId string, dockerfilePath s
 	
 	defer resp.Body.Close()
 
-	verify200Response(resp)
+	testContext.verify200Response(resp)
 	
 	// Get the DockerfileDesc that is returned.
 	var responseMap map[string]interface{}
@@ -317,7 +320,7 @@ func (testContext *TestContext) TryAddDockerfile(repoId string, dockerfilePath s
  * repo. The result is an array of dockerfile names.
  */
 func (testContext *TestContext) TryGetDockerfiles(repoId string) []string {
-	fmt.Println("TryGetDockerfiles")
+	testContext.StartTest("TryGetDockerfiles")
 	
 	var resp *http.Response = testContext.sendPost(testContext.sessionId,
 		"getDockerfiles",
@@ -326,7 +329,7 @@ func (testContext *TestContext) TryGetDockerfiles(repoId string) []string {
 	
 	defer resp.Body.Close()
 
-	verify200Response(resp)
+	testContext.verify200Response(resp)
 	
 	var responseMaps []map[string]interface{} = parseResponseBodyToMaps(resp.Body)
 	var result []string = make([]string, 0)
@@ -336,9 +339,9 @@ func (testContext *TestContext) TryGetDockerfiles(repoId string) []string {
 		var dockerfileName string = responseMap["Name"].(string)
 
 		printMap(responseMap)
-		assertThat(dockerfileId != "", "Dockerfile Id not found in response body")
-		assertThat(repoId != "", "Repo Id not found in response body")
-		assertThat(dockerfileName != "", "Dockerfile Name not found in response body")
+		testContext.assertThat(dockerfileId != "", "Dockerfile Id not found in response body")
+		testContext.assertThat(repoId != "", "Repo Id not found in response body")
+		testContext.assertThat(dockerfileName != "", "Dockerfile Name not found in response body")
 		fmt.Println()
 
 		result = append(result, dockerfileName)
@@ -354,7 +357,7 @@ func (testContext *TestContext) TryGetDockerfiles(repoId string) []string {
  */
 func (testContext *TestContext) TryExecDockerfile(repoId string, dockerfileId string,
 	imageName string) (string, string) {
-	fmt.Println("TryExecDockerfile")
+	testContext.StartTest("TryExecDockerfile")
 	
 	var resp *http.Response = testContext.sendPost(testContext.sessionId,
 		"execDockerfile",
@@ -363,22 +366,22 @@ func (testContext *TestContext) TryExecDockerfile(repoId string, dockerfileId st
 	
 	defer resp.Body.Close()
 
-	verify200Response(resp)
+	testContext.verify200Response(resp)
 	
 	// Get the repo Id that is returned in the response body.
 	var responseMap map[string]interface{}
 	responseMap  = parseResponseBodyToMap(resp.Body)
 	var objId string = responseMap["ObjId"].(string)
-	var dockerImageId string = responseMap["DockerImageId"].(string)
+	var dockerImageTag string = responseMap["DockerImageTag"].(string)
 	printMap(responseMap)
-	return objId, dockerImageId
+	return objId, dockerImageTag
 }
 
 /*******************************************************************************
  * Result is an array of the names of the images owned by the specified repo.
  */
 func (testContext *TestContext) TryGetImages(repoId string) []string {
-	fmt.Println("TryGetImages")
+	testContext.StartTest("TryGetImages")
 	
 	var resp *http.Response = testContext.sendPost(testContext.sessionId,
 		"getImages",
@@ -387,20 +390,20 @@ func (testContext *TestContext) TryGetImages(repoId string) []string {
 	
 	defer resp.Body.Close()
 
-	verify200Response(resp)
+	testContext.verify200Response(resp)
 	
 	var responseMaps []map[string]interface{} = parseResponseBodyToMaps(resp.Body)
 	var result []string = make([]string, 0)
 	for _, responseMap := range responseMaps {
 		var objId string = responseMap["ObjId"].(string)
-		var dockerImageId string = responseMap["DockerImageId"].(string)
+		var dockerImageTag string = responseMap["DockerImageTag"].(string)
 
 		printMap(responseMap)
-		assertThat(objId != "", "ObjId not found in response body")
-		assertThat(dockerImageId != "", "DockerImageId not found in response body")
+		testContext.assertThat(objId != "", "ObjId not found in response body")
+		testContext.assertThat(dockerImageTag != "", "DockerImageTag not found in response body")
 		fmt.Println()
 
-		result = append(result, dockerImageId)
+		result = append(result, dockerImageTag)
 	}
 	
 	return result
@@ -409,8 +412,8 @@ func (testContext *TestContext) TryGetImages(repoId string) []string {
 /*******************************************************************************
  * Return the object Id of the specified user.
  */
-func (testContext *TestContext) TryGetRealmUser(realmId, userId string) string {
-	fmt.Println("TryGetUserById")
+func (testContext *TestContext) TryGetUserById(realmId, userId string) string {
+	testContext.StartTest("TryGetUserById")
 	
 	var resp *http.Response = testContext.sendPost(testContext.sessionId,
 		"getRealmUser",
@@ -419,7 +422,7 @@ func (testContext *TestContext) TryGetRealmUser(realmId, userId string) string {
 	
 	defer resp.Body.Close()
 
-	verify200Response(resp)
+	testContext.verify200Response(resp)
 	
 	var responseMap map[string]interface{}
 	responseMap  = parseResponseBodyToMap(resp.Body)
@@ -429,11 +432,11 @@ func (testContext *TestContext) TryGetRealmUser(realmId, userId string) string {
 	var retRealmId string = responseMap["RealmId"].(string)
 	printMap(responseMap)
 	
-	assertThat(retUserObjId != "", "User obj Id not returned")
-	assertThat(retUserId == userId, "Returned user id, " + retUserId +
+	testContext.assertThat(retUserObjId != "", "User obj Id not returned")
+	testContext.assertThat(retUserId == userId, "Returned user id, " + retUserId +
 		" does not match the original user id")
-	assertThat(retUserName != "", "Returned user name is blank")
-	assertThat(retRealmId == realmId, "Returned realm Id, " + retRealmId +
+	testContext.assertThat(retUserName != "", "Returned user name is blank")
+	testContext.assertThat(retRealmId == realmId, "Returned realm Id, " + retRealmId +
 		" does not match the original realm Id")
 	
 	return retUserObjId
@@ -461,7 +464,7 @@ func (testContext *TestContext) TryAddGroupUser() {
  * Returns result.
  */
 func (testContext *TestContext) TryAddRealmUser(realmId string, userObjId string) string {
-	fmt.Println("TryAddRealmUser")
+	testContext.StartTest("TryAddRealmUser")
 	
 	var resp *http.Response = testContext.sendPost(testContext.sessionId,
 		"addRealmUser",
@@ -470,15 +473,15 @@ func (testContext *TestContext) TryAddRealmUser(realmId string, userObjId string
 	
 	defer resp.Body.Close()
 
-	verify200Response(resp)
+	testContext.verify200Response(resp)
 	
 	var responseMap map[string]interface{}
 	responseMap  = parseResponseBodyToMap(resp.Body)
 	var retStatus string = responseMap["Status"].(string)
 	var retMsg string = responseMap["Message"].(string)
 	printMap(responseMap)
-	assertThat(retStatus != "", "Empty return status")
-	assertThat(retMsg != "", "Empty return message")
+	testContext.assertThat(retStatus != "", "Empty return status")
+	testContext.assertThat(retMsg != "", "Empty return message")
 	return retMsg
 }
 
@@ -492,7 +495,7 @@ func (testContext *TestContext) TryGetRealmGroups() {
  * 
  */
 func (testContext *TestContext) TryGetRealmRepos(realmId string) []string {
-	fmt.Println("TryGetRealmRepos")
+	testContext.StartTest("TryGetRealmRepos")
 	
 	var resp *http.Response = testContext.sendPost(testContext.sessionId,
 		"getRealmRepos",
@@ -501,7 +504,7 @@ func (testContext *TestContext) TryGetRealmRepos(realmId string) []string {
 	
 	defer resp.Body.Close()
 
-	verify200Response(resp)
+	testContext.verify200Response(resp)
 	
 	var responseMaps []map[string]interface{} = parseResponseBodyToMaps(resp.Body)
 	var result []string = make([]string, 0)
@@ -511,9 +514,9 @@ func (testContext *TestContext) TryGetRealmRepos(realmId string) []string {
 		var retRealmId string = responseMap["RealmId"].(string)
 		var retName string = responseMap["Name"].(string)
 	
-		assertThat(retRepoId != "", "No repo Id returned")
-		assertThat(retRealmId == realmId, "returned realm Id is nil")
-		assertThat(retName != "", "Empty returned Name")
+		testContext.assertThat(retRepoId != "", "No repo Id returned")
+		testContext.assertThat(retRealmId == realmId, "returned realm Id is nil")
+		testContext.assertThat(retName != "", "Empty returned Name")
 		
 		result = append(result, retRepoId)
 	}
@@ -524,16 +527,16 @@ func (testContext *TestContext) TryGetRealmRepos(realmId string) []string {
  * 
  */
 func (testContext *TestContext) TryGetAllRealms() []string {
-	fmt.Println("TryGetAllRealms")
+	testContext.StartTest("TryGetAllRealms")
 	
 	var resp *http.Response = testContext.sendPost(testContext.sessionId,
-		"getRealmRepos",
+		"getAllRealms",
 		[]string{},
 		[]string{})
 	
 	defer resp.Body.Close()
 
-	verify200Response(resp)
+	testContext.verify200Response(resp)
 	
 	var responseMaps []map[string]interface{} = parseResponseBodyToMaps(resp.Body)
 	var result []string = make([]string, 0)
@@ -542,8 +545,8 @@ func (testContext *TestContext) TryGetAllRealms() []string {
 		var retRealmId string = responseMap["Id"].(string)
 		var retName string = responseMap["Name"].(string)
 	
-		assertThat(retRealmId != "", "Returned realm Id is empty string")
-		assertThat(retName != "", "Empty returned Name")
+		testContext.assertThat(retRealmId != "", "Returned realm Id is empty string")
+		testContext.assertThat(retName != "", "Empty returned Name")
 		
 		result = append(result, retRealmId)
 	}
@@ -650,7 +653,7 @@ func (testContext *TestContext) TryRemPermission() {
  * 
  */
 func (testContext *TestContext) TryClearAll() {
-	fmt.Println("TryClearAll")
+	testContext.StartTest("TryClearAll")
 	
 	var resp *http.Response = testContext.sendGet("",
 		"clearAll",
@@ -658,5 +661,5 @@ func (testContext *TestContext) TryClearAll() {
 		[]string{},
 		)
 	
-	verify200Response(resp)
+	testContext.verify200Response(resp)
 }

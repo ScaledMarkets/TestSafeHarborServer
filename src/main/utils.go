@@ -9,15 +9,47 @@ import (
 	"net/http"
 	"net/url"
 	"io"
+	//"io/ioutil"
 	"os"
 	//"path/filepath"
 	"mime/multipart"
 	//"bufio"
 	"bytes"
 	"strings"
-	"errors"
+	//"errors"
 	"encoding/json"
+	//"reflect"
 )
+
+var testStatus map[string]string = make(map[string]string)
+var noOfTests int = 0
+var noOfTestsThatFailed int = 0
+
+/*******************************************************************************
+ * 
+ */
+func (testContext *TestContext) StartTest(name string) {
+	testContext.testName = name
+	testStatus[name] = ""
+	noOfTests++
+	fmt.Println()
+	fmt.Println("Begin Test", name, "-------------------------------------------")
+}
+
+/*******************************************************************************
+ * 
+ */
+func (testContext *TestContext) PassTest() {
+	testStatus[testContext.testName] = "Pass"
+}
+
+/*******************************************************************************
+ * 
+ */
+func (testContext *TestContext) FailTest() {
+	noOfTestsThatFailed++
+	testStatus[testContext.testName] = "Fail"
+}
 
 /*******************************************************************************
  * Send a GET request to the SafeHarborServer, at the specified REST endpoint method
@@ -61,7 +93,7 @@ func (testContext *TestContext) sendReq(sessionId string, reqMethod string,
 	var request *http.Request
 	var err error
 	request, err = http.NewRequest(reqMethod, urlstr, reader)
-		assertErrIsNil(err, "")
+		testContext.assertErrIsNil(err, "")
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	if sessionId != "" { request.Header.Set("Session-Id", sessionId) }
 	
@@ -71,7 +103,7 @@ func (testContext *TestContext) sendReq(sessionId string, reqMethod string,
 	}
 	client := &http.Client{Transport: tr}
 	resp, err = client.Do(request)
-	assertErrIsNil(err, "")
+	testContext.assertErrIsNil(err, "")
 	return resp
 }
 
@@ -91,18 +123,18 @@ func (testContext *TestContext) sendFilePost(sessionId string, reqName string, n
 	
 	// Add file
 	f, err := os.Open(path)
-	assertErrIsNil(err, "Cannot open path: " + path)
+	testContext.assertErrIsNil(err, "Cannot open path: " + path)
 	fw, err := w.CreateFormFile("filename", path)
-	assertErrIsNil(err, "Cannot create form file: " + path)
+	testContext.assertErrIsNil(err, "Cannot create form file: " + path)
 	_, err = io.Copy(fw, f)
-	assertErrIsNil(err, "Could not copy file")
+	testContext.assertErrIsNil(err, "Could not copy file")
 	
 	// Add the other fields
 	for index, each := range names {
 		fw, err = w.CreateFormField(each)
-		assertErrIsNil(err, "Could not create form field, " + each)
+		testContext.assertErrIsNil(err, "Could not create form field, " + each)
 		_, err = fw.Write([]byte(values[index]))
-		assertErrIsNil(err, "Could not write to file; index=" + string(index))
+		testContext.assertErrIsNil(err, "Could not write to file; index=" + string(index))
 	}
 	
 	// Don't forget to close the multipart writer.
@@ -111,7 +143,7 @@ func (testContext *TestContext) sendFilePost(sessionId string, reqName string, n
 
 	// Now that you have a form, you can submit it to your handler.
 	req, err := http.NewRequest("POST", urlstr, &b)
-	assertErrIsNil(err, "When creating a POST request for " + urlstr)
+	testContext.assertErrIsNil(err, "When creating a POST request for " + urlstr)
 	
 	// Don't forget to set the content type, this will contain the boundary.
 	req.Header.Set("Content-Type", w.FormDataContentType())
@@ -120,7 +152,7 @@ func (testContext *TestContext) sendFilePost(sessionId string, reqName string, n
 	// Submit the request
 	client := &http.Client{}
 	res, err := client.Do(req)
-	assertErrIsNil(err, "When doing request")
+	testContext.assertErrIsNil(err, "When doing request")
 
 	return res
 }
@@ -129,38 +161,63 @@ func (testContext *TestContext) sendFilePost(sessionId string, reqName string, n
  * Parse an HTTP JSON response that can be converted to a map.
  */
 func parseResponseBodyToMap(body io.ReadCloser) map[string]interface{} {
-	var obj interface{} = parseResponseBody(body)
-	var result map[string]interface{}
-	var isType bool
+	var value []byte = parseResponseBody(body)
+	var obj map[string]interface{}
+	err := json.Unmarshal(value, &obj)
+	//var dec *json.Decoder = json.NewDecoder(body)
+	//err := dec.Decode(&obj)
+	if err != nil { fmt.Println(err.Error()) }
+	//assertErrIsNil(err, "When unmarshalling obj")
 	
-	result, isType = obj.(map[string]interface{})
-	assertThat(isType, "Wrong type: obj is not a map[string]interface{}")
-	return result
+	
+	//var result map[string]interface{}
+	//var isType bool
+	
+	//result, _ = obj.(map[string]interface{})
+	//assertThat(isType, "Wrong type: obj is not a map[string]interface{}")
+	return obj
 }
 
 /*******************************************************************************
  * Parse an HTTP JSON response that can be converted to an array of maps.
  */
 func parseResponseBodyToMaps(body io.ReadCloser) []map[string]interface{} {
-	var obj interface{} = parseResponseBody(body)
-	var result []map[string]interface{}
-	var isType bool
-	
-	result, isType = obj.([]map[string]interface{})
-	assertThat(isType, "Wrong type: obj is not a map[string]interface{}")
-	return result
+	var value []byte = parseResponseBody(body)
+	var obj []map[string]interface{}
+	err := json.Unmarshal(value, &obj)
+	if err != nil { fmt.Println(err.Error()) }
+	//var isType bool
+	//result, isType = obj.([]map[string]interface{})
+	//if ! isType {
+	//	fmt.Println("This is what was returned:")
+	//	fmt.Println(result)
+	//}
+	//assertThat(isType, "Wrong type: obj is not a []map[string]interface{} - it is a " + 
+	//	fmt.Sprintf("%s", reflect.TypeOf(obj)))
+	return obj
 }
 
 /*******************************************************************************
  * Parse an arbitrary HTTP JSON response.
  */
-func parseResponseBody(body io.ReadCloser) interface{} {
+func parseResponseBody(body io.ReadCloser) []byte {
 	
-	var dec *json.Decoder = json.NewDecoder(body)
-	var obj interface{}
-	err := dec.Decode(&obj)
-	assertErrIsNil(err, "When unmarshalling obj")
-	return obj
+	var value []byte = make([]byte, 0)
+	//var s string = ""
+	for {
+		var buf []byte = make([]byte, 100)
+		n, err := body.Read(buf)
+		if n > 0 { value = append(value, buf[0:n]...) }
+		//fmt.Println("Read", string(buf))
+		if err != nil { break }
+		if n < len(buf) { break }
+	}
+	fmt.Println("Read this:")
+	fmt.Println(string(value))
+	fmt.Println("--")
+	fmt.Println()
+	
+	return value
 }
 
 /*******************************************************************************
@@ -176,23 +233,27 @@ func printMap(m map[string]interface{}) {
 /*******************************************************************************
  * If the response is not 200, then throw an exception.
  */
-func verify200Response(resp *http.Response) {
-	assertThat(resp.StatusCode == 200, fmt.Sprintf("Response code %d", resp.StatusCode))
+func (testContext *TestContext) verify200Response(resp *http.Response) {
+	testContext.assertThat(resp.StatusCode == 200, fmt.Sprintf(
+		"Response code %d", resp.StatusCode))
 	fmt.Println("Response code ", resp.StatusCode)
 }
 
 /*******************************************************************************
- * If the specified condition is not true, then thrown an exception with the message.
+ * If the specified condition is not true, then print an error message.
  */
-func assertThat(condition bool, msg string) {
-	if ! condition { panic(errors.New(fmt.Sprintf("ERROR: %s", msg))) }
+func (testContext *TestContext) assertThat(condition bool, msg string) {
+	if ! condition {
+		testContext.FailTest()
+		fmt.Println(fmt.Sprintf("ERROR: %s", msg))
+	}
 }
 
 /*******************************************************************************
  * 
  */
-func assertErrIsNil(err error, msg string) {
+func (testContext *TestContext) assertErrIsNil(err error, msg string) {
 	if err == nil { return }
+	testContext.FailTest()
 	fmt.Print(msg)
-	panic(err)
 }
