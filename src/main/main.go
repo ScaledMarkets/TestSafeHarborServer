@@ -105,7 +105,22 @@ func main() {
 	// Assumes that server is in debug mode, which creates test data.
 	testContext.assertThat(len(realmIds) == 4, "Wrong number of realms found")
 	
+	var myDockerfileIds []string = testContext.TryGetMyDockerfiles()
+	testContext.assertThat(len(myDockerfileIds) == 1, "Wrong number of dockerfiles")
 	
+	var myDockerImageIds []string = testContext.TryGetMyDockerImages()
+	testContext.assertThat(len(myDockerImageIds) == 1, "Wrong number of docker images")
+	
+	var realmUsers []string = testContext.TryGetRealmUsers(realmIds)
+	testContext.assertThat(len(realmUsers) == 1, "Wrong number of realm users")
+	
+	
+	var realm3Id string
+	var user3Id string
+	realm3Id, user3Id = testContext.TryCreateRealmAnon("Realm3", "Realm 3 Org",
+		"realm3admin", "Realm 3 Admin Full Name", "realm3admin@gmail.com", "realm3adminpswd")
+	testContext.assertThat(realm3Id != nil, "Realm Id is nil")
+	testContext.assertThat(user3Id != nil, "User Id is nil")
 	
 	testContext.TryCreateGroup()
 	
@@ -567,6 +582,158 @@ func (testContext *TestContext) TryGetAllRealms() []string {
 		result = append(result, retRealmId)
 	}
 	return result
+}
+
+/*******************************************************************************
+ * Returns the Ids of the dockerfiles.
+ */
+func (testContext *TestContext) TryGetMyDockerfiles() []string {
+	
+	var resp *http.Response = testContext.sendPost(testContext.sessionId,
+		"getMyDockerfiles",
+		[]string{},
+		[]string{})
+	
+	defer resp.Body.Close()
+
+	testContext.verify200Response(resp)
+	
+	var responseMaps []map[string]interface{} = parseResponseBodyToMaps(resp.Body)
+	var result []string = make([]string, 0)
+	for _, responseMap := range responseMaps {
+		printMap(responseMap)
+		var retId string = responseMap["Id"].(string)
+		var retName string = responseMap["Name"].(string)
+	
+		testContext.assertThat(retId != "", "Returned Id is empty string")
+		testContext.assertThat(retName != "", "Returned Name is empty string")
+		
+		result = append(result, retId)
+	}
+	return result
+}
+
+/*******************************************************************************
+ * Returns the Ids of the image objects.
+ */
+func (testContext *TestContext) TryGetMyDockerImages() []string {
+	
+	var resp *http.Response = testContext.sendPost(testContext.sessionId,
+		"getMyDockerImages",
+		[]string{},
+		[]string{})
+	
+	defer resp.Body.Close()
+
+	testContext.verify200Response(resp)
+	
+	var responseMaps []map[string]interface{} = parseResponseBodyToMaps(resp.Body)
+	var result []string = make([]string, 0)
+	for _, responseMap := range responseMaps {
+		printMap(responseMap)
+		var retObjId string = responseMap["ObjId"].(string)
+		var retDockerImageTag string = responseMap["DockerImageTag"].(string)
+	
+		testContext.assertThat(retObjId != "", "Returned ObjId is empty string")
+		testContext.assertThat(retDockerImageTag != "", "Returned DockerImageTag is empty string")
+		
+		result = append(result, retObjId)
+	}
+	return result
+}
+
+/*******************************************************************************
+ * Returns the obj Ids of the realm's users.
+ */
+func (testContext *TestContext) TryGetRealmUsers(realmId string) []string {
+	
+	var resp *http.Response = testContext.sendPost(testContext.sessionId,
+		"getRealmUsers",
+		[]string{"RealmId"},
+		[]string{realmId})
+	
+	defer resp.Body.Close()
+
+	testContext.verify200Response(resp)
+	
+	var responseMap []map[string]interface{}
+	responseMap  = parseResponseBodyToMaps(resp.Body)
+	var result []string = make([]string, 0)
+	for _, responseMap := range responseMaps {
+		var retId string = responseMap["Id"].(string)
+		var retUserName string = responseMap["UserName"].(string)
+		var retGroupId string = responseMap["GroupId"].(string)
+		var retRealmId string = responseMap["RealmId"].(string)
+		printMap(responseMap)
+		testContext.assertThat(retId != "", "Empty Id returned")
+		testContext.assertThat(retUserName != "", "Empty UserName returned")
+		testContext.assertThat(retGroupId != "", "Empty GroupId returned")
+		testContext.assertThat(retRealmId != "", "Empty RealmId returned")
+		result = append(result, retId)
+	}
+	return result
+}
+
+/*******************************************************************************
+ * Returns the (Id, Id) of the created realm and user, respectively
+ */
+func (testContext *TestContext) TryCreateRealmAnon(realmName, orgFullName,
+	adminUserId, adminUserFullName, adminEmailAddr, adminPassword string) (string, string) {
+	
+	var resp1 *http.Response = testContext.sendPost(testContext.sessionId,
+		"createRealmAnon",
+		[]string{"UserId", "UserName", "EmailAddress", "Password", "Name", "OrgFullName"},
+		[]string{adminUserId, adminUserFullName, adminEmailAddr, adminPassword,
+			realmName, orgFullName})
+	
+		// Returns UserDesc, which contains:
+		// Id (never changes)
+		// UserName
+		// GroupId
+		// RealmId
+
+	defer resp1.Body.Close()
+
+	testContext.verify200Response(resp1)
+	
+	var response1Map map[string]interface{}
+	response1Map  = parseResponseBodyToMap(resp1.Body)
+	var retId string = response1Map["Id"].(string)
+	var retUserName string = response1Map["UserName"].(string)
+	var retGroupId string = response1Map["GroupId"].(string)
+	var retRealmId string = response1Map["RealmId"].(string)
+	printMap(response1Map)
+	testContext.assertThat(retId != "", "Empty return Id")
+	testContext.assertThat(retUserName != "", "Empty return UserName")
+	testContext.assertThat(retGroupId != "", "Empty return GroupId")
+	testContext.assertThat(retRealmId != "", "Empty return RealmId")
+	
+	// Now retrieve the description of the realm that we just created.
+	var resp2 *http.Response = testContext.sendPost(testContext.sessionId,
+		"getRealmDesc",
+		[]string{"RealmId"},
+		[]string{retRealmId})
+	
+		// Returns RealmDesc, which contains:
+		// Id
+		// Name
+		// OrgFullName
+	
+	defer resp2.Body.Close()
+
+	testContext.verify200Response(resp2)
+	
+	var response2Map map[string]interface{}
+	response2Map  = parseResponseBodyToMap(resp2.Body)
+	var ret2Id string = response2Map["Id"].(string)
+	var ret2Name string = response2Map["Name"].(string)
+	var ret2OrgFullName string = response2Map["OrgFullName"].(string)
+	printMap(response2Map)
+	testContext.assertThat(ret2Id != "", "Empty return Id")
+	testContext.assertThat(ret2Name != "", "Empty return Name")
+	testContext.assertThat(ret2OrgFullName != "", "Empty return Org Full Name")
+	
+	return ret2Id, retId
 }
 
 /*******************************************************************************
