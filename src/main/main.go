@@ -64,6 +64,12 @@ func main() {
 	var jrealm2Id string = testContext.TryCreateRealm("John's Second Realm")
 	testContext.assertThat(jrealm2Id != "", "TryCreateRealm failed")
 	
+	var sarahConnerUserObjId string = testContext.TryCreateUser("sconnor", "Sarah Connor", jrealm2Id)
+	testContext.assertThat(sarahConnerUserObjId != "", "TryCreateUser failed")
+	
+	var johnConnerUserObjId string = testContext.TryCreateUser("jconnor", "John Connor", jrealm2Id)
+	testContext.assertThat(johnConnerUserObjId != "", "TryCreateUser failed")
+	
 	// Test ability create a repo.
 	var repoId string = testContext.TryCreateRepo(realmId, "John's Repo")
 	testContext.assertThat(repoId != "", "TryCreateRepo failed")
@@ -80,17 +86,6 @@ func main() {
 	var dockerfileNames []string = testContext.TryGetDockerfiles(repoId)
 	testContext.assertThat(len(dockerfileNames) == 1, "Wrong number of dockerfiles")
 	
-	// Test ability to build image from a dockerfile.
-	var dockerImageObjId string
-	var imageId string
-	dockerImageObjId, imageId = testContext.TryExecDockerfile(repoId, dockerfileId, "myimage")
-	testContext.assertThat(dockerImageObjId != "", "TryExecDockerfile failed - obj id is nil")
-	testContext.assertThat(imageId != "", "TryExecDockerfile failed - docker image id is nil")
-	
-	// Test ability to list the images in a repo.
-	var imageNames []string = testContext.TryGetImages(repoId)
-	testContext.assertThat(len(imageNames) == 1, "Wrong number of images")
-	
 	// Test ability to retrieve user by user id from realm.
 	var userObjId = testContext.TryGetRealmUser(realmId, userId)
 	testContext.assertThat(userObjId == johnDoeUserObjId, "Looking up user by user id failed")
@@ -105,22 +100,52 @@ func main() {
 	// Assumes that server is in debug mode, which creates test data.
 	testContext.assertThat(len(realmIds) == 4, "Wrong number of realms found")
 	
+	userObjId = testContext.TryGetMyInfo()
+	testContext.assertThat(userObjId == johnDoeUserObjId,
+		"Returned user obj id was " + userObjId)
+	
+	
+	var myRealms []string = testContext.TryGetMyRealms()
+	testContext.assertThat(len(myRealms) == 2, fmt.Sprintf(
+		"Only returned %d realms", len(myRealms)))
+	
+	
+	var myRepos []string = testContext.TryGetMyRepos()
+	testContext.assertThat(len(myRepos) == 2, fmt.Sprintf(
+		"Only returned %d repos", len(myRepos)))
+	
+	// Passed up to here.
+	
+	var realm3Id string
+	var user3Id string
+	realm3Id, user3Id = testContext.TryCreateRealmAnon("Realm3", "Realm 3 Org",
+		"realm3admin", "Realm 3 Admin Full Name", "realm3admin@gmail.com", "realm3adminpswd")
+	testContext.assertThat(realm3Id != "", "Realm Id is empty")
+	testContext.assertThat(user3Id != "", "User Id is empty")
+	
+	// Test ability to build image from a dockerfile.
+	var dockerImageObjId string
+	var imageId string
+	dockerImageObjId, imageId = testContext.TryExecDockerfile(repoId, dockerfileId, "myimage")
+	testContext.assertThat(dockerImageObjId != "", "TryExecDockerfile failed - obj id is nil")
+	testContext.assertThat(imageId != "", "TryExecDockerfile failed - docker image id is nil")
+	
+	// Test ability to list the images in a repo.
+	var imageNames []string = testContext.TryGetImages(repoId)
+	testContext.assertThat(len(imageNames) == 1, "Wrong number of images")
+	
 	var myDockerfileIds []string = testContext.TryGetMyDockerfiles()
 	testContext.assertThat(len(myDockerfileIds) == 1, "Wrong number of dockerfiles")
 	
 	var myDockerImageIds []string = testContext.TryGetMyDockerImages()
 	testContext.assertThat(len(myDockerImageIds) == 1, "Wrong number of docker images")
 	
-	var realmUsers []string = testContext.TryGetRealmUsers(realmIds)
-	testContext.assertThat(len(realmUsers) == 1, "Wrong number of realm users")
+	var realmUsers []string = testContext.TryGetRealmUsers(jrealm2Id)
+	testContext.assertThat(len(realmUsers) == 2, "Wrong number of realm users")
 	
 	
-	var realm3Id string
-	var user3Id string
-	realm3Id, user3Id = testContext.TryCreateRealmAnon("Realm3", "Realm 3 Org",
-		"realm3admin", "Realm 3 Admin Full Name", "realm3admin@gmail.com", "realm3adminpswd")
-	testContext.assertThat(realm3Id != nil, "Realm Id is nil")
-	testContext.assertThat(user3Id != nil, "User Id is nil")
+	testContext.TryScanImage()
+	
 	
 	testContext.TryCreateGroup()
 	
@@ -146,25 +171,8 @@ func main() {
 	testContext.TryAddPermission()
 	
 	
-	testContext.TryScanImage()
-	
-	
-	userObjId = testContext.TryGetMyInfo()
-	testContext.assertThat(userObjId == johnDoeUserObjId,
-		"Returned user obj id was " + userObjId)
-	
-	
 	testContext.TryGetMyGroups()
 	
-	
-	var myRealms []string = testContext.TryGetMyRealms()
-	testContext.assertThat(len(myRealms) == 2, fmt.Sprintf(
-		"Only returned %d realms", len(myRealms)))
-	
-	
-	var myRepos []string = testContext.TryGetMyRepos()
-	testContext.assertThat(len(myRepos) == 2, fmt.Sprintf(
-		"Only returned %d repos", len(myRepos)))
 	
 	testContext.TryDeleteUser()
 	
@@ -656,8 +664,8 @@ func (testContext *TestContext) TryGetRealmUsers(realmId string) []string {
 
 	testContext.verify200Response(resp)
 	
-	var responseMap []map[string]interface{}
-	responseMap  = parseResponseBodyToMaps(resp.Body)
+	var responseMaps []map[string]interface{}
+	responseMaps  = parseResponseBodyToMaps(resp.Body)
 	var result []string = make([]string, 0)
 	for _, responseMap := range responseMaps {
 		var retId string = responseMap["Id"].(string)
