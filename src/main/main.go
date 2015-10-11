@@ -153,21 +153,20 @@ func main() {
 	var realmUsers []string = testContext.TryGetRealmUsers(jrealm2Id)
 	testContext.assertThat(len(realmUsers) == 2, "Wrong number of realm users")
 	
+	var group1Id string = testContext.TryCreateGroup(jrealm2Id, "MyGroup", "For Overthrowning Skynet")
+	testContext.assertThat(group1Id != "", "Empty group Id returned")
 	
-	testContext.TryScanImage()
+	var success bool = testContext.TryAddGroupUser(group1Id, johnConnerUserObjId)
+	testContext.assertThat(success, "TryAddGroupUser failed")
 	
+	success = testContext.TryAddGroupUser(group1Id, sarahConnerUserObjId)
+	testContext.assertThat(success, "TryAddGroupUser failed")
 	
-	//....testContext.TryCreateGroup()
+	var myGroupUsers []string = testContext.TryGetGroupUsers(group1Id)
+	testContext.assertThat(len(myGroupUsers) == 2, "Wrong number of group users")
 	
-	
-	//....testContext.TryGetGroupUsers()
-	
-	
-	//....testContext.TryAddGroupUser()
-	
-	
-	testContext.TryGetRealmGroups()
-	
+	var jrealm2GroupIds []string = testContext.TryGetRealmGroups(jrealm2Id)
+	testContext.assertThat(len(jrealm2GroupIds) == 1, "Wrong number of realm groups")
 	
 	testContext.TryReplaceDockerfile()
 	
@@ -204,6 +203,10 @@ func main() {
 	
 	testContext.TryRemPermission()
 
+	//....testContext.TryDefineQualityScan(Script, SuccessGraphicImageURL, FailureGraphicImageURL)
+
+	testContext.TryScanImage()
+	
 
 	// Test ability to receive progress while a Dockerfile is processed.
 	
@@ -501,19 +504,101 @@ func (testContext *TestContext) TryGetRealmUser(realmId, userId string) string {
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryCreateGroup() {
+func (testContext *TestContext) TryCreateGroup(realmId, name, purpose string) string {
+	testContext.StartTest("TryCreateGroup")
+	
+	var resp *http.Response = testContext.sendPost(testContext.sessionId,
+		"createGroup",
+		[]string{"RealmId", "Name", "Purpose"},
+		[]string{realmId, name, purpose})
+	
+	defer resp.Body.Close()
+
+	testContext.verify200Response(resp)
+	
+	var responseMap map[string]interface{}
+	responseMap  = parseResponseBodyToMap(resp.Body) // returns GroupDesc
+	// Id
+	// Name
+	// Purpose
+	var retId string = responseMap["Id"].(string)
+	var retName string = responseMap["Name"].(string)
+	var retPurpose string = responseMap["Purpose"].(string)
+	printMap(responseMap)
+	
+	testContext.assertThat(retId != "", "Returned Id is empty")
+	testContext.assertThat(retName != "", "Returned Name is empty")
+	testContext.assertThat(retPurpose != "", "Returned Purpose is empty")
+	
+	return retId
+}
+
+/*******************************************************************************
+ * Return an array of the user object ids.
+ */
+func (testContext *TestContext) TryGetGroupUsers(groupId string) []string {
+	testContext.StartTest("TryGetGroupUsers")
+
+	var resp *http.Response = testContext.sendPost(testContext.sessionId,
+		"getGroupUsers",
+		[]string{"GroupId"},
+		[]string{groupId})
+	
+	defer resp.Body.Close()
+
+	testContext.verify200Response(resp)
+	
+	var responseMaps []map[string]interface{}
+	responseMaps  = parseResponseBodyToMaps(resp.Body)  // returns [UserDesc]
+	// Id (never changes)
+	// UserName
+	// GroupId
+	// RealmId
+	var result []string = make([]string, 0)
+	for _, responseMap := range responseMaps {
+		printMap(responseMap)
+		var retId string = responseMap["Id"].(string)
+		var retUserName string = responseMap["UserName"].(string)
+		var retGroupId string = responseMap["GroupId"].(string)
+		var retRealmId string = responseMap["RealmId"].(string)
+	
+		testContext.assertThat(retId != "", "Returned Id is empty")
+		testContext.assertThat(retUserName != "", "Returned UserName is empty")
+		testContext.assertThat(retGroupId != "", "Returned GroupId is empty")
+		testContext.assertThat(retRealmId != "", "Returned RealmId is empty")
+		result = append(result, retId)
+	}
+	
+	return result
 }
 
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryGetGroupUsers() {
-}
+func (testContext *TestContext) TryAddGroupUser(groupId, userId string) bool {
+	testContext.StartTest("TryAddGroupUser")
 
-/*******************************************************************************
- * 
- */
-func (testContext *TestContext) TryAddGroupUser() {
+	var resp *http.Response = testContext.sendPost(testContext.sessionId,
+		"addGroupUser",
+		[]string{"GroupId", "UserId"},
+		[]string{groupId, userId})
+	
+	defer resp.Body.Close()
+
+	testContext.verify200Response(resp)
+	
+	var responseMap map[string]interface{}
+	responseMap  = parseResponseBodyToMap(resp.Body)  // returns Result
+	// Status - A value of “0” indicates success.
+	// Message
+	var retStatus string = responseMap["Status"].(string)
+	var retMessage string = responseMap["Message"].(string)
+	printMap(responseMap)
+	
+	testContext.assertThat(retStatus != "", "Returned Status is empty")
+	testContext.assertThat(retMessage != "", "Returned Message is empty")
+	
+	return true
 }
 
 /*******************************************************************************
@@ -544,7 +629,37 @@ func (testContext *TestContext) TryAddRealmUser(realmId string, userObjId string
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryGetRealmGroups() {
+func (testContext *TestContext) TryGetRealmGroups(realmId string) []string {
+	testContext.StartTest("TryGetRealmGroups")
+
+	var resp *http.Response = testContext.sendPost(testContext.sessionId,
+		"getRealmGroups",
+		[]string{"RealmId"},
+		[]string{realmId})
+	
+	defer resp.Body.Close()
+
+	testContext.verify200Response(resp)
+	
+	var responseMaps []map[string]interface{}
+	responseMaps  = parseResponseBodyToMaps(resp.Body)  // returns [GroupDesc]
+	// Id
+	// Name
+	// Purpose
+	var result []string = make([]string, 0)
+	for _, responseMap := range responseMaps {
+		printMap(responseMap)
+		var retId string = responseMap["Id"].(string)
+		var retName string = responseMap["Name"].(string)
+		var retPurpose string = responseMap["Purpose"].(string)
+	
+		testContext.assertThat(retId != "", "Returned group Id is empty")
+		testContext.assertThat(retName != "", "Returned group Name is empty")
+		testContext.assertThat(retPurpose != "", "Returned group Purpose is empty")
+		result = append(result, retId)
+	}
+	
+	return result
 }
 
 /*******************************************************************************
@@ -793,7 +908,16 @@ func (testContext *TestContext) TryAddPermission() {
 /*******************************************************************************
  * 
  */
+func (testContext *TestContext) TryDefineQualityScan(Script,
+	SuccessGraphicImageURL, FailureGraphicImageURL string) {
+	testContext.StartTest("TryDefineQualityScan")
+}
+
+/*******************************************************************************
+ * 
+ */
 func (testContext *TestContext) TryScanImage() {
+	testContext.StartTest("TryScanImage")
 }
 
 
