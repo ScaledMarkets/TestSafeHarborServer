@@ -157,13 +157,13 @@ func main() {
 	testContext.TryScanImage()
 	
 	
-	....testContext.TryCreateGroup()
+	//....testContext.TryCreateGroup()
 	
 	
-	....testContext.TryGetGroupUsers()
+	//....testContext.TryGetGroupUsers()
 	
 	
-	....testContext.TryAddGroupUser()
+	//....testContext.TryAddGroupUser()
 	
 	
 	testContext.TryGetRealmGroups()
