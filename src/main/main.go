@@ -17,19 +17,24 @@ type TestContext struct {
 	port string
 	sessionId string
 	testName string
+	stopOnFirstError bool
 }
 
 func main() {
 	
 	if len(os.Args) < 3 {
-		fmt.Fprintf(os.Stderr, "Usage: %s <hostname> <port>\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage: %s <hostname> <port> [stop]\n", os.Args[0])
 		os.Exit(2)
 	}
+	
+	var stopOnFirstError bool = false
+	if len(os.Args) > 3 { if os.Args[3] == "stop" { stopOnFirstError = true } }
 	
 	var testContext *TestContext = &TestContext{
 		hostname: os.Args[1],
 		port: os.Args[2],
 		sessionId: "",
+		stopOnFirstError: stopOnFirstError,
 	}
 	
 	fmt.Println("Note: Ensure that the docker daemon is running on the server,",
@@ -43,13 +48,14 @@ func main() {
 	fmt.Println("sessionId =", sessionId)
 	
 	// Test ability to create a realm.
-	var realmId string = testContext.TryCreateRealm("MyRealm")
+	var realmId string = testContext.TryCreateRealm("MyRealm", "A Big Company", "bigshotadmin")
 	testContext.assertThat(realmId != "", "TryCreateRealm failed")
 	
 	// Test ability to create a user for the realm.
 	var userId string = "jdoe"
 	var userName string = "John Doe"
-	var johnDoeUserObjId string = testContext.TryCreateUser(userId, userName, realmId)
+	var johnDoeUserObjId string = testContext.TryCreateUser(userId, userName,
+		"johnd@gmail.com", "weakpswd", realmId)
 	testContext.assertThat(johnDoeUserObjId != "", "TryCreateUser failed")
 	
 	// Login as the user that we just created.
@@ -57,17 +63,21 @@ func main() {
 	testContext.sessionId = sessionId
 	
 	// Test ability to create a realm.
-	var jrealm1Id string = testContext.TryCreateRealm("John's First Realm")
+	var jrealm1Id string = testContext.TryCreateRealm("John's First Realm",
+		"John's Little Outfit", "john")
 	testContext.assertThat(jrealm1Id != "", "TryCreateRealm failed")
 	
 	// Test ability to create a realm.
-	var jrealm2Id string = testContext.TryCreateRealm("John's Second Realm")
+	var jrealm2Id string = testContext.TryCreateRealm("John's Second Realm",
+		"John's Next Venture", "admin")
 	testContext.assertThat(jrealm2Id != "", "TryCreateRealm failed")
 	
-	var sarahConnerUserObjId string = testContext.TryCreateUser("sconnor", "Sarah Connor", jrealm2Id)
+	var sarahConnerUserObjId string = testContext.TryCreateUser("sconnor", 
+		"Sarah Connor", "sarahc@sky.net", "I'llMakePancakes", jrealm2Id)
 	testContext.assertThat(sarahConnerUserObjId != "", "TryCreateUser failed")
 	
-	var johnConnerUserObjId string = testContext.TryCreateUser("jconnor", "John Connor", jrealm2Id)
+	var johnConnerUserObjId string = testContext.TryCreateUser("jconnor",
+		"John Connor", "johnc@sky.net", "ILoveCameron", jrealm2Id)
 	testContext.assertThat(johnConnerUserObjId != "", "TryCreateUser failed")
 	
 	// Test ability create a repo.
@@ -100,7 +110,7 @@ func main() {
 	// Assumes that server is in debug mode, which creates test data.
 	testContext.assertThat(len(realmIds) == 4, "Wrong number of realms found")
 	
-	userObjId = testContext.TryGetMyInfo()
+	userObjId = testContext.TryGetMyDesc()
 	testContext.assertThat(userObjId == johnDoeUserObjId,
 		"Returned user obj id was " + userObjId)
 	
@@ -113,8 +123,6 @@ func main() {
 	var myRepos []string = testContext.TryGetMyRepos()
 	testContext.assertThat(len(myRepos) == 2, fmt.Sprintf(
 		"Only returned %d repos", len(myRepos)))
-	
-	// Passed up to here.
 	
 	var realm3Id string
 	var user3Id string
@@ -134,6 +142,8 @@ func main() {
 	var imageNames []string = testContext.TryGetImages(repoId)
 	testContext.assertThat(len(imageNames) == 1, "Wrong number of images")
 	
+	// Passed up to here.
+	
 	var myDockerfileIds []string = testContext.TryGetMyDockerfiles()
 	testContext.assertThat(len(myDockerfileIds) == 1, "Wrong number of dockerfiles")
 	
@@ -147,13 +157,13 @@ func main() {
 	testContext.TryScanImage()
 	
 	
-	testContext.TryCreateGroup()
+	....testContext.TryCreateGroup()
 	
 	
-	testContext.TryGetGroupUsers()
+	....testContext.TryGetGroupUsers()
 	
 	
-	testContext.TryAddGroupUser()
+	....testContext.TryAddGroupUser()
 	
 	
 	testContext.TryGetRealmGroups()
@@ -213,13 +223,14 @@ func main() {
 /*******************************************************************************
  * Verify that we can create a new realm.
  */
-func (testContext *TestContext) TryCreateRealm(realmName string) string {
+func (testContext *TestContext) TryCreateRealm(realmName, orgFullName,
+	adminUserId string) string {
 	
 	testContext.StartTest("TryCreateRealm")
 	var resp *http.Response = testContext.sendPost(testContext.sessionId,
 		"createRealm",
-		[]string{"Name"},
-		[]string{realmName})
+		[]string{"Name", "OrgFullName", "AdminUserId"},
+		[]string{realmName, orgFullName, adminUserId})
 	
 	defer resp.Body.Close()
 	
@@ -228,24 +239,30 @@ func (testContext *TestContext) TryCreateRealm(realmName string) string {
 	// Get the realm Id that is returned in the response body.
 	var responseMap map[string]interface{}
 	responseMap  = parseResponseBodyToMap(resp.Body)
-	var realmId string = responseMap["Id"].(string)
+	var retId string = responseMap["Id"].(string)
+	var retName string = responseMap["Name"].(string)
+	var retOrgFullName string = responseMap["OrgFullName"].(string)
+	var retAdminUserId string = responseMap["AdminUserId"].(string)
 	printMap(responseMap)
-	testContext.assertThat(realmId != "", "Realm Id not found in response body")
+	testContext.assertThat(retId != "", "Realm Id not found in response body")
+	testContext.assertThat(retName != "", "Realm Name not found in response body")
+	testContext.assertThat(retOrgFullName != "", "Realm OrgFullName not found in response body")
+	testContext.assertThat(retAdminUserId != "", "Realm AdminUserId not found in response body")
 	
-	return realmId
+	return retId
 }
 
 /*******************************************************************************
  * Return the object Id of the new user.
  */
 func (testContext *TestContext) TryCreateUser(userId string, userName string,
-	realmId string) string {
+	email string, pswd string, realmId string) string {
 	testContext.StartTest("TryCreateUser")
 	
 	var resp *http.Response = testContext.sendPost(testContext.sessionId,
 		"createUser",
-		[]string{"UserId", "UserName", "RealmId"},
-		[]string{userId, userName, realmId})
+		[]string{"UserId", "UserName", "EmailAddress", "Password", "RealmId"},
+		[]string{userId, userName, email, pswd, realmId})
 	
 	defer resp.Body.Close()
 
@@ -596,6 +613,7 @@ func (testContext *TestContext) TryGetAllRealms() []string {
  * Returns the Ids of the dockerfiles.
  */
 func (testContext *TestContext) TryGetMyDockerfiles() []string {
+	testContext.StartTest("TryGetMyDockerfiles")
 	
 	var resp *http.Response = testContext.sendPost(testContext.sessionId,
 		"getMyDockerfiles",
@@ -625,6 +643,7 @@ func (testContext *TestContext) TryGetMyDockerfiles() []string {
  * Returns the Ids of the image objects.
  */
 func (testContext *TestContext) TryGetMyDockerImages() []string {
+	testContext.StartTest("TryGetMyDockerImages")
 	
 	var resp *http.Response = testContext.sendPost(testContext.sessionId,
 		"getMyDockerImages",
@@ -654,6 +673,7 @@ func (testContext *TestContext) TryGetMyDockerImages() []string {
  * Returns the obj Ids of the realm's users.
  */
 func (testContext *TestContext) TryGetRealmUsers(realmId string) []string {
+	testContext.StartTest("TryGetRealmUsers")
 	
 	var resp *http.Response = testContext.sendPost(testContext.sessionId,
 		"getRealmUsers",
@@ -685,20 +705,21 @@ func (testContext *TestContext) TryGetRealmUsers(realmId string) []string {
 /*******************************************************************************
  * Returns the (Id, Id) of the created realm and user, respectively
  */
-func (testContext *TestContext) TryCreateRealmAnon(realmName, orgFullName,
-	adminUserId, adminUserFullName, adminEmailAddr, adminPassword string) (string, string) {
+func (testContext *TestContext) TryCreateRealmAnon(realmName, orgFullName, adminUserId,
+	adminUserFullName, adminEmailAddr, adminPassword string) (string, string) {
+	testContext.StartTest("TryCreateRealmAnon")
 	
 	var resp1 *http.Response = testContext.sendPost(testContext.sessionId,
 		"createRealmAnon",
-		[]string{"UserId", "UserName", "EmailAddress", "Password", "Name", "OrgFullName"},
+		[]string{"UserId", "UserName", "EmailAddress", "Password", "Name", "OrgFullName", "AdminUserId"},
 		[]string{adminUserId, adminUserFullName, adminEmailAddr, adminPassword,
-			realmName, orgFullName})
+			realmName, orgFullName, adminUserId})
 	
 		// Returns UserDesc, which contains:
-		// Id (never changes)
-		// UserName
-		// GroupId
-		// RealmId
+		// Id string
+		// UserId string
+		// UserName string
+		// RealmId string
 
 	defer resp1.Body.Close()
 
@@ -706,14 +727,15 @@ func (testContext *TestContext) TryCreateRealmAnon(realmName, orgFullName,
 	
 	var response1Map map[string]interface{}
 	response1Map  = parseResponseBodyToMap(resp1.Body)
-	var retId string = response1Map["Id"].(string)
-	var retUserName string = response1Map["UserName"].(string)
-	var retGroupId string = response1Map["GroupId"].(string)
-	var retRealmId string = response1Map["RealmId"].(string)
 	printMap(response1Map)
+
+	var retId string = response1Map["Id"].(string)
+	var retUserId string = response1Map["UserId"].(string)
+	var retUserName string = response1Map["UserName"].(string)
+	var retRealmId string = response1Map["RealmId"].(string)
 	testContext.assertThat(retId != "", "Empty return Id")
+	testContext.assertThat(retUserId != "", "Empty return UserId")
 	testContext.assertThat(retUserName != "", "Empty return UserName")
-	testContext.assertThat(retGroupId != "", "Empty return GroupId")
 	testContext.assertThat(retRealmId != "", "Empty return RealmId")
 	
 	// Now retrieve the description of the realm that we just created.
@@ -780,11 +802,11 @@ func (testContext *TestContext) TryScanImage() {
 /*******************************************************************************
  * Return the object Id of the current authenticated user.
  */
-func (testContext *TestContext) TryGetMyInfo() string {
-	testContext.StartTest("TryGetMyInfo")
+func (testContext *TestContext) TryGetMyDesc() string {
+	testContext.StartTest("TryGetMyDesc")
 	
 	var resp *http.Response = testContext.sendPost(testContext.sessionId,
-		"getMyInfo",
+		"getMyDesc",
 		[]string{},
 		[]string{})
 	

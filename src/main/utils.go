@@ -234,8 +234,13 @@ func printMap(m map[string]interface{}) {
  * If the response is not 200, then throw an exception.
  */
 func (testContext *TestContext) verify200Response(resp *http.Response) {
-	testContext.assertThat(resp.StatusCode == 200, fmt.Sprintf(
-		"Response code %d", resp.StatusCode))
+	if resp.StatusCode != 200 {
+		fmt.Sprintf("Response code %d", resp.StatusCode)
+		var responseMap map[string]interface{}
+		responseMap  = parseResponseBodyToMap(resp.Body)
+		printMap(responseMap)
+		//if testContext.stopOnFirstError { os.Exit(1) }
+	}
 	fmt.Println("Response code ", resp.StatusCode)
 }
 
@@ -246,6 +251,7 @@ func (testContext *TestContext) assertThat(condition bool, msg string) {
 	if ! condition {
 		testContext.FailTest()
 		fmt.Println(fmt.Sprintf("ERROR: %s", msg))
+		if testContext.stopOnFirstError { os.Exit(1) }
 	}
 }
 
@@ -256,4 +262,5 @@ func (testContext *TestContext) assertErrIsNil(err error, msg string) {
 	if err == nil { return }
 	testContext.FailTest()
 	fmt.Print(msg)
+	if testContext.stopOnFirstError { os.Exit(1) }
 }
