@@ -142,8 +142,6 @@ func main() {
 	var imageNames []string = testContext.TryGetImages(repoId)
 	testContext.assertThat(len(imageNames) == 1, "Wrong number of images")
 	
-	// Passed up to here.
-	
 	var myDockerfileIds []string = testContext.TryGetMyDockerfiles()
 	testContext.assertThat(len(myDockerfileIds) == 1, "Wrong number of dockerfiles")
 	
@@ -168,19 +166,31 @@ func main() {
 	var jrealm2GroupIds []string = testContext.TryGetRealmGroups(jrealm2Id)
 	testContext.assertThat(len(jrealm2GroupIds) == 1, "Wrong number of realm groups")
 	
+	// Passed up to here.
+	
+	var myObjId string = testContext.TryGetMyDesc()
+	
+	var success bool = testContext.TryAddGroupUser(group1Id, myObjId)
+	testContext.assertThat(success, "TryAddGroupUser failed")
+	
+	var myGroupIds []string = testContext.TryGetMyGroups()
+	testContext.assertThat(len(myGroupIds) == 1, "Wrong number of groups")
+	
+	var perms1 []string = []bool{"true", "true", "false", "true", "true"}
+	var aclEntryId1 = testContext.TrySetPermission(userId, dockerfileId, perms1)
+	var retPermMask []string = testContext.TryGetPermission(userId, dockerfileId)
+	for i, p := range retPermMask {
+		testContext.assertThat(p == perms[i], "Returned permission " + i " does not match")
+	}
+		
+		
+	testContext.TryAddPermission()
+	
+	
 	testContext.TryReplaceDockerfile()
 	
 	
 	testContext.TryDownloadImage()
-	
-	
-	testContext.TrySetPermission()
-	
-	
-	testContext.TryAddPermission()
-	
-	
-	testContext.TryGetMyGroups()
 	
 	
 	testContext.TryDeleteUser()
@@ -521,16 +531,18 @@ func (testContext *TestContext) TryCreateGroup(realmId, name, purpose string) st
 	// Id
 	// Name
 	// Purpose
-	var retId string = responseMap["Id"].(string)
+	var retGroupId string = responseMap["GroupId"].(string)
+	var retRealmId string = responseMap["RealmId"].(string)
 	var retName string = responseMap["Name"].(string)
 	var retPurpose string = responseMap["Purpose"].(string)
 	printMap(responseMap)
 	
-	testContext.assertThat(retId != "", "Returned Id is empty")
+	testContext.assertThat(retGroupId != "", "Returned GroupId is empty")
+	testContext.assertThat(retRealmId != "", "Returned RealmId is empty")
 	testContext.assertThat(retName != "", "Returned Name is empty")
 	testContext.assertThat(retPurpose != "", "Returned Purpose is empty")
 	
-	return retId
+	return retGroupId
 }
 
 /*******************************************************************************
@@ -550,21 +562,17 @@ func (testContext *TestContext) TryGetGroupUsers(groupId string) []string {
 	
 	var responseMaps []map[string]interface{}
 	responseMaps  = parseResponseBodyToMaps(resp.Body)  // returns [UserDesc]
-	// Id (never changes)
-	// UserName
-	// GroupId
-	// RealmId
 	var result []string = make([]string, 0)
 	for _, responseMap := range responseMaps {
 		printMap(responseMap)
 		var retId string = responseMap["Id"].(string)
+		var retUserId string = responseMap["UserId"].(string)
 		var retUserName string = responseMap["UserName"].(string)
-		var retGroupId string = responseMap["GroupId"].(string)
 		var retRealmId string = responseMap["RealmId"].(string)
 	
 		testContext.assertThat(retId != "", "Returned Id is empty")
+		testContext.assertThat(retUserId != "", "Returned UserId is empty")
 		testContext.assertThat(retUserName != "", "Returned UserName is empty")
-		testContext.assertThat(retGroupId != "", "Returned GroupId is empty")
 		testContext.assertThat(retRealmId != "", "Returned RealmId is empty")
 		result = append(result, retId)
 	}
@@ -580,7 +588,7 @@ func (testContext *TestContext) TryAddGroupUser(groupId, userId string) bool {
 
 	var resp *http.Response = testContext.sendPost(testContext.sessionId,
 		"addGroupUser",
-		[]string{"GroupId", "UserId"},
+		[]string{"GroupId", "UserObjId"},
 		[]string{groupId, userId})
 	
 	defer resp.Body.Close()
@@ -649,14 +657,16 @@ func (testContext *TestContext) TryGetRealmGroups(realmId string) []string {
 	var result []string = make([]string, 0)
 	for _, responseMap := range responseMaps {
 		printMap(responseMap)
-		var retId string = responseMap["Id"].(string)
+		var retGroupId string = responseMap["GroupId"].(string)
+		var retRealmId string = responseMap["RealmId"].(string)
 		var retName string = responseMap["Name"].(string)
 		var retPurpose string = responseMap["Purpose"].(string)
 	
-		testContext.assertThat(retId != "", "Returned group Id is empty")
+		testContext.assertThat(retGroupId != "", "Returned GroupId is empty")
+		testContext.assertThat(retRealmId != "", "Returned RealmId is empty")
 		testContext.assertThat(retName != "", "Returned group Name is empty")
 		testContext.assertThat(retPurpose != "", "Returned group Purpose is empty")
-		result = append(result, retId)
+		result = append(result, retGroupId)
 	}
 	
 	return result
@@ -804,8 +814,8 @@ func (testContext *TestContext) TryGetRealmUsers(realmId string) []string {
 	var result []string = make([]string, 0)
 	for _, responseMap := range responseMaps {
 		var retId string = responseMap["Id"].(string)
+		var retGroupId string = responseMap["UserId"].(string)
 		var retUserName string = responseMap["UserName"].(string)
-		var retGroupId string = responseMap["GroupId"].(string)
 		var retRealmId string = responseMap["RealmId"].(string)
 		printMap(responseMap)
 		testContext.assertThat(retId != "", "Empty Id returned")
@@ -894,15 +904,93 @@ func (testContext *TestContext) TryDownloadImage() {
 }
 
 /*******************************************************************************
- * 
+ * Return the Id of the new ACLEntry.
  */
-func (testContext *TestContext) TrySetPermission() {
+func (testContext *TestContext) TrySetPermission(partyId, resourceId string,
+	permissions []string) string {
+
+	testContext.StartTest("TrySetPermission")
+	
+	var permMask PermissionMask = NewPermissionMask(canCreate, canRead, canWrite, canExec, canDel)
+	var resp *http.Response = testContext.sendPost(testContext.sessionId,
+		"setPermission",
+		[]string{"PartyId", "ResourceId", "Create", "Read", "Write", "Execute", "Delete"},
+		[]string{partyId, resourceId, permissions[0], permissions[1], permissions[2], permissions[3], permissions[4]})
+	
+	defer resp.Body.Close()
+
+	testContext.verify200Response(resp)
+	
+	var responseMap map[string]interface{}
+	responseMap  = parseResponseBodyToMap(resp.Body)
+	printMap(responseMap)
+
+	var retACLEntryId string = responseMap["ACLEntryId"].(string)
+	var retPartyId string = responseMap["PartyId"].(string)
+	var retResourceId string = responseMap["ResourceId"].(string)
+	var retCreate string = responseMap["Create"].(string)
+	var retRead string = responseMap["Read"].(string)
+	var retWrite string = responseMap["Write"].(string)
+	var retExecute string = responseMap["Execute"].(string)
+	var retDelete string = responseMap["Delete"].(string)
+	testContext.assertThat(retACLEntryId != "", "Empty return retACLEntryId")
+	testContext.assertThat(retPartyId != "", "Empty return retPartyId")
+	testContext.assertThat(retResourceId != "", "Empty return retResourceId")
+	testContext.assertThat(retCreate != "", "Empty return retCreate")
+	testContext.assertThat(retRead != "", "Empty return retRead")
+	testContext.assertThat(retWrite != "", "Empty return retWrite")
+	testContext.assertThat(retExecute != "", "Empty return retExecute")
+	testContext.assertThat(retDelete != "", "Empty return retDelete")
+	return retACLEntryId
 }
 
 /*******************************************************************************
  * 
  */
 func (testContext *TestContext) TryAddPermission() {
+
+	testContext.StartTest("TryAddPermission")
+	//....
+}
+
+/*******************************************************************************
+ * Return an array of string representing the values for the permission mask.
+ */
+func (testContext *TestContext) TryGetPermission(partyId, resourceId string) []string {
+
+	testContext.StartTest("TryGetPermission")
+	
+	var resp *http.Response = testContext.sendPost(testContext.sessionId,
+		"getPermission",
+		[]string{"PartyId", "ResourceId"},
+		[]string{partyId, resourceId})
+	
+	defer resp.Body.Close()
+
+	testContext.verify200Response(resp)
+	
+	var responseMap map[string]interface{}
+	responseMap  = parseResponseBodyToMap(resp.Body)
+	printMap(responseMap)
+	
+	var retACLEntryId string = responseMap["ACLEntryId"].(string)
+	var retPartyId string = responseMap["PartyId"].(string)
+	var retResourceId string = responseMap["ResourceId"].(string)
+	var retCreate string = responseMap["Create"].(string)
+	var retRead string = responseMap["Read"].(string)
+	var retWrite string = responseMap["Write"].(string)
+	var retExecute string = responseMap["Execute"].(string)
+	var retDelete string = responseMap["Delete"].(string)
+	testContext.assertThat(retACLEntryId != "", "Empty return retACLEntryId")
+	testContext.assertThat(retPartyId != "", "Empty return retPartyId")
+	testContext.assertThat(retResourceId != "", "Empty return retResourceId")
+	testContext.assertThat(retCreate != "", "Empty return retCreate")
+	testContext.assertThat(retRead != "", "Empty return retRead")
+	testContext.assertThat(retWrite != "", "Empty return retWrite")
+	testContext.assertThat(retExecute != "", "Empty return retExecute")
+	testContext.assertThat(retDelete != "", "Empty return retDelete")
+	
+	return []string{retCreate, retRead, retWrite, retExecute, retDelete}
 }
 
 /*******************************************************************************
