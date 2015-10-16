@@ -170,17 +170,17 @@ func main() {
 	
 	var myObjId string = testContext.TryGetMyDesc()
 	
-	var success bool = testContext.TryAddGroupUser(group1Id, myObjId)
+	success = testContext.TryAddGroupUser(group1Id, myObjId)
 	testContext.assertThat(success, "TryAddGroupUser failed")
 	
 	var myGroupIds []string = testContext.TryGetMyGroups()
 	testContext.assertThat(len(myGroupIds) == 1, "Wrong number of groups")
 	
-	var perms1 []string = []bool{"true", "true", "false", "true", "true"}
-	var aclEntryId1 = testContext.TrySetPermission(userId, dockerfileId, perms1)
+	var perms1 []string = []string{"true", "true", "false", "true", "true"}
+	var _ = testContext.TrySetPermission(userId, dockerfileId, perms1)
 	var retPermMask []string = testContext.TryGetPermission(userId, dockerfileId)
 	for i, p := range retPermMask {
-		testContext.assertThat(p == perms[i], "Returned permission " + i " does not match")
+		testContext.assertThat(p == perms1[i], "Returned permission " + string(i) + " does not match")
 	}
 		
 		
@@ -911,7 +911,6 @@ func (testContext *TestContext) TrySetPermission(partyId, resourceId string,
 
 	testContext.StartTest("TrySetPermission")
 	
-	var permMask PermissionMask = NewPermissionMask(canCreate, canRead, canWrite, canExec, canDel)
 	var resp *http.Response = testContext.sendPost(testContext.sessionId,
 		"setPermission",
 		[]string{"PartyId", "ResourceId", "Create", "Read", "Write", "Execute", "Delete"},
@@ -1044,7 +1043,34 @@ func (testContext *TestContext) TryGetMyDesc() string {
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryGetMyGroups() {
+func (testContext *TestContext) TryGetMyGroups() []string {
+	testContext.StartTest("TryGetMyGroups")
+	
+	var resp *http.Response = testContext.sendPost(testContext.sessionId,
+		"getMyGroups",
+		[]string{},
+		[]string{})
+	
+	defer resp.Body.Close()
+
+	testContext.verify200Response(resp)
+	
+	var responseMaps []map[string]interface{} = parseResponseBodyToMaps(resp.Body)
+	var result []string = make([]string, 0)
+	for _, responseMap := range responseMaps {
+		printMap(responseMap)
+		var retGroupId string = responseMap["GroupId"].(string)
+		var retRealmId string = responseMap["RealmId"].(string)
+		var retName string = responseMap["Name"].(string)
+		var retPurpose string = responseMap["Purpose"].(string)
+		testContext.assertThat(retGroupId != "", "Returned GroupId is empty string")
+		testContext.assertThat(retRealmId != "", "Empty returned RealmId")
+		testContext.assertThat(retName != "", "Empty returned Name")
+		testContext.assertThat(retPurpose != "", "Empty returned Purpose")
+		
+		result = append(result, retGroupId)
+	}
+	return result
 }
 
 /*******************************************************************************
