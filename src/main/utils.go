@@ -29,6 +29,14 @@ var noOfTestsThatFailed int = 0
  * 
  */
 func (testContext *TestContext) StartTest(name string) {
+	
+	if testContext.httpClient == nil {
+		var tr *http.Transport = &http.Transport{
+			DisableCompression: true,
+		}
+		testContext.httpClient = &http.Client{Transport: tr}
+	}
+	
 	testContext.testName = name
 	testStatus[name] = ""
 	noOfTests++
@@ -98,11 +106,7 @@ func (testContext *TestContext) sendReq(sessionId string, reqMethod string,
 	if sessionId != "" { request.Header.Set("Session-Id", sessionId) }
 	
 	var resp *http.Response
-	var tr *http.Transport = &http.Transport{
-		DisableCompression: true,
-	}
-	client := &http.Client{Transport: tr}
-	resp, err = client.Do(request)
+	resp, err = testContext.httpClient.Do(request)
 	testContext.assertErrIsNil(err, "")
 	return resp
 }
@@ -150,8 +154,7 @@ func (testContext *TestContext) sendFilePost(sessionId string, reqName string, n
 	if sessionId != "" { req.Header.Set("Session-Id", sessionId) }
 
 	// Submit the request
-	client := &http.Client{}
-	res, err := client.Do(req)
+	res, err := testContext.httpClient.Do(req)
 	testContext.assertErrIsNil(err, "When doing request")
 
 	return res
@@ -263,4 +266,11 @@ func (testContext *TestContext) assertErrIsNil(err error, msg string) {
 	testContext.FailTest()
 	fmt.Print(msg)
 	if testContext.stopOnFirstError { os.Exit(1) }
+}
+
+/*******************************************************************************
+ * 
+ */
+func boolToString(b bool) string {
+	if b { return "true" } else { return "false" }	
 }
