@@ -222,8 +222,8 @@ func main() {
 
 	//....testContext.TryDefineQualityScan(Script, SuccessGraphicImageURL, FailureGraphicImageURL)
 
-	testContext.TryScanImage()
-	
+	var scanMessage string = testContext.TryScanImage()
+	testContext.assertThat(scanMessage != "", "Empty scan result message")
 
 	// Test ability to receive progress while a Dockerfile is processed.
 	
@@ -1032,14 +1032,27 @@ func (testContext *TestContext) TryDefineQualityScan(Script,
 }
 
 /*******************************************************************************
- * 
+ * Returns output message.
  */
-func (testContext *TestContext) TryScanImage() {
+func (testContext *TestContext) TryScanImage(scriptId, imageObjId string) string {
 	testContext.StartTest("TryScanImage")
+	
+	var resp *http.Response = testContext.sendPost(testContext.sessionId,
+		"scanImage",
+		[]string{"ScriptId", "ImageObjId"},
+		[]string{scriptId, imageObjId})
+	
+	defer resp.Body.Close()
+
+	testContext.verify200Response(resp)
+	
+	var responseMap map[string]interface{}
+	responseMap  = parseResponseBodyToMap(resp.Body)
+	printMap(responseMap)
+	
+	var msg string = responseMap["Message"].(string)
+	return msg
 }
-
-
-
 
 /*******************************************************************************
  * Return the object Id of the current authenticated user.
