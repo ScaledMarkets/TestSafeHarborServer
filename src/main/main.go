@@ -222,7 +222,8 @@ func main() {
 
 	//....testContext.TryDefineQualityScan(Script, SuccessGraphicImageURL, FailureGraphicImageURL)
 
-	var scanMessage string = testContext.TryScanImage()
+	var scriptId string = ""
+	var scanMessage string = testContext.TryScanImage(scriptId, dockerImageObjId)
 	testContext.assertThat(scanMessage != "", "Empty scan result message")
 
 	// Test ability to receive progress while a Dockerfile is processed.
