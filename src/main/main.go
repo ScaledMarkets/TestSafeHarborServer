@@ -43,6 +43,16 @@ func main() {
 		"run 'sudo service docker start'")
 	fmt.Println()
 	
+	// Verify that we can create a realm without being logged in first.
+	var realm4Id string
+	var user4Id string
+	var user4AdminRealms []interface{}
+	realm4Id, user4Id, user4AdminRealms = testContext.TryCreateRealmAnon("Realm4", "Realm 4 Org",
+		"realm4admin", "Realm 4 Admin Full Name", "realm4admin@gmail.com", "realm4adminpswd")
+	testContext.assertThat(realm4Id != "", "Realm Id is empty")
+	testContext.assertThat(user4Id != "", "User Id is empty")
+	testContext.assertThat(len(user4AdminRealms) == 1, "Wrong number of admin realms")
+	
 	// Log in so that we can do stuff.
 	var sessionId string = testContext.TryAuthenticate("testuser1", "password1")
 	testContext.sessionId = sessionId
@@ -55,9 +65,12 @@ func main() {
 	// Test ability to create a user for the realm.
 	var userId string = "jdoe"
 	var userName string = "John Doe"
-	var johnDoeUserObjId string = testContext.TryCreateUser(userId, userName,
+	var johnDoeUserObjId string
+	var johnDoeAdminRealms []interface{}
+	johnDoeUserObjId, johnDoeAdminRealms = testContext.TryCreateUser(userId, userName,
 		"johnd@gmail.com", "weakpswd", realmId)
 	testContext.assertThat(johnDoeUserObjId != "", "TryCreateUser failed")
+	testContext.assertThat(len(johnDoeAdminRealms) == 0, "Wrong number of admin realms")
 	
 	// Login as the user that we just created.
 	sessionId = testContext.TryAuthenticate(userId, "password1")
@@ -73,13 +86,19 @@ func main() {
 		"John's Next Venture", "admin")
 	testContext.assertThat(jrealm2Id != "", "TryCreateRealm failed")
 	
-	var sarahConnerUserObjId string = testContext.TryCreateUser("sconnor", 
+	var sarahConnorUserObjId string
+	var sarahConnorAdminRealms []interface{}
+	sarahConnorUserObjId, sarahConnorAdminRealms = testContext.TryCreateUser("sconnor", 
 		"Sarah Connor", "sarahc@sky.net", "I'llMakePancakes", jrealm2Id)
-	testContext.assertThat(sarahConnerUserObjId != "", "TryCreateUser failed")
+	testContext.assertThat(sarahConnorUserObjId != "", "TryCreateUser failed")
+	testContext.assertThat(len(sarahConnorAdminRealms) == 0, "Wrong number of admin realms")
 	
-	var johnConnerUserObjId string = testContext.TryCreateUser("jconnor",
+	var johnConnorUserObjId string
+	var johnConnorAdminRealms []interface{}
+	johnConnorUserObjId, johnConnorAdminRealms = testContext.TryCreateUser("jconnor",
 		"John Connor", "johnc@sky.net", "ILoveCameron", jrealm2Id)
-	testContext.assertThat(johnConnerUserObjId != "", "TryCreateUser failed")
+	testContext.assertThat(johnConnorUserObjId != "", "TryCreateUser failed")
+	testContext.assertThat(len(johnConnorAdminRealms) == 0, "Wrong number of admin realms")
 	
 	// Test ability create a repo.
 	var repoId string = testContext.TryCreateRepo(realmId, "John's Repo")
@@ -98,8 +117,11 @@ func main() {
 	testContext.assertThat(len(dockerfileNames) == 1, "Wrong number of dockerfiles")
 	
 	// Test ability to retrieve user by user id from realm.
-	var userObjId = testContext.TryGetRealmUser(realmId, userId)
+	var userObjId string
+	var userAdminRealms []interface{}
+	userObjId, userAdminRealms = testContext.TryGetRealmUser(realmId, userId)
 	testContext.assertThat(userObjId == johnDoeUserObjId, "Looking up user by user id failed")
+	testContext.assertThat(len(userAdminRealms) == 2, "Wrong number of admin realms")
 	
 	//var msg string = testContext.TryAddRealmUser(....realmId, userObjId)
 	
@@ -109,11 +131,12 @@ func main() {
 	
 	var realmIds []string = testContext.TryGetAllRealms()
 	// Assumes that server is in debug mode, which creates test data.
-	testContext.assertThat(len(realmIds) == 4, "Wrong number of realms found")
+	testContext.assertThat(len(realmIds) == 5, "Wrong number of realms found")
 	
-	userObjId = testContext.TryGetMyDesc()
+	userObjId, userAdminRealms = testContext.TryGetMyDesc()
 	testContext.assertThat(userObjId == johnDoeUserObjId,
 		"Returned user obj id was " + userObjId)
+	testContext.assertThat(len(userAdminRealms) == 2, "Wrong number of admin realms")
 	
 	
 	var myRealms []string = testContext.TryGetMyRealms()
@@ -127,10 +150,16 @@ func main() {
 	
 	var realm3Id string
 	var user3Id string
-	realm3Id, user3Id = testContext.TryCreateRealmAnon("Realm3", "Realm 3 Org",
+	var user3AdminRealms []interface{}
+	var saveSessionId string = testContext.sessionId
+	realm3Id, user3Id, user3AdminRealms = testContext.TryCreateRealmAnon("Realm3", "Realm 3 Org",
 		"realm3admin", "Realm 3 Admin Full Name", "realm3admin@gmail.com", "realm3adminpswd")
 	testContext.assertThat(realm3Id != "", "Realm Id is empty")
 	testContext.assertThat(user3Id != "", "User Id is empty")
+	testContext.assertThat(len(user3AdminRealms) == 1, "Wrong number of admin realms")
+	
+	// Restore user context to what it was before we called TryCreateRealmAnon.
+	testContext.sessionId = saveSessionId
 	
 	// Test ability to build image from a dockerfile.
 	var dockerImageObjId string
@@ -155,10 +184,10 @@ func main() {
 	var group1Id string = testContext.TryCreateGroup(jrealm2Id, "MyGroup", "For Overthrowning Skynet")
 	testContext.assertThat(group1Id != "", "Empty group Id returned")
 	
-	var success bool = testContext.TryAddGroupUser(group1Id, johnConnerUserObjId)
+	var success bool = testContext.TryAddGroupUser(group1Id, johnConnorUserObjId)
 	testContext.assertThat(success, "TryAddGroupUser failed")
 	
-	success = testContext.TryAddGroupUser(group1Id, sarahConnerUserObjId)
+	success = testContext.TryAddGroupUser(group1Id, sarahConnorUserObjId)
 	testContext.assertThat(success, "TryAddGroupUser failed")
 	
 	var myGroupUsers []string = testContext.TryGetGroupUsers(group1Id)
@@ -167,7 +196,10 @@ func main() {
 	var jrealm2GroupIds []string = testContext.TryGetRealmGroups(jrealm2Id)
 	testContext.assertThat(len(jrealm2GroupIds) == 1, "Wrong number of realm groups")
 	
-	var myObjId string = testContext.TryGetMyDesc()
+	var myObjId string
+	var myAdminRealms []interface{}
+	myObjId, myAdminRealms = testContext.TryGetMyDesc()
+	testContext.assertThat(len(myAdminRealms) == 2, "Wrong number of admin realms")
 	
 	success = testContext.TryAddGroupUser(group1Id, myObjId)
 	testContext.assertThat(success, "TryAddGroupUser failed")
@@ -222,10 +254,15 @@ func main() {
 
 	//....testContext.TryDefineQualityScan(Script, SuccessGraphicImageURL, FailureGraphicImageURL)
 
-	var scriptId string = ""
-	var scanMessage string = testContext.TryScanImage(scriptId, dockerImageObjId)
-	testContext.assertThat(scanMessage != "", "Empty scan result message")
+	//var scriptId string = ""
+	//var scanMessage string = testContext.TryScanImage(scriptId, dockerImageObjId)
+	//testContext.assertThat(scanMessage != "", "Empty scan result message")
 
+	// Test that permissions work.
+	
+	
+	
+	
 	// Test ability to receive progress while a Dockerfile is processed.
 	
 	// Test ability to make a private image available to the SafeHarbor closed community.
@@ -250,7 +287,7 @@ func (testContext *TestContext) TryCreateRealm(realmName, orgFullName,
 	testContext.StartTest("TryCreateRealm")
 	var resp *http.Response = testContext.sendPost(testContext.sessionId,
 		"createRealm",
-		[]string{"Name", "OrgFullName", "AdminUserId"},
+		[]string{"RealmName", "OrgFullName", "AdminUserId"},
 		[]string{realmName, orgFullName, adminUserId})
 	
 	defer resp.Body.Close()
@@ -261,7 +298,7 @@ func (testContext *TestContext) TryCreateRealm(realmName, orgFullName,
 	var responseMap map[string]interface{}
 	responseMap  = parseResponseBodyToMap(resp.Body)
 	var retId string = responseMap["Id"].(string)
-	var retName string = responseMap["Name"].(string)
+	var retName string = responseMap["RealmName"].(string)
 	var retOrgFullName string = responseMap["OrgFullName"].(string)
 	var retAdminUserId string = responseMap["AdminUserId"].(string)
 	printMap(responseMap)
@@ -277,7 +314,7 @@ func (testContext *TestContext) TryCreateRealm(realmName, orgFullName,
  * Return the object Id of the new user.
  */
 func (testContext *TestContext) TryCreateUser(userId string, userName string,
-	email string, pswd string, realmId string) string {
+	email string, pswd string, realmId string) (string, []interface{}) {
 	testContext.StartTest("TryCreateUser")
 	
 	var resp *http.Response = testContext.sendPost(testContext.sessionId,
@@ -295,6 +332,7 @@ func (testContext *TestContext) TryCreateUser(userId string, userName string,
 	var retUserId string = responseMap["UserId"].(string)
 	var retUserName string = responseMap["UserName"].(string)
 	var retRealmId string = responseMap["RealmId"].(string)
+	var retCanModifyTheseRealms []interface{} = responseMap["CanModifyTheseRealms"].([]interface{})
 	printMap(responseMap)
 	
 	testContext.assertThat(retUserObjId != "", "User obj Id not returned")
@@ -304,8 +342,9 @@ func (testContext *TestContext) TryCreateUser(userId string, userName string,
 		" does not match the original user name")
 	testContext.assertThat(retRealmId == realmId, "Returned realm Id, " + retRealmId +
 		" does not match the original realm Id")
+	testContext.assertThat(retCanModifyTheseRealms != nil, "No realms returned")
 	
-	return retUserObjId
+	return retUserObjId, retCanModifyTheseRealms
 }
 
 /*******************************************************************************
@@ -326,10 +365,9 @@ func (testContext *TestContext) TryAuthenticate(userId string, pswd string) stri
 	// Get the repo Id that is returned in the response body.
 	var responseMap map[string]interface{}
 	responseMap  = parseResponseBodyToMap(resp.Body)
+	printMap(responseMap)
 	var retSessionId string = responseMap["UniqueSessionId"].(string)
 	var retUserId string = responseMap["AuthenticatedUserid"].(string)
-	printMap(responseMap)
-	
 	testContext.assertThat(retSessionId != "", "Session id is empty string")
 	testContext.assertThat(retUserId == userId, "Returned user id '" + retUserId + "' does not match user id")
 	return retSessionId
@@ -354,7 +392,7 @@ func (testContext *TestContext) TryCreateRepo(realmId string, name string) strin
 	var responseMap map[string]interface{}
 	responseMap  = parseResponseBodyToMap(resp.Body)
 	var repoId string = responseMap["Id"].(string)
-	var repoName string = responseMap["Name"].(string)
+	var repoName string = responseMap["RepoName"].(string)
 	printMap(responseMap)
 	testContext.assertThat(repoId != "", "Repo Id not found in response body")
 	testContext.assertThat(repoName != "", "Repo Name not found in response body")
@@ -413,7 +451,7 @@ func (testContext *TestContext) TryGetDockerfiles(repoId string) []string {
 	for _, responseMap := range responseMaps {
 		var dockerfileId string = responseMap["Id"].(string)
 		var repoId string = responseMap["RepoId"].(string)
-		var dockerfileName string = responseMap["Name"].(string)
+		var dockerfileName string = responseMap["DockerfileName"].(string)
 
 		printMap(responseMap)
 		testContext.assertThat(dockerfileId != "", "Dockerfile Id not found in response body")
@@ -489,7 +527,7 @@ func (testContext *TestContext) TryGetImages(repoId string) []string {
 /*******************************************************************************
  * Return the object Id of the specified user.
  */
-func (testContext *TestContext) TryGetRealmUser(realmId, userId string) string {
+func (testContext *TestContext) TryGetRealmUser(realmId, userId string) (string, []interface{}) {
 	testContext.StartTest("TryGetRealmUser")
 	
 	var resp *http.Response = testContext.sendPost(testContext.sessionId,
@@ -507,6 +545,7 @@ func (testContext *TestContext) TryGetRealmUser(realmId, userId string) string {
 	var retUserId string = responseMap["UserId"].(string)
 	var retUserName string = responseMap["UserName"].(string)
 	var retRealmId string = responseMap["RealmId"].(string)
+	var retCanModifyTheseRealms []interface{} = responseMap["CanModifyTheseRealms"].([]interface{})
 	printMap(responseMap)
 	
 	testContext.assertThat(retUserObjId != "", "User obj Id not returned")
@@ -515,20 +554,21 @@ func (testContext *TestContext) TryGetRealmUser(realmId, userId string) string {
 	testContext.assertThat(retUserName != "", "Returned user name is blank")
 	testContext.assertThat(retRealmId == realmId, "Returned realm Id, " + retRealmId +
 		" does not match the original realm Id")
+	testContext.assertThat(retCanModifyTheseRealms != nil, "No realms returned")
 	
-	return retUserObjId
+	return retUserObjId, retCanModifyTheseRealms
 }
 
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryCreateGroup(realmId, name, purpose string) string {
+func (testContext *TestContext) TryCreateGroup(realmId, name, description string) string {
 	testContext.StartTest("TryCreateGroup")
 	
 	var resp *http.Response = testContext.sendPost(testContext.sessionId,
 		"createGroup",
-		[]string{"RealmId", "Name", "Purpose"},
-		[]string{realmId, name, purpose})
+		[]string{"RealmId", "Name", "Description"},
+		[]string{realmId, name, description})
 	
 	defer resp.Body.Close()
 
@@ -538,17 +578,19 @@ func (testContext *TestContext) TryCreateGroup(realmId, name, purpose string) st
 	responseMap  = parseResponseBodyToMap(resp.Body) // returns GroupDesc
 	// Id
 	// Name
-	// Purpose
+	// Description
 	var retGroupId string = responseMap["GroupId"].(string)
 	var retRealmId string = responseMap["RealmId"].(string)
-	var retName string = responseMap["Name"].(string)
-	var retPurpose string = responseMap["Purpose"].(string)
+	var retName string = responseMap["GroupName"].(string)
+	var retCreationDate string = responseMap["CreationDate"].(string)
+	var retDescription string = responseMap["Description"].(string)
 	printMap(responseMap)
 	
 	testContext.assertThat(retGroupId != "", "Returned GroupId is empty")
 	testContext.assertThat(retRealmId != "", "Returned RealmId is empty")
 	testContext.assertThat(retName != "", "Returned Name is empty")
-	testContext.assertThat(retPurpose != "", "Returned Purpose is empty")
+	testContext.assertThat(retCreationDate != "", "Returned CreationDate is empty")
+	testContext.assertThat(retDescription != "", "Returned Description is empty")
 	
 	return retGroupId
 }
@@ -577,11 +619,13 @@ func (testContext *TestContext) TryGetGroupUsers(groupId string) []string {
 		var retUserId string = responseMap["UserId"].(string)
 		var retUserName string = responseMap["UserName"].(string)
 		var retRealmId string = responseMap["RealmId"].(string)
+		var retCanModifyTheseRealms []interface{} = responseMap["CanModifyTheseRealms"].([]interface{})
 	
 		testContext.assertThat(retId != "", "Returned Id is empty")
 		testContext.assertThat(retUserId != "", "Returned UserId is empty")
 		testContext.assertThat(retUserName != "", "Returned UserName is empty")
 		testContext.assertThat(retRealmId != "", "Returned RealmId is empty")
+		testContext.assertThat(retCanModifyTheseRealms != nil, "No realms returned")
 		result = append(result, retId)
 	}
 	
@@ -661,19 +705,21 @@ func (testContext *TestContext) TryGetRealmGroups(realmId string) []string {
 	responseMaps  = parseResponseBodyToMaps(resp.Body)  // returns [GroupDesc]
 	// Id
 	// Name
-	// Purpose
+	// Description
 	var result []string = make([]string, 0)
 	for _, responseMap := range responseMaps {
 		printMap(responseMap)
 		var retGroupId string = responseMap["GroupId"].(string)
 		var retRealmId string = responseMap["RealmId"].(string)
-		var retName string = responseMap["Name"].(string)
-		var retPurpose string = responseMap["Purpose"].(string)
+		var retName string = responseMap["GroupName"].(string)
+		var retCreationDate string = responseMap["CreationDate"].(string)
+		var retDescription string = responseMap["Description"].(string)
 	
 		testContext.assertThat(retGroupId != "", "Returned GroupId is empty")
 		testContext.assertThat(retRealmId != "", "Returned RealmId is empty")
 		testContext.assertThat(retName != "", "Returned group Name is empty")
-		testContext.assertThat(retPurpose != "", "Returned group Purpose is empty")
+		testContext.assertThat(retCreationDate != "", "Returned CreationDate is empty")
+		testContext.assertThat(retDescription != "", "Returned group Description is empty")
 		result = append(result, retGroupId)
 	}
 	
@@ -701,7 +747,7 @@ func (testContext *TestContext) TryGetRealmRepos(realmId string) []string {
 		printMap(responseMap)
 		var retRepoId string = responseMap["Id"].(string)
 		var retRealmId string = responseMap["RealmId"].(string)
-		var retName string = responseMap["Name"].(string)
+		var retName string = responseMap["RepoName"].(string)
 	
 		testContext.assertThat(retRepoId != "", "No repo Id returned")
 		testContext.assertThat(retRealmId == realmId, "returned realm Id is nil")
@@ -732,7 +778,7 @@ func (testContext *TestContext) TryGetAllRealms() []string {
 	for _, responseMap := range responseMaps {
 		printMap(responseMap)
 		var retRealmId string = responseMap["Id"].(string)
-		var retName string = responseMap["Name"].(string)
+		var retName string = responseMap["RealmName"].(string)
 	
 		testContext.assertThat(retRealmId != "", "Returned realm Id is empty string")
 		testContext.assertThat(retName != "", "Empty returned Name")
@@ -762,7 +808,7 @@ func (testContext *TestContext) TryGetMyDockerfiles() []string {
 	for _, responseMap := range responseMaps {
 		printMap(responseMap)
 		var retId string = responseMap["Id"].(string)
-		var retName string = responseMap["Name"].(string)
+		var retName string = responseMap["DockerfileName"].(string)
 	
 		testContext.assertThat(retId != "", "Returned Id is empty string")
 		testContext.assertThat(retName != "", "Returned Name is empty string")
@@ -825,11 +871,13 @@ func (testContext *TestContext) TryGetRealmUsers(realmId string) []string {
 		var retGroupId string = responseMap["UserId"].(string)
 		var retUserName string = responseMap["UserName"].(string)
 		var retRealmId string = responseMap["RealmId"].(string)
+		var retCanModifyTheseRealms []interface{} = responseMap["CanModifyTheseRealms"].([]interface{})
 		printMap(responseMap)
 		testContext.assertThat(retId != "", "Empty Id returned")
 		testContext.assertThat(retUserName != "", "Empty UserName returned")
 		testContext.assertThat(retGroupId != "", "Empty GroupId returned")
 		testContext.assertThat(retRealmId != "", "Empty RealmId returned")
+		testContext.assertThat(retCanModifyTheseRealms != nil, "No realms returned")
 		result = append(result, retId)
 	}
 	return result
@@ -839,14 +887,14 @@ func (testContext *TestContext) TryGetRealmUsers(realmId string) []string {
  * Returns the (Id, Id) of the created realm and user, respectively
  */
 func (testContext *TestContext) TryCreateRealmAnon(realmName, orgFullName, adminUserId,
-	adminUserFullName, adminEmailAddr, adminPassword string) (string, string) {
+	adminUserFullName, adminEmailAddr, adminPassword string) (string, string, []interface{}) {
 	testContext.StartTest("TryCreateRealmAnon")
 	
 	var resp1 *http.Response = testContext.sendPost(testContext.sessionId,
 		"createRealmAnon",
-		[]string{"UserId", "UserName", "EmailAddress", "Password", "Name", "OrgFullName", "AdminUserId"},
+		[]string{"UserId", "UserName", "EmailAddress", "Password", "RealmName", "OrgFullName"},
 		[]string{adminUserId, adminUserFullName, adminEmailAddr, adminPassword,
-			realmName, orgFullName, adminUserId})
+			realmName, orgFullName})
 	
 		// Returns UserDesc, which contains:
 		// Id string
@@ -866,13 +914,33 @@ func (testContext *TestContext) TryCreateRealmAnon(realmName, orgFullName, admin
 	var retUserId string = response1Map["UserId"].(string)
 	var retUserName string = response1Map["UserName"].(string)
 	var retRealmId string = response1Map["RealmId"].(string)
+	var retCanModifyTheseRealms []interface{} = response1Map["CanModifyTheseRealms"].([]interface{})
 	testContext.assertThat(retId != "", "Empty return Id")
 	testContext.assertThat(retUserId != "", "Empty return UserId")
 	testContext.assertThat(retUserName != "", "Empty return UserName")
 	testContext.assertThat(retRealmId != "", "Empty return RealmId")
+	testContext.assertThat(retCanModifyTheseRealms != nil, "No realms returned")
+	
+	// Authenticate as the admin user that was just created.
+	var resp2 *http.Response = testContext.sendPost(testContext.sessionId,
+		"authenticate",
+		[]string{"UserId", "Password"},
+		[]string{adminUserId, adminPassword})
+	
+	defer resp2.Body.Close()
+	var response2Map map[string]interface{}
+	response2Map  = parseResponseBodyToMap(resp2.Body)
+	printMap(response2Map)
+	var ret2SessionId string = response2Map["UniqueSessionId"].(string)
+	var ret2UserId string = response2Map["AuthenticatedUserid"].(string)
+	testContext.assertThat(ret2SessionId != "", "Session id is empty string")
+	testContext.assertThat(ret2UserId == adminUserId, "Returned user id '" + ret2UserId + "' does not match user id")
+
+	testContext.verify200Response(resp2)	
+	testContext.sessionId = ret2SessionId
 	
 	// Now retrieve the description of the realm that we just created.
-	var resp2 *http.Response = testContext.sendPost(testContext.sessionId,
+	var resp3 *http.Response = testContext.sendPost(testContext.sessionId,
 		"getRealmDesc",
 		[]string{"RealmId"},
 		[]string{retRealmId})
@@ -882,21 +950,21 @@ func (testContext *TestContext) TryCreateRealmAnon(realmName, orgFullName, admin
 		// Name
 		// OrgFullName
 	
-	defer resp2.Body.Close()
+	defer resp3.Body.Close()
 
-	testContext.verify200Response(resp2)
+	testContext.verify200Response(resp3)
 	
-	var response2Map map[string]interface{}
-	response2Map  = parseResponseBodyToMap(resp2.Body)
-	var ret2Id string = response2Map["Id"].(string)
-	var ret2Name string = response2Map["Name"].(string)
-	var ret2OrgFullName string = response2Map["OrgFullName"].(string)
-	printMap(response2Map)
-	testContext.assertThat(ret2Id != "", "Empty return Id")
-	testContext.assertThat(ret2Name != "", "Empty return Name")
-	testContext.assertThat(ret2OrgFullName != "", "Empty return Org Full Name")
+	var response3Map map[string]interface{}
+	response3Map  = parseResponseBodyToMap(resp3.Body)
+	var ret3Id string = response3Map["Id"].(string)
+	var ret3Name string = response3Map["RealmName"].(string)
+	var ret3OrgFullName string = response3Map["OrgFullName"].(string)
+	printMap(response3Map)
+	testContext.assertThat(ret3Id != "", "Empty return Id")
+	testContext.assertThat(ret3Name != "", "Empty return Name")
+	testContext.assertThat(ret3OrgFullName != "", "Empty return Org Full Name")
 	
-	return ret2Id, retId
+	return ret3Id, retId, retCanModifyTheseRealms
 }
 
 /*******************************************************************************
@@ -1058,7 +1126,7 @@ func (testContext *TestContext) TryScanImage(scriptId, imageObjId string) string
 /*******************************************************************************
  * Return the object Id of the current authenticated user.
  */
-func (testContext *TestContext) TryGetMyDesc() string {
+func (testContext *TestContext) TryGetMyDesc() (string, []interface{}) {
 	testContext.StartTest("TryGetMyDesc")
 	
 	var resp *http.Response = testContext.sendPost(testContext.sessionId,
@@ -1076,13 +1144,15 @@ func (testContext *TestContext) TryGetMyDesc() string {
 	var retUserId string = responseMap["UserId"].(string)
 	var retUserName string = responseMap["UserName"].(string)
 	var retRealmId string = responseMap["RealmId"].(string)
+	var retCanModifyTheseRealms []interface{} = responseMap["CanModifyTheseRealms"].([]interface{})
 
 	testContext.assertThat(retId != "", "Returned Id is empty string")
 	testContext.assertThat(retUserId != "", "Returned UserId is empty string")
 	testContext.assertThat(retUserName != "", "Returned UserName is empty string")
 	testContext.assertThat(retRealmId != "", "Returned RealmId is empty string")
+	testContext.assertThat(retCanModifyTheseRealms != nil, "No realms returned")
 	
-	return retId
+	return retId, retCanModifyTheseRealms
 }
 
 /*******************************************************************************
@@ -1106,12 +1176,14 @@ func (testContext *TestContext) TryGetMyGroups() []string {
 		printMap(responseMap)
 		var retGroupId string = responseMap["GroupId"].(string)
 		var retRealmId string = responseMap["RealmId"].(string)
-		var retName string = responseMap["Name"].(string)
-		var retPurpose string = responseMap["Purpose"].(string)
+		var retName string = responseMap["GroupName"].(string)
+		var retCreationDate string = responseMap["CreationDate"].(string)
+		var retDescription string = responseMap["Description"].(string)
 		testContext.assertThat(retGroupId != "", "Returned GroupId is empty string")
 		testContext.assertThat(retRealmId != "", "Empty returned RealmId")
 		testContext.assertThat(retName != "", "Empty returned Name")
-		testContext.assertThat(retPurpose != "", "Empty returned Purpose")
+		testContext.assertThat(retCreationDate != "", "Empty CreationDate returned")
+		testContext.assertThat(retDescription != "", "Empty returned Description")
 		
 		result = append(result, retGroupId)
 	}
@@ -1138,7 +1210,7 @@ func (testContext *TestContext) TryGetMyRealms() []string {
 	for _, responseMap := range responseMaps {
 		printMap(responseMap)
 		var retId string = responseMap["Id"].(string)
-		var retName string = responseMap["Name"].(string)
+		var retName string = responseMap["RealmName"].(string)
 	
 		testContext.assertThat(retId != "", "Returned Id is empty string")
 		testContext.assertThat(retName != "", "Empty returned Name")
@@ -1169,7 +1241,7 @@ func (testContext *TestContext) TryGetMyRepos() []string {
 		printMap(responseMap)
 		var retId string = responseMap["Id"].(string)
 		var retRealmId string = responseMap["RealmId"].(string)
-		var retName string = responseMap["Name"].(string)
+		var retName string = responseMap["RepoName"].(string)
 	
 		testContext.assertThat(retId != "", "Returned Id is empty string")
 		testContext.assertThat(retRealmId != "", "Returned realm Id is empty string")
