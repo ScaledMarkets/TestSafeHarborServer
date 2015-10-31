@@ -53,8 +53,13 @@ func main() {
 	testContext.assertThat(user4Id != "", "User Id is empty")
 	testContext.assertThat(len(user4AdminRealms) == 1, "Wrong number of admin realms")
 	
+	// Verify that we can log in as the admin user that we just created.
+	var sessionId string = testContext.TryAuthenticate("realm4admin", "realm4adminpswd")
+	testContext.sessionId = sessionId
+	fmt.Println("sessionId =", sessionId)
+	
 	// Log in so that we can do stuff.
-	var sessionId string = testContext.TryAuthenticate("testuser1", "password1")
+	sessionId = testContext.TryAuthenticate("testuser1", "password1")
 	testContext.sessionId = sessionId
 	fmt.Println("sessionId =", sessionId)
 	
