@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"flag"
 	//"bufio"
 )
 
@@ -19,23 +20,40 @@ type TestContext struct {
 	sessionId string
 	testName string
 	stopOnFirstError bool
+	performDockerTests bool
+}
+
+func usage() {
+	fmt.Fprintf(os.Stderr, "Usage: %s [options]\n", os.Args[0])
+	flag.PrintDefaults()
 }
 
 func main() {
 	
-	if len(os.Args) < 3 {
-		fmt.Fprintf(os.Stderr, "Usage: %s <hostname> <port> [stop]\n", os.Args[0])
+	var help *bool = flag.Bool("help", false, "Provide help instructions.")
+	var hostname *string = flag.String("h", "localhost", "Internet address of server.")
+	var port *string = flag.String("p", "80", "Port server is on.")
+	var stopOnFirstError *bool = flag.Bool("stop", false, "Provide help instructions.")
+	var doNotPerformDockerTests *bool = flag.Bool("n", false, "Do not perform docker tests.")
+
+	flag.Parse()
+
+	if flag.NArg() > 0 {
+		usage()
 		os.Exit(2)
 	}
 	
-	var stopOnFirstError bool = false
-	if len(os.Args) > 3 { if os.Args[3] == "stop" { stopOnFirstError = true } }
-	
+	if *help {
+		usage()
+		os.Exit(0)
+	}
+		
 	var testContext *TestContext = &TestContext{
-		hostname: os.Args[1],
-		port: os.Args[2],
+		hostname: *hostname,
+		port: *port,
 		sessionId: "",
-		stopOnFirstError: stopOnFirstError,
+		stopOnFirstError: *stopOnFirstError,
+		performDockerTests: ! (*doNotPerformDockerTests),
 	}
 	
 	fmt.Println("Note: Ensure that the docker daemon is running on the server,",
@@ -106,15 +124,17 @@ func main() {
 	testContext.assertThat(len(johnConnorAdminRealms) == 0, "Wrong number of admin realms")
 	
 	// Test ability create a repo.
-	var repoId string = testContext.TryCreateRepo(realmId, "John's Repo")
+	var repoId string = testContext.TryCreateRepo(realmId, "John's Repo",
+		"A very fine repo", "")
 	testContext.assertThat(repoId != "", "TryCreateRepo failed")
 		
 	// Test ability create another repo.
-	var repo2Id string = testContext.TryCreateRepo(realmId, "Susan's Repo")
+	var repo2Id string = testContext.TryCreateRepo(realmId, "Susan's Repo",
+		"A super fine repo", "")
 	testContext.assertThat(repo2Id != "", "TryCreateRepo failed")
 		
 	// Test ability to upload a Dockerfile.
-	var dockerfileId string = testContext.TryAddDockerfile(repoId, "Dockerfile")
+	var dockerfileId string = testContext.TryAddDockerfile(repoId, "Dockerfile", "A fine dockerfile")
 	testContext.assertThat(dockerfileId != "", "TryAddDockerfile failed")
 	
 	// Test ability to list the Dockerfiles in a repo.
@@ -166,27 +186,30 @@ func main() {
 	// Restore user context to what it was before we called TryCreateRealmAnon.
 	testContext.sessionId = saveSessionId
 	
-	// Test ability to build image from a dockerfile.
-	var dockerImageObjId string
-	var imageId string
-	dockerImageObjId, imageId = testContext.TryExecDockerfile(repoId, dockerfileId, "myimage")
-	testContext.assertThat(dockerImageObjId != "", "TryExecDockerfile failed - obj id is nil")
-	testContext.assertThat(imageId != "", "TryExecDockerfile failed - docker image id is nil")
+	if testContext.performDockerTests {
+		// Test ability to build image from a dockerfile.
+		var dockerImageObjId string
+		var imageId string
+		dockerImageObjId, imageId = testContext.TryExecDockerfile(repoId, dockerfileId, "myimage")
+		testContext.assertThat(dockerImageObjId != "", "TryExecDockerfile failed - obj id is nil")
+		testContext.assertThat(imageId != "", "TryExecDockerfile failed - docker image id is nil")
 	
-	// Test ability to list the images in a repo.
-	var imageNames []string = testContext.TryGetImages(repoId)
-	testContext.assertThat(len(imageNames) == 1, "Wrong number of images")
+		// Test ability to list the images in a repo.
+		var imageNames []string = testContext.TryGetImages(repoId)
+		testContext.assertThat(len(imageNames) == 1, "Wrong number of images")
+	
+		var myDockerImageIds []string = testContext.TryGetMyDockerImages()
+		testContext.assertThat(len(myDockerImageIds) == 1, "Wrong number of docker images")
+	}
 	
 	var myDockerfileIds []string = testContext.TryGetMyDockerfiles()
 	testContext.assertThat(len(myDockerfileIds) == 1, "Wrong number of dockerfiles")
-	
-	var myDockerImageIds []string = testContext.TryGetMyDockerImages()
-	testContext.assertThat(len(myDockerImageIds) == 1, "Wrong number of docker images")
-	
+		
 	var realmUsers []string = testContext.TryGetRealmUsers(jrealm2Id)
 	testContext.assertThat(len(realmUsers) == 2, "Wrong number of realm users")
 	
-	var group1Id string = testContext.TryCreateGroup(jrealm2Id, "MyGroup", "For Overthrowning Skynet")
+	var group1Id string = testContext.TryCreateGroup(jrealm2Id, "MyGroup",
+		"For Overthrowning Skynet", false)
 	testContext.assertThat(group1Id != "", "Empty group Id returned")
 	
 	var success bool = testContext.TryAddGroupUser(group1Id, johnConnorUserObjId)
@@ -231,6 +254,17 @@ func main() {
 		testContext.assertThat(p == expectedPerms3[i], "Returned permission does not match")
 	}
 	
+	var group2Id string = testContext.TryCreateGroup(jrealm2Id, "MySecondGroup",
+		"For Overthrowning Skynet!!", true)
+	testContext.assertThat(group2Id != "", "Empty group Id returned")
+	var myGroups []string = testContext.TryGetMyGroups()
+	testContext.assertThat(len(myGroups) == 2, "Wrong number of groups")
+	
+	// Test ability create a repo and upload a dockerfile at the same time.
+	var repo5Id string = testContext.TryCreateRepo(realmId, "Zippy's Repo",
+		"A super smart repo", "dockerfile")
+	testContext.assertThat(repo5Id != "", "TryCreateRepo failed")
+		
 	testContext.TryReplaceDockerfile()
 	
 	
@@ -382,12 +416,24 @@ func (testContext *TestContext) TryAuthenticate(userId string, pswd string) stri
  * Verify that we can create a new repo. This requires that we first created
  * a realm that the repo can belong to.
  */
-func (testContext *TestContext) TryCreateRepo(realmId string, name string) string {
+func (testContext *TestContext) TryCreateRepo(realmId string, name string,
+	desc string, optDockerfilePath string) string {
 	testContext.StartTest("TryCreateRepo")
-	var resp *http.Response = testContext.sendPost(testContext.sessionId,
-		"createRepo",
-		[]string{"RealmId", "Name"},
-		[]string{realmId, name})
+	
+	var resp *http.Response
+
+	if optDockerfilePath == "" {
+		resp = testContext.sendPost(testContext.sessionId,
+			"createRepo",
+			[]string{"RealmId", "Name", "Description"},
+			[]string{realmId, name, desc})
+	} else {
+		resp = testContext.sendFilePost(testContext.sessionId,
+			"createRepo",
+			[]string{"RealmId", "Name", "Description"},
+			[]string{realmId, name, desc},
+			optDockerfilePath)
+	}
 	
 	defer resp.Body.Close()
 
@@ -409,14 +455,15 @@ func (testContext *TestContext) TryCreateRepo(realmId string, name string) strin
  * Verify that we can upload a dockerfile. This requries that we first created
  * a repo to uplaod it into.
  */
-func (testContext *TestContext) TryAddDockerfile(repoId string, dockerfilePath string) string {
+func (testContext *TestContext) TryAddDockerfile(repoId string, dockerfilePath string,
+	desc string) string {
 	
 	testContext.StartTest("TryAddDockerfile")
 	fmt.Println("\t", dockerfilePath)
 	var resp *http.Response = testContext.sendFilePost(testContext.sessionId,
 		"addDockerfile",
-		[]string{"RepoId"},
-		[]string{repoId},
+		[]string{"RepoId", "Description"},
+		[]string{repoId, desc},
 		dockerfilePath)
 	
 	defer resp.Body.Close()
@@ -567,13 +614,17 @@ func (testContext *TestContext) TryGetRealmUser(realmId, userId string) (string,
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryCreateGroup(realmId, name, description string) string {
+func (testContext *TestContext) TryCreateGroup(realmId, name, description string,
+	addMe bool) string {
 	testContext.StartTest("TryCreateGroup")
+	
+	var addMeStr = "false"
+	if addMe { addMeStr = "true" }
 	
 	var resp *http.Response = testContext.sendPost(testContext.sessionId,
 		"createGroup",
-		[]string{"RealmId", "Name", "Description"},
-		[]string{realmId, name, description})
+		[]string{"RealmId", "Name", "Description", "AddMe"},
+		[]string{realmId, name, description, addMeStr})
 	
 	defer resp.Body.Close()
 

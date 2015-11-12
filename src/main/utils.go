@@ -41,7 +41,7 @@ func (testContext *TestContext) StartTest(name string) {
 	testStatus[name] = ""
 	noOfTests++
 	fmt.Println()
-	fmt.Println("Begin Test", name, "-------------------------------------------")
+	fmt.Println(noOfTests, "Begin Test", name, "-------------------------------------------")
 }
 
 /*******************************************************************************
