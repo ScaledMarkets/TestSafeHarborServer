@@ -265,6 +265,15 @@ func main() {
 		"A super smart repo", "dockerfile")
 	testContext.assertThat(repo5Id != "", "TryCreateRepo failed")
 		
+	if testContext.performDockerTests {
+		var imageId string
+		var dockerImageObjId string
+		dockerImageObjId, imageId = testContext.TryAddAndExecDockerfile(repoId,
+			"My second image", "myimage2", "Dockerfile")
+		testContext.assertThat(dockerImageObjId != "", "TryExecDockerfile failed - obj id is nil")
+		testContext.assertThat(imageId != "", "TryExecDockerfile failed - docker image id is nil")
+	}
+	
 	testContext.TryReplaceDockerfile()
 	
 	
@@ -531,6 +540,33 @@ func (testContext *TestContext) TryExecDockerfile(repoId string, dockerfileId st
 		[]string{"RepoId", "DockerfileId", "ImageName"},
 		[]string{repoId, dockerfileId, imageName})
 	
+	defer resp.Body.Close()
+
+	testContext.verify200Response(resp)
+	
+	// Get the repo Id that is returned in the response body.
+	var responseMap map[string]interface{}
+	responseMap  = parseResponseBodyToMap(resp.Body)
+	var objId string = responseMap["ObjId"].(string)
+	var dockerImageTag string = responseMap["DockerImageTag"].(string)
+	printMap(responseMap)
+	return objId, dockerImageTag
+}
+
+/*******************************************************************************
+ * Verify that we can upload a dockerfile and build an image from it.
+ * The result is the object id and docker id of the image that was built.
+ */
+func (testContext *TestContext) TryAddAndExecDockerfile(repoId string, desc string,
+	imageName string, dockerfilePath string) (string, string) {
+	testContext.StartTest("TryAddAndExecDockerfile")
+	
+	var resp *http.Response = testContext.sendFilePost(testContext.sessionId,
+		"addAndExecDockerfile",
+		[]string{"RepoId", "Description", "ImageName"},
+		[]string{repoId, desc, imageName},
+		dockerfilePath)
+
 	defer resp.Body.Close()
 
 	testContext.verify200Response(resp)
