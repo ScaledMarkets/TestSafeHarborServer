@@ -18,6 +18,7 @@ type TestContext struct {
 	hostname string
 	port string
 	sessionId string
+	isAdmin bool
 	testName string
 	stopOnFirstError bool
 	performDockerTests bool
@@ -72,14 +73,24 @@ func main() {
 	testContext.assertThat(len(user4AdminRealms) == 1, "Wrong number of admin realms")
 	
 	// Verify that we can log in as the admin user that we just created.
-	var sessionId string = testContext.TryAuthenticate("realm4admin", "realm4adminpswd")
+	var sessionId string
+	var isAdmin bool
+	sessionId, isAdmin = testContext.TryAuthenticate("realm4admin", "realm4adminpswd")
 	testContext.sessionId = sessionId
+	testContext.isAdmin = isAdmin
 	fmt.Println("sessionId =", sessionId)
 	
+	// Verify that the authenticated user is an admin user.
+	testContext.assertThat(testContext.isAdmin, "User is not flagged as admin")
+	
 	// Log in so that we can do stuff.
-	sessionId = testContext.TryAuthenticate("testuser1", "password1")
+	sessionId, isAdmin = testContext.TryAuthenticate("testuser1", "password1")
 	testContext.sessionId = sessionId
+	testContext.isAdmin = isAdmin
 	fmt.Println("sessionId =", sessionId)
+	
+	// Verify that the authenticated user is NOT an admin user.
+	testContext.assertThat(! testContext.isAdmin, "User is flagged as admin")
 	
 	// Test ability to create a realm.
 	var realmId string = testContext.TryCreateRealm("MyRealm", "A Big Company", "bigshotadmin")
@@ -96,8 +107,9 @@ func main() {
 	testContext.assertThat(len(johnDoeAdminRealms) == 0, "Wrong number of admin realms")
 	
 	// Login as the user that we just created.
-	sessionId = testContext.TryAuthenticate(userId, "password1")
+	sessionId, isAdmin = testContext.TryAuthenticate(userId, "password1")
 	testContext.sessionId = sessionId
+	testContext.isAdmin = isAdmin
 	
 	// Test ability to create a realm.
 	var jrealm1Id string = testContext.TryCreateRealm("John's First Realm",
@@ -398,7 +410,7 @@ func (testContext *TestContext) TryCreateUser(userId string, userName string,
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryAuthenticate(userId string, pswd string) string {
+func (testContext *TestContext) TryAuthenticate(userId string, pswd string) (string, bool) {
 	testContext.StartTest("TryAuthenticate")
 	
 	var resp *http.Response = testContext.sendPost(testContext.sessionId,
@@ -416,9 +428,11 @@ func (testContext *TestContext) TryAuthenticate(userId string, pswd string) stri
 	printMap(responseMap)
 	var retSessionId string = responseMap["UniqueSessionId"].(string)
 	var retUserId string = responseMap["AuthenticatedUserid"].(string)
+	var retIsAdmin bool = responseMap["IsAdmin"].(bool)
 	testContext.assertThat(retSessionId != "", "Session id is empty string")
-	testContext.assertThat(retUserId == userId, "Returned user id '" + retUserId + "' does not match user id")
-	return retSessionId
+	testContext.assertThat(retUserId == userId, "Returned user id '" + retUserId +
+		"' does not match user id")
+	return retSessionId, retIsAdmin
 }
 
 /*******************************************************************************
@@ -547,10 +561,17 @@ func (testContext *TestContext) TryExecDockerfile(repoId string, dockerfileId st
 	// Get the repo Id that is returned in the response body.
 	var responseMap map[string]interface{}
 	responseMap  = parseResponseBodyToMap(resp.Body)
-	var objId string = responseMap["ObjId"].(string)
-	var dockerImageTag string = responseMap["DockerImageTag"].(string)
+	var retObjId string = responseMap["ObjId"].(string)
+	var retDockerImageTag string = responseMap["Name"].(string)
+	var retDesc string = responseMap["Description"].(string)
+	var retCreationDate = responseMap["CreationDate"].(string)
 	printMap(responseMap)
-	return objId, dockerImageTag
+	
+	testContext.assertThat(retObjId != "", "ObjId is empty")
+	testContext.assertThat(retDockerImageTag != "", "Name is empty")
+	testContext.assertThat(retDesc != "", "Description is empty")
+	testContext.assertThat(retCreationDate != "", "CreationDate is empty")
+	return retObjId, retDockerImageTag
 }
 
 /*******************************************************************************
@@ -574,10 +595,17 @@ func (testContext *TestContext) TryAddAndExecDockerfile(repoId string, desc stri
 	// Get the repo Id that is returned in the response body.
 	var responseMap map[string]interface{}
 	responseMap  = parseResponseBodyToMap(resp.Body)
-	var objId string = responseMap["ObjId"].(string)
-	var dockerImageTag string = responseMap["DockerImageTag"].(string)
+	var retObjId string = responseMap["ObjId"].(string)
+	var retDockerImageTag string = responseMap["Name"].(string)
+	var retDesc string = responseMap["Description"].(string)
+	var retCreationDate = responseMap["CreationDate"].(string)
 	printMap(responseMap)
-	return objId, dockerImageTag
+	
+	testContext.assertThat(retObjId != "", "ObjId is empty")
+	testContext.assertThat(retDockerImageTag != "", "Name is empty")
+	testContext.assertThat(retDesc != "", "Description is empty")
+	testContext.assertThat(retCreationDate != "", "CreationDate is empty")
+	return retObjId, retDockerImageTag
 }
 
 /*******************************************************************************
@@ -599,7 +627,7 @@ func (testContext *TestContext) TryGetImages(repoId string) []string {
 	var result []string = make([]string, 0)
 	for _, responseMap := range responseMaps {
 		var objId string = responseMap["ObjId"].(string)
-		var dockerImageTag string = responseMap["DockerImageTag"].(string)
+		var dockerImageTag string = responseMap["Name"].(string)
 
 		printMap(responseMap)
 		testContext.assertThat(objId != "", "ObjId not found in response body")
@@ -930,7 +958,7 @@ func (testContext *TestContext) TryGetMyDockerImages() []string {
 	for _, responseMap := range responseMaps {
 		printMap(responseMap)
 		var retObjId string = responseMap["ObjId"].(string)
-		var retDockerImageTag string = responseMap["DockerImageTag"].(string)
+		var retDockerImageTag string = responseMap["Name"].(string)
 	
 		testContext.assertThat(retObjId != "", "Returned ObjId is empty string")
 		testContext.assertThat(retDockerImageTag != "", "Returned DockerImageTag is empty string")
