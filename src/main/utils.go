@@ -112,7 +112,7 @@ func (testContext *TestContext) sendReq(sessionId string, reqMethod string,
 }
 
 /*******************************************************************************
- * Similar to sendPost, but send as a multi-part so that a file can be attached.
+ * Send request as a multi-part so that a file can be attached.
  */
 func (testContext *TestContext) sendFilePost(sessionId string, reqName string, names []string,
 	values []string, path string) *http.Response {

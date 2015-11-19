@@ -311,11 +311,13 @@ func main() {
 	
 	
 	testContext.TryRemPermission()
+	
+	testContext.TryGetScanProviders()
 
-	//....testContext.TryDefineQualityScan(Script, SuccessGraphicImageURL, FailureGraphicImageURL)
+	//....testContext.TryDefineQualityScan(....Script, SuccessGraphicImageURL, FailureGraphicImageURL)
 
 	//var scriptId string = ""
-	//var scanMessage string = testContext.TryScanImage(scriptId, dockerImageObjId)
+	//var scanMessage string = testContext.TryScanImage(scanConfigId, dockerImageObjId)
 	//testContext.assertThat(scanMessage != "", "Empty scan result message")
 
 	// Test that permissions work.
@@ -1215,6 +1217,32 @@ func (testContext *TestContext) TryGetPermission(partyId, resourceId string) []b
 /*******************************************************************************
  * 
  */
+func (testContext *TestContext) TryGetScanProviders() {
+	testContext.StartTest("TryGetScanProviders")
+	
+	var resp *http.Response = testContext.sendPost(testContext.sessionId,
+		"getScanProviders",
+		[]string{},
+		[]string{})
+	
+	defer resp.Body.Close()
+
+	testContext.verify200Response(resp)
+	
+	var responseMaps []map[string]interface{} = parseResponseBodyToMaps(resp.Body)
+	var result []string = make([]string, 0)
+	for _, responseMap := range responseMaps {
+		printMap(responseMap)
+		var ret string = responseMap["ProviderName"].(string)
+		var ret string = responseMap["Parameters"].(string)
+		testContext.assertThat(retProviderName != "", "Returned ProviderName is empty string")
+		result = append(result, retGroupId)
+	}
+}
+
+/*******************************************************************************
+ * 
+ */
 func (testContext *TestContext) TryDefineQualityScan(Script,
 	SuccessGraphicImageURL, FailureGraphicImageURL string) {
 	testContext.StartTest("TryDefineQualityScan")
@@ -1228,7 +1256,7 @@ func (testContext *TestContext) TryScanImage(scriptId, imageObjId string) string
 	
 	var resp *http.Response = testContext.sendPost(testContext.sessionId,
 		"scanImage",
-		[]string{"ScriptId", "ImageObjId"},
+		[]string{"ScanConfigId", "ImageObjId"},
 		[]string{scriptId, imageObjId})
 	
 	defer resp.Body.Close()
