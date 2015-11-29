@@ -1,65 +1,92 @@
 <html>
 <body>
-<b><a href="http://52.11.24.124/ping">Ping</a></b> (Check if server is up)<br />
-<b><a href="http://52.88.52.4/clearAll">Clear All</a></b> <i>(Warning: deletes all data on server, including docker containers and images)</i><br />
-<!--<b><a href="http://52.88.52.4/printDatabase">Print Database (On Server stdout)</a></b><br /><br />-->
+<b><a href="http://52.26.171.190/ping">Ping</a></b> (Check if server is up)<br />
+<b><a href="http://52.26.171.190/clearAll">Clear All</a></b> <i>(Warning: deletes all data on server, including docker containers and images)</i><br />
+<!--<b><a href="http://52.26.171.190/printDatabase">Print Database (On Server stdout)</a></b><br /><br />-->
 <b>Create Realm</b>
-<form method="POST" action="http://52.88.52.4/createRealm">
+<form method="POST" action="http://52.26.171.190/createRealmAnon">
+	Realm name: <input type="text" name="RealmName">
+	Org full name: <input type="text" name="OrgFullName">
+	Realm desc: <input type="text" name="Description">
+	User Id: <input type="text" name="UserId">
+	User full name: <input type="text" name="UserName">
+	Email addr: <input type="text" name="EmailAddress">
+	Password: <input type="text" name="Password">
+	<input type="submit" value="Submit">
+</form>
+<b>Authenticate</b>
+<form method="POST" action="http://52.26.171.190/authenticate">
+	User Id: <input type="text" name="UserId">
+	Password: <input type="text" name="Password">
+	<input type="submit" value="Submit">
+</form>
+<b>Create Another Realm</b>
+<form method="POST" action="http://52.26.171.190/createRealm">
 	Realm name: <input type="text" name="Name">
 	<input type="submit" value="Submit">
 </form>
 <b>Get All Realms</b>
-<form method="POST" action="http://52.88.52.4/getAllRealms">
+<form method="POST" action="http://52.26.171.190/getAllRealms">
 	<input type="submit" value="Submit">
 </form>
 <b>Create a User</b>
-<form method="POST" action="http://52.88.52.4/createUser">
+<form method="POST" action="http://52.26.171.190/createUser">
 	User Id: <input type="text" name="UserId">
 	User Name: <input type="text" name="UserName">
 	Realm Id: <input type="text" name="RealmId">
 	<input type="submit" value="Submit">
 </form>
 <b>Create Repo</b>
-<form method="POST" action="http://52.88.52.4/createRepo">
+<form method="POST" action="http://52.26.171.190/createRepo">
 	Realm Id: <input type="text" name="RealmId">
 	Repo Name: <input type="text" name="Name">
 	<input type="submit" value="Submit">
 </form>
 <b>Add Dockerfile</b>
-<form method="POST" action="http://52.88.52.4/addDockerfile"
+<form method="POST" action="http://52.26.171.190/addDockerfile"
 	enctype="multipart/form-data" >
 	Repo Id: <input type="text" name="RepoId">
 	Dockerfile: <input type="file" name="filename" filename="Filename" size="40">
 	<input type="submit" value="Submit">
 </form>
 <b>Create Group</b>
-<form method="POST" action="http://52.88.52.4/createGroup">
+<form method="POST" action="http://52.26.171.190/createGroup">
 	Realm Id: <input type="text" name="RealmId">
 	Group Name: <input type="text" name="Name">
 	<input type="submit" value="Submit">
 </form>
 <b>Get (List) Dockerfiles</b>
-<form method="POST" action="http://52.88.52.4/getDockerfiles">
+<form method="POST" action="http://52.26.171.190/getDockerfiles">
 	Repo Id: <input type="text" name="RepoId">
 	<input type="submit" value="Submit">
 </form>
 <b>Get Group Users</b>
-<form method="POST" action="http://52.88.52.4/getGroupUsers">
+<form method="POST" action="http://52.26.171.190/getGroupUsers">
 	Group Id: <input type="text" name="GroupId">
 	<input type="submit" value="Submit">
 </form>
 <b>Add a User To a Group</b>
-<form method="POST" action="http://52.88.52.4/addGroupUser">
+<form method="POST" action="http://52.26.171.190/addGroupUser">
 	Group Id: <input type="text" name="GroupId">
 	User Obj Id: <input type="text" name="UserObjId">
 	<input type="submit" value="Submit">
 </form>
 <b>Process a Dockerfile To Create an Image On the Server</b>
-<form method="POST" action="http://52.88.52.4/execDockerfile">
+<form method="POST" action="http://52.26.171.190/execDockerfile">
 	Repo Id: <input type="text" name="RepoId">
 	Dockerfile Id: <input type="text" name="DockerfileId"><br />
 	(Note: Image names may be of the form <i>name</i> or <i>name:tag</i>)<br />
 	ImageName (an image with this name or name:tag will be created): <input type="text" name="ImageName">
+	<input type="submit" value="Submit">
+</form>
+<b>Add a Dockerfile and Execute It To Create an Image On the Server</b>
+<form method="POST" action="http://52.26.171.190/addAndExecDockerfile"
+	enctype="multipart/form-data" >
+	Repo Id: <input type="text" name="RepoId">
+	Description: <input type="text" name="Description"><br />
+	(Note: Image names may be of the form <i>name</i> or <i>name:tag</i>)<br />
+	ImageName (an image with this name or name:tag will be created): <input type="text" name="ImageName">
+	Dockerfile: <input type="file" name="filename" filename="Filename" size="40">
 	<input type="submit" value="Submit">
 </form>
 </body>
