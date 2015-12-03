@@ -34,7 +34,7 @@ func setSessionId(req *http.Request, sessionId string) {
 		//Domain: 
 		//Expires: 
 		//RawExpires: 
-		MaxAge: 86400,
+		MaxAge: 86400,  // 24 hrs
 		Secure: false,  //....change to true later.
 		HttpOnly: true,
 		//Raw: 
@@ -126,19 +126,19 @@ func main() {
 	testContext.IsAdmin = IsAdmin
 	
 	// Test ability to create a realm.
-	var jrealm1Id string = testContext.TryCreateRealm("John's First Realm",
-		"John's Little Outfit", "john")
+	var jrealm1Id string = testContext.TryCreateRealm("Johns First Realm",
+		"Johns Little Outfit", "john")
 	testContext.AssertThat(jrealm1Id != "", "TryCreateRealm failed")
 	
 	// Test ability to create a realm.
-	var jrealm2Id string = testContext.TryCreateRealm("John's Second Realm",
-		"John's Next Venture", "admin")
+	var jrealm2Id string = testContext.TryCreateRealm("Johns Second Realm",
+		"Johns Next Venture", "admin")
 	testContext.AssertThat(jrealm2Id != "", "TryCreateRealm failed")
 	
 	var sarahConnorUserObjId string
 	var sarahConnorAdminRealms []interface{}
 	sarahConnorUserObjId, sarahConnorAdminRealms = testContext.TryCreateUser("sconnor", 
-		"Sarah Connor", "sarahc@sky.net", "I'llMakePancakes", jrealm2Id)
+		"Sarah Connor", "sarahc@sky.net", "IllMakePancakes", jrealm2Id)
 	testContext.AssertThat(sarahConnorUserObjId != "", "TryCreateUser failed")
 	testContext.AssertThat(len(sarahConnorAdminRealms) == 0, "Wrong number of admin realms")
 	
@@ -150,12 +150,12 @@ func main() {
 	testContext.AssertThat(len(johnConnorAdminRealms) == 0, "Wrong number of admin realms")
 	
 	// Test ability create a repo.
-	var repoId string = testContext.TryCreateRepo(realmId, "John's Repo",
+	var repoId string = testContext.TryCreateRepo(realmId, "Johns Repo",
 		"A very fine repo", "")
 	testContext.AssertThat(repoId != "", "TryCreateRepo failed")
 		
 	// Test ability create another repo.
-	var repo2Id string = testContext.TryCreateRepo(realmId, "Susan's Repo",
+	var repo2Id string = testContext.TryCreateRepo(realmId, "Susans Repo",
 		"A super fine repo", "")
 	testContext.AssertThat(repo2Id != "", "TryCreateRepo failed")
 		
@@ -253,7 +253,7 @@ func main() {
 	var myObjId string
 	var myAdminRealms []interface{}
 	myObjId, myAdminRealms = testContext.TryGetMyDesc()
-	testContext.AssertThat(len(myAdminRealms) == 2, "Wrong number of admin realms")
+	testContext.AssertThat(len(myAdminRealms) == 3, "Wrong number of admin realms")
 	
 	success = testContext.TryAddGroupUser(group1Id, myObjId)
 	testContext.AssertThat(success, "TryAddGroupUser failed")
@@ -281,19 +281,19 @@ func main() {
 	}
 	
 	var group2Id string = testContext.TryCreateGroup(jrealm2Id, "MySecondGroup",
-		"For Overthrowning Skynet!!", true)
+		"For Overthrowning Skynet Again", true)
 	testContext.AssertThat(group2Id != "", "Empty group Id returned")
 	var myGroups []string = testContext.TryGetMyGroups()
 	testContext.AssertThat(len(myGroups) == 2, "Wrong number of groups")
 	
 	// Test ability create a repo and upload a dockerfile at the same time.
-	var repo5Id string = testContext.TryCreateRepo(realmId, "Zippy's Repo",
+	var repo5Id string = testContext.TryCreateRepo(realmId, "Zippys Repo",
 		"A super smart repo", "dockerfile")
 	testContext.AssertThat(repo5Id != "", "TryCreateRepo failed")
 		
+	var dockerImageObjId string
 	if testContext.PerformDockerTests {
 		var imageId string
-		var dockerImageObjId string
 		dockerImageObjId, imageId = testContext.TryAddAndExecDockerfile(repoId,
 			"My second image", "myimage2", "Dockerfile")
 		testContext.AssertThat(dockerImageObjId != "", "TryExecDockerfile failed - obj id is nil")
@@ -328,14 +328,15 @@ func main() {
 	
 	testContext.TryGetScanProviders()
 
-	var config1Id string = testContext.TryDefineScanConfig("My Config 1",
-		"A very find config", repoId, "clair",
-		"http://someimage.com", "http://someimage.com", []string{}, []string{})
-	testContext.AssertThat(config1Id != "", "No ScanConfig Id was returned")
-
-	//var scriptId string = ""
-	//var scanMessage string = testContext.TryScanImage(scanConfigId, dockerImageObjId)
-	//testContext.AssertThat(scanMessage != "", "Empty scan result message")
+	if testContext.PerformDockerTests {
+		var config1Id string = testContext.TryDefineScanConfig("My Config 1",
+			"A very find config", repoId, "clair",
+			"http://someimage.com", "http://someimage.com", []string{}, []string{})
+		testContext.AssertThat(config1Id != "", "No ScanConfig Id was returned")
+	
+		var scanScore string = testContext.TryScanImage(config1Id, dockerImageObjId)
+		testContext.AssertThat(scanScore != "", "Empty scan score")
+	}
 
 	// Test that permissions work.
 	

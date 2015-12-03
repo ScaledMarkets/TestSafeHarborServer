@@ -1039,7 +1039,9 @@ func (testContext *TestContext) TryDefineScanConfig(name, desc, repoId, provider
 	rest.PrintMap(responseMap)
 	
 	var retId string = responseMap["Id"].(string)
-	var retProvName string = responseMap["ProviderName"].(string)
+	var obj interface{} = responseMap["ProviderName"]
+	testContext.AssertThat(obj != nil, "No ProviderName returned")
+	var retProvName string = obj.(string)
 	testContext.AssertThat(retId != "", "Returned Id is empty")
 	testContext.AssertThat(retProvName != "", "Returned ProviderName is empty")
 	// ParamValueDescs []*ParameterValueDesc
@@ -1084,8 +1086,19 @@ func (testContext *TestContext) TryScanImage(scriptId, imageObjId string) string
 	if err != nil { fmt.Println(err.Error()); return "" }
 	rest.PrintMap(responseMap)
 	
-	var msg string = responseMap["Message"].(string)
-	return msg
+	var retId string = responseMap["Id"].(string)
+	var retWhen string = responseMap["When"].(string)
+	var retUserId string = responseMap["UserId"].(string)
+	var retScanConfigId string = responseMap["ScanConfigId"].(string)
+	var retScore string = responseMap["Score"].(string)
+	
+	testContext.AssertThat(retId != "", "Returned Id is empty")
+	testContext.AssertThat(retWhen != "", "Returned When is empty")
+	testContext.AssertThat(retUserId != "", "Returned UserId is empty")
+	testContext.AssertThat(retScanConfigId != "", "Returned ScanConfigId is empty")
+	testContext.AssertThat(retScore != "", "Returned Score is empty")
+	
+	return retScore
 }
 
 /*******************************************************************************
