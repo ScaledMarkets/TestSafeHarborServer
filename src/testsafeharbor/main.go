@@ -80,8 +80,8 @@ func main() {
 	var realm4Id string
 	var user4Id string
 	var user4AdminRealms []interface{}
-	realm4Id, user4Id, user4AdminRealms = testContext.TryCreateRealmAnon("Realm4", "Realm 4 Org",
-		"realm4admin", "Realm 4 Admin Full Name", "realm4admin@gmail.com", "realm4adminpswd")
+	realm4Id, user4Id, user4AdminRealms = testContext.TryCreateRealmAnon("realm4", "realm 4 Org",
+		"realm4admin", "realm 4 Admin Full Name", "realm4admin@gmail.com", "realm4adminpswd")
 	testContext.AssertThat(realm4Id != "", "Realm Id is empty")
 	testContext.AssertThat(user4Id != "", "User Id is empty")
 	testContext.AssertThat(len(user4AdminRealms) == 1, "Wrong number of admin realms")
@@ -107,7 +107,7 @@ func main() {
 	testContext.AssertThat(! testContext.IsAdmin, "User is flagged as admin")
 	
 	// Test ability to create a realm.
-	var realmId string = testContext.TryCreateRealm("MyRealm", "A Big Company", "bigshotadmin")
+	var realmId string = testContext.TryCreateRealm("myrealm", "A Big Company", "bigshotadmin")
 	testContext.AssertThat(realmId != "", "TryCreateRealm failed")
 	
 	// Test ability to create a user for the realm.
@@ -126,12 +126,12 @@ func main() {
 	testContext.IsAdmin = IsAdmin
 	
 	// Test ability to create a realm.
-	var jrealm1Id string = testContext.TryCreateRealm("Johns First Realm",
+	var jrealm1Id string = testContext.TryCreateRealm("johnsfirstrealm",
 		"Johns Little Outfit", "john")
 	testContext.AssertThat(jrealm1Id != "", "TryCreateRealm failed")
 	
 	// Test ability to create a realm.
-	var jrealm2Id string = testContext.TryCreateRealm("Johns Second Realm",
+	var jrealm2Id string = testContext.TryCreateRealm("johnssecondrealm",
 		"Johns Next Venture", "admin")
 	testContext.AssertThat(jrealm2Id != "", "TryCreateRealm failed")
 	
@@ -150,12 +150,12 @@ func main() {
 	testContext.AssertThat(len(johnConnorAdminRealms) == 0, "Wrong number of admin realms")
 	
 	// Test ability create a repo.
-	var repoId string = testContext.TryCreateRepo(realmId, "Johns Repo",
+	var repoId string = testContext.TryCreateRepo(realmId, "johnsrepo",
 		"A very fine repo", "")
 	testContext.AssertThat(repoId != "", "TryCreateRepo failed")
 		
 	// Test ability create another repo.
-	var repo2Id string = testContext.TryCreateRepo(realmId, "Susans Repo",
+	var repo2Id string = testContext.TryCreateRepo(realmId, "susansrepo",
 		"A super fine repo", "")
 	testContext.AssertThat(repo2Id != "", "TryCreateRepo failed")
 		
@@ -203,7 +203,7 @@ func main() {
 	var user3Id string
 	var user3AdminRealms []interface{}
 	var saveSessionId string = testContext.SessionId
-	realm3Id, user3Id, user3AdminRealms = testContext.TryCreateRealmAnon("Realm3", "Realm 3 Org",
+	realm3Id, user3Id, user3AdminRealms = testContext.TryCreateRealmAnon("realm3", "Realm 3 Org",
 		"realm3admin", "Realm 3 Admin Full Name", "realm3admin@gmail.com", "realm3adminpswd")
 	testContext.AssertThat(realm3Id != "", "Realm Id is empty")
 	testContext.AssertThat(user3Id != "", "User Id is empty")
@@ -234,7 +234,7 @@ func main() {
 	var realmUsers []string = testContext.TryGetRealmUsers(jrealm2Id)
 	testContext.AssertThat(len(realmUsers) == 2, "Wrong number of realm users")
 	
-	var group1Id string = testContext.TryCreateGroup(jrealm2Id, "MyGroup",
+	var group1Id string = testContext.TryCreateGroup(jrealm2Id, "mygroup",
 		"For Overthrowning Skynet", false)
 	testContext.AssertThat(group1Id != "", "Empty group Id returned")
 	
@@ -287,7 +287,7 @@ func main() {
 	testContext.AssertThat(len(myGroups) == 2, "Wrong number of groups")
 	
 	// Test ability create a repo and upload a dockerfile at the same time.
-	var repo5Id string = testContext.TryCreateRepo(realmId, "Zippys Repo",
+	var repo5Id string = testContext.TryCreateRepo(realmId, "zippysrepo",
 		"A super smart repo", "dockerfile")
 	testContext.AssertThat(repo5Id != "", "TryCreateRepo failed")
 		
@@ -304,18 +304,15 @@ func main() {
 	
 	
 	testContext.TryDownloadImage()
+		
 	
-	
-	testContext.TryDeleteUser()
-	
-	
-	testContext.TryDeleteGroup()
+	//testContext.TryDeleteGroup()
 	
 	
 	testContext.TryRemGroupUser()
 	
 	
-	testContext.TryDeleteRealm()
+	....testContext.TryDeactivateRealm()
 	
 	
 	testContext.TryRemRealmUser()
@@ -349,8 +346,40 @@ func main() {
 	
 	// Test ability to make a private image available to another user.
 	
+	// Test that we can disable a user.
+	testContext.AssertThat(testContext.TryDisableUser(johnConnorUserObjId), "Unable to disable user")
+	// Now see if that user can authenticate.
+	var noSessionId string
+	noSessionId, _ = testContext.TryAuthenticate("jconnor", "ILoveCameron")
+	testContext.AssertThat(noSessionId == "", "Error: a session might have been created")		
+		
+	// Test ability to log out.
+	testContext.AssertThat(testContext.TryLogout(), "Unable to log out")
+	
 	// Test ability to clear the entire database and docker repository.
-	testContext.TryClearAll()
+	//testContext.TryClearAll()
+	
+	
+	testContext.TryDeactivateUser()
+
+
+	testContext.TryReplaceScan()
+
+
+	testContext.TryGetUserEvents()
+
+
+	testContext.TryGetImageEvents()
+
+
+	testContext.TryGetImageStatus()
+
+
+	testContext.TryGetDockerfileEvents()
+
+
+	testContext.TryDefineFlag()
+
 	
 	
 	fmt.Println()

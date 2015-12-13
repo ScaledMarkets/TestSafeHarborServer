@@ -106,6 +106,8 @@ func (testContext *TestContext) TryAuthenticate(userId string, pswd string) (str
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
 	if err != nil { fmt.Println(err.Error()); return "", false }
 	rest.PrintMap(responseMap)
+	var retReason interface{} = responseMap["Reason"]
+	if retReason != nil { return "", false }
 	var retSessionId string = responseMap["UniqueSessionId"].(string)
 	var retUserId string = responseMap["AuthenticatedUserid"].(string)
 	var retIsAdmin bool = responseMap["IsAdmin"].(bool)
@@ -113,6 +115,87 @@ func (testContext *TestContext) TryAuthenticate(userId string, pswd string) (str
 	testContext.AssertThat(retUserId == userId, "Returned user id '" + retUserId +
 		"' does not match user id")
 	return retSessionId, retIsAdmin
+}
+
+/*******************************************************************************
+ * Return true if successful.
+ */
+func (testContext *TestContext) TryDisableUser(userObjId string) bool {
+	testContext.StartTest("TryDisableUser")
+	
+	var resp *http.Response
+	var err error
+	resp, err = testContext.SendPost(testContext.SessionId,
+		"disableUser",
+		[]string{"UserObjId"},
+		[]string{userObjId})
+	
+	defer resp.Body.Close()
+
+	testContext.Verify200Response(resp)
+	
+	var responseMap map[string]interface{}
+	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
+	if err != nil { fmt.Println(err.Error()); return false }
+	rest.PrintMap(responseMap)
+	var retStatus string = responseMap["Status"].(string)
+	//var retMessage string = responseMap["Message"].(string)
+	if retStatus != "200" { return false }
+	return true
+}
+
+/*******************************************************************************
+ * 
+ */
+func (testContext *TestContext) TryDeleteGroup(groupId string) bool {
+	testContext.StartTest("TryDeleteGroup")
+	
+	var resp *http.Response
+	var err error
+	resp, err = testContext.SendPost(testContext.SessionId,
+		"deleteGroup",
+		[]string{"GroupId"},
+		[]string{groupId})
+	
+	defer resp.Body.Close()
+
+	testContext.Verify200Response(resp)
+	
+	var responseMap map[string]interface{}
+	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
+	if err != nil { fmt.Println(err.Error()); return false }
+	rest.PrintMap(responseMap)
+	var retStatus string = responseMap["Status"].(string)
+	//var retMessage string = responseMap["Message"].(string)
+	if retStatus != "200" { return false }
+	return true
+}
+
+/*******************************************************************************
+ * If successful, return true.
+ */
+func (testContext *TestContext) TryLogout() bool {
+	testContext.StartTest("TryLogout")
+	
+	var resp *http.Response
+	var err error
+	resp, err = testContext.SendPost(testContext.SessionId,
+		"logout",
+		[]string{},
+		[]string{})
+	
+	defer resp.Body.Close()
+
+	testContext.Verify200Response(resp)
+	
+	var responseMap map[string]interface{}
+	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
+	if err != nil { fmt.Println(err.Error()); return false }
+	rest.PrintMap(responseMap)
+	var retStatus string = responseMap["Status"].(string)
+	//var retMessage string = responseMap["Message"].(string)
+	if retStatus != "200" { return false }
+	return true
 }
 
 /*******************************************************************************
@@ -839,18 +922,6 @@ func (testContext *TestContext) TryCreateRealmAnon(realmName, orgFullName, admin
 }
 
 /*******************************************************************************
- * 
- */
-func (testContext *TestContext) TryReplaceDockerfile() {
-}
-
-/*******************************************************************************
- * 
- */
-func (testContext *TestContext) TryDownloadImage() {
-}
-
-/*******************************************************************************
  * Returns the permissions that resulted.
  */
 func (testContext *TestContext) TrySetPermission(partyId, resourceId string,
@@ -1246,19 +1317,22 @@ func (testContext *TestContext) TryGetMyRepos() []string {
 	return result
 }
 
-
-
-
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryDeleteUser() {
+func (testContext *TestContext) TryReplaceDockerfile() {
 }
 
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryDeleteGroup() {
+func (testContext *TestContext) TryDownloadImage() {
+}
+
+/*******************************************************************************
+ * 
+ */
+func (testContext *TestContext) TryDeactivateUser() {
 }
 
 /*******************************************************************************
@@ -1270,7 +1344,8 @@ func (testContext *TestContext) TryRemGroupUser() {
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryDeleteRealm() {
+func (testContext *TestContext) TryDeactivateRealm() {
+	....
 }
 
 /*******************************************************************************
@@ -1289,6 +1364,42 @@ func (testContext *TestContext) TryDeleteRepo() {
  * 
  */
 func (testContext *TestContext) TryRemPermission() {
+}
+
+/*******************************************************************************
+ * 
+ */
+func (testContext *TestContext) TryReplaceScan() {
+}
+
+/*******************************************************************************
+ * 
+ */
+func (testContext *TestContext) TryGetUserEvents() {
+}
+
+/*******************************************************************************
+ * 
+ */
+func (testContext *TestContext) TryGetImageEvents() {
+}
+
+/*******************************************************************************
+ * 
+ */
+func (testContext *TestContext) TryGetImageStatus() {
+}
+
+/*******************************************************************************
+ * 
+ */
+func (testContext *TestContext) TryGetDockerfileEvents() {
+}
+
+/*******************************************************************************
+ * 
+ */
+func (testContext *TestContext) TryDefineFlag() {
 }
 
 /*******************************************************************************
