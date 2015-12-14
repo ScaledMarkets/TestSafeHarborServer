@@ -934,7 +934,7 @@ func (testContext *TestContext) TrySetPermission(partyId, resourceId string,
 	var err error
 	resp, err = testContext.SendPost(testContext.SessionId,
 		"setPermission",
-		[]string{"PartyId", "ResourceId", "Create", "Read", "Write", "Execute", "Delete"},
+		[]string{"PartyId", "ResourceId", "CanCreateIn", "CanRead", "CanWrite", "CanExecute", "CanDelete"},
 		[]string{partyId, resourceId, BoolToString(permissions[0]),
 			BoolToString(permissions[1]), BoolToString(permissions[2]),
 			BoolToString(permissions[3]), BoolToString(permissions[4])})
@@ -952,11 +952,11 @@ func (testContext *TestContext) TrySetPermission(partyId, resourceId string,
 	var retPartyId string = responseMap["PartyId"].(string)
 	var retResourceId string = responseMap["ResourceId"].(string)
 	var retMask []bool = make([]bool, 5)
-	retMask[0] = responseMap["Create"].(bool)
-	retMask[1] = responseMap["Read"].(bool)
-	retMask[2] = responseMap["Write"].(bool)
-	retMask[3] = responseMap["Execute"].(bool)
-	retMask[4] = responseMap["Delete"].(bool)
+	retMask[0] = responseMap["CanCreateIn"].(bool)
+	retMask[1] = responseMap["CanRead"].(bool)
+	retMask[2] = responseMap["CanWrite"].(bool)
+	retMask[3] = responseMap["CanExecute"].(bool)
+	retMask[4] = responseMap["CanDelete"].(bool)
 	testContext.AssertThat(retACLEntryId != "", "Empty return retACLEntryId")
 	testContext.AssertThat(retPartyId != "", "Empty return retPartyId")
 	testContext.AssertThat(retResourceId != "", "Empty return retResourceId")
@@ -976,7 +976,7 @@ func (testContext *TestContext) TryAddPermission(partyId, resourceId string,
 	var err error
 	resp, err = testContext.SendPost(testContext.SessionId,
 		"addPermission",
-		[]string{"PartyId", "ResourceId", "Create", "Read", "Write", "Execute", "Delete"},
+		[]string{"PartyId", "ResourceId", "CanCreateIn", "CanRead", "CanWrite", "CanExecute", "CanDelete"},
 		[]string{partyId, resourceId, BoolToString(permissions[0]),
 			BoolToString(permissions[1]), BoolToString(permissions[2]),
 			BoolToString(permissions[3]), BoolToString(permissions[4])})
@@ -994,11 +994,11 @@ func (testContext *TestContext) TryAddPermission(partyId, resourceId string,
 	var retPartyId string = responseMap["PartyId"].(string)
 	var retResourceId string = responseMap["ResourceId"].(string)
 	var retMask []bool = make([]bool, 5)
-	retMask[0] = responseMap["Create"].(bool)
-	retMask[1] = responseMap["Read"].(bool)
-	retMask[2] = responseMap["Write"].(bool)
-	retMask[3] = responseMap["Execute"].(bool)
-	retMask[4] = responseMap["Delete"].(bool)
+	retMask[0] = responseMap["CanCreateIn"].(bool)
+	retMask[1] = responseMap["CanRead"].(bool)
+	retMask[2] = responseMap["CanWrite"].(bool)
+	retMask[3] = responseMap["CanExecute"].(bool)
+	retMask[4] = responseMap["CanDelete"].(bool)
 	testContext.AssertThat(retACLEntryId != "", "Empty return retACLEntryId")
 	testContext.AssertThat(retPartyId != "", "Empty return retPartyId")
 	testContext.AssertThat(retResourceId != "", "Empty return retResourceId")
@@ -1032,11 +1032,11 @@ func (testContext *TestContext) TryGetPermission(partyId, resourceId string) []b
 	var retACLEntryId string = responseMap["ACLEntryId"].(string)
 	var retPartyId string = responseMap["PartyId"].(string)
 	var retResourceId string = responseMap["ResourceId"].(string)
-	var retCreate bool = responseMap["Create"].(bool)
-	var retRead bool = responseMap["Read"].(bool)
-	var retWrite bool = responseMap["Write"].(bool)
-	var retExecute bool = responseMap["Execute"].(bool)
-	var retDelete bool = responseMap["Delete"].(bool)
+	var retCreate bool = responseMap["CanCreateIn"].(bool)
+	var retRead bool = responseMap["CanRead"].(bool)
+	var retWrite bool = responseMap["CanWrite"].(bool)
+	var retExecute bool = responseMap["CanExecute"].(bool)
+	var retDelete bool = responseMap["CanDelete"].(bool)
 	testContext.AssertThat(retACLEntryId != "", "Empty return retACLEntryId")
 	testContext.AssertThat(retPartyId != "", "Empty return retPartyId")
 	testContext.AssertThat(retResourceId != "", "Empty return retResourceId")
@@ -1321,8 +1321,8 @@ func (testContext *TestContext) TryGetMyRepos() []string {
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryReplaceDockerfile(dockerfileId string,
-	dockerfilePath, desc string) {
+func (testContext *TestContext) TryReplaceDockerfile(dockerfileId, dockerfilePath,
+	desc string) {
 
 	testContext.StartTest("TryReplaceDockerfile")
 	
@@ -1338,9 +1338,9 @@ func (testContext *TestContext) TryReplaceDockerfile(dockerfileId string,
 
 	testContext.Verify200Response(resp)
 	
-	var responseMaps []map[string]interface{}
-	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)
-	if err != nil { fmt.Println(err.Error()); return nil }
+	var responseMap map[string]interface{}
+	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
+	if ! testContext.AssertThat(err == nil, err.Error()) { return }
 	var retStatus string = responseMap["Status"].(string)
 	var retMessage string = responseMap["Message"].(string)
 	rest.PrintMap(responseMap)
@@ -1367,15 +1367,15 @@ func (testContext *TestContext) TryDownloadImage(imageId, filename string) {
 
 	testContext.Verify200Response(resp)
 	
-	defer response.Body.Close()
+	defer resp.Body.Close()
 	// Check that the server actual sent compressed data
-	var reader io.ReadCloser = response.Body
-	var file *File
+	var reader io.ReadCloser = resp.Body
+	var file *os.File
 	file, err = os.Create(filename)
 	testContext.AssertThat(err == nil, err.Error())
 	_, err = io.Copy(file, reader)
 	testContext.AssertThat(err == nil, err.Error())
-	var fileInfo FileInfo
+	var fileInfo os.FileInfo
 	fileInfo, err = file.Stat()
 	if ! testContext.AssertThat(err == nil, err.Error()) { return }
 	testContext.AssertThat(fileInfo.Size() > 0, "File has zero size")
@@ -1397,7 +1397,6 @@ func (testContext *TestContext) TryRemGroupUser() {
  * 
  */
 func (testContext *TestContext) TryDeactivateRealm() {
-	....
 }
 
 /*******************************************************************************

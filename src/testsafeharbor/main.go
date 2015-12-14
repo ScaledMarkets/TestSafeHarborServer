@@ -300,13 +300,13 @@ func main() {
 		testContext.AssertThat(imageId != "", "TryExecDockerfile failed - docker image id is nil")
 	}
 	
-	testContext.TryReplaceDockerfile()
+	testContext.TryReplaceDockerfile(dockerfileId, "Dockerfile2", "The boo/ploink one")
 	
 	
-	testContext.TryDownloadImage(....imageId, ....filename)
+	testContext.TryDownloadImage(dockerImageObjId, "MooOinkImage")
 	
 	
-	testContext.TryDeleteGroup(....)
+	testContext.TryDeleteGroup(group2Id)
 	
 	
 	testContext.TryRemGroupUser()
@@ -335,12 +335,10 @@ func main() {
 		testContext.AssertThat(scanScore != "", "Empty scan score")
 	}
 
-	// Test that permissions work.
+	// ....Test that permissions work.
 	
 	
 	
-	
-	// Test ability to receive progress while a Dockerfile is processed.
 	
 	// Test ability to make a private image available to the SafeHarbor closed community.
 	
