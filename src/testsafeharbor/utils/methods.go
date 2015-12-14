@@ -3,7 +3,8 @@ package utils
 import (
 	"fmt"
 	"net/http"
-	//"os"
+	"os"
+	"io"
 	//"flag"
 	"testsafeharbor/rest"
 	//"testsafeharbor/utils"
@@ -572,7 +573,7 @@ func (testContext *TestContext) TryAddGroupUser(groupId, userId string) bool {
 	var retMessage string = responseMap["Message"].(string)
 	rest.PrintMap(responseMap)
 	
-	testContext.AssertThat(retStatus != "", "Returned Status is empty")
+	testContext.AssertThat(retStatus == "200", "Returned Status is empty")
 	testContext.AssertThat(retMessage != "", "Returned Message is empty")
 	
 	return true
@@ -1320,13 +1321,64 @@ func (testContext *TestContext) TryGetMyRepos() []string {
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryReplaceDockerfile() {
+func (testContext *TestContext) TryReplaceDockerfile(dockerfileId string,
+	dockerfilePath, desc string) {
+
+	testContext.StartTest("TryReplaceDockerfile")
+	
+	var resp *http.Response
+	var err error
+	resp, err = testContext.SendFilePost(testContext.SessionId,
+		"replaceDockerfile",
+		[]string{"DockerfileId", "Description"},
+		[]string{dockerfileId, desc},
+		dockerfilePath)
+	
+	defer resp.Body.Close()
+
+	testContext.Verify200Response(resp)
+	
+	var responseMaps []map[string]interface{}
+	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)
+	if err != nil { fmt.Println(err.Error()); return nil }
+	var retStatus string = responseMap["Status"].(string)
+	var retMessage string = responseMap["Message"].(string)
+	rest.PrintMap(responseMap)
+	
+	testContext.AssertThat(retStatus == "200", "Returned Status is empty")
+	testContext.AssertThat(retMessage != "", "Returned Message is empty")
 }
 
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryDownloadImage() {
+func (testContext *TestContext) TryDownloadImage(imageId, filename string) {
+
+	testContext.StartTest("TryDownloadImage")
+	
+	var resp *http.Response
+	var err error
+	resp, err = testContext.SendPost(testContext.SessionId,
+		"downloadImage",
+		[]string{"ImageId"},
+		[]string{imageId})
+	
+	defer resp.Body.Close()
+
+	testContext.Verify200Response(resp)
+	
+	defer response.Body.Close()
+	// Check that the server actual sent compressed data
+	var reader io.ReadCloser = response.Body
+	var file *File
+	file, err = os.Create(filename)
+	testContext.AssertThat(err == nil, err.Error())
+	_, err = io.Copy(file, reader)
+	testContext.AssertThat(err == nil, err.Error())
+	var fileInfo FileInfo
+	fileInfo, err = file.Stat()
+	if ! testContext.AssertThat(err == nil, err.Error()) { return }
+	testContext.AssertThat(fileInfo.Size() > 0, "File has zero size")
 }
 
 /*******************************************************************************

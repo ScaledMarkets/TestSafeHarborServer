@@ -303,16 +303,16 @@ func main() {
 	testContext.TryReplaceDockerfile()
 	
 	
-	testContext.TryDownloadImage()
-		
+	testContext.TryDownloadImage(....imageId, ....filename)
 	
-	//testContext.TryDeleteGroup()
+	
+	testContext.TryDeleteGroup(....)
 	
 	
 	testContext.TryRemGroupUser()
 	
 	
-	....testContext.TryDeactivateRealm()
+	testContext.TryDeactivateRealm()
 	
 	
 	testContext.TryRemRealmUser()
