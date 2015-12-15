@@ -6,7 +6,7 @@ package utils
 
 import (
 	"fmt"
-	//"net/http"
+	"net/http"
 	//"net/url"
 	//"io"
 	//"io/ioutil"
@@ -21,39 +21,76 @@ import (
 	//"reflect"
 	
 	// My packages:
-	//"testsafeharbor/rest"
+	"testsafeharbor/rest"
 )
 
-var TestStatus map[string]string = make(map[string]string)
-var NoOfTests int = 0
-var NoOfTestsThatFailed int = 0
+type TestContext struct {
+	rest.RestContext
+	SessionId string
+	IsAdmin bool
+	testName string
+	StopOnFirstError bool
+	PerformDockerTests bool
+	TestStatus map[string]string
+	NoOfTests int
+	NoOfTestsThatFailed int
+}
 
+func NewTestContext(hostname, port string,
+	setSessionId func(req *http.Request, sessionId string),
+	stopOnFirstError, doNotPerformDockerTests bool) *TestContext {
+
+	return &TestContext{
+		RestContext: *rest.CreateRestContext(hostname, port, setSessionId),
+		SessionId: "",
+		StopOnFirstError: stopOnFirstError,
+		PerformDockerTests: ! doNotPerformDockerTests,
+		TestStatus:  make(map[string]string),
+		NoOfTests:  0,
+		NoOfTestsThatFailed: 0,
+	}
+}
+
+/*******************************************************************************
+ * 
+ */
+func (testContext *TestContext) GetTestsThatFailed() []string {
+	var testsThatFailed = []string{}
+	for test, status := range testContext.TestStatus {
+		if status  == "Fail" { testsThatFailed = append(testsThatFailed, test) }
+	}
+	return testsThatFailed
+}
 
 /*******************************************************************************
  * 
  */
 func (testContext *TestContext) StartTest(name string) {
 	
-	testContext.testName = name
-	TestStatus[name] = ""
-	NoOfTests++
+	testContext.NoOfTests++
+	var testNumber =testContext.NoOfTests
+	var hashKey = fmt.Sprintf("%d: %s", testNumber, name)
+	testContext.testName = hashKey
+	testContext.TestStatus[hashKey] = ""
 	fmt.Println()
-	fmt.Println(NoOfTests, "Begin Test", name, "-------------------------------------------")
+	fmt.Println(testNumber, "Begin Test", name, "-------------------------------------------")
 }
 
 /*******************************************************************************
  * 
  */
 func (testContext *TestContext) PassTest() {
-	TestStatus[testContext.testName] = "Pass"
+	testContext.TestStatus[testContext.testName] = "Pass"
 }
 
 /*******************************************************************************
  * 
  */
 func (testContext *TestContext) FailTest() {
-	NoOfTestsThatFailed++
-	TestStatus[testContext.testName] = "Fail"
+	if testContext.TestStatus[testContext.testName] == "Fail" { return }
+	testContext.NoOfTestsThatFailed++
+	testContext.TestStatus[testContext.testName] = "Fail"
+	fmt.Println("Failed test", testContext.testName)
 }
 
 /*******************************************************************************
@@ -74,7 +111,7 @@ func (testContext *TestContext) AssertThat(condition bool, msg string) bool {
 func (testContext *TestContext) assertErrIsNil(err error, msg string) bool {
 	if err == nil { return true }
 	testContext.FailTest()
-	fmt.Print(msg)
+	fmt.Print(msg, err.Error())
 	if testContext.StopOnFirstError { os.Exit(1) }
 	return false
 }

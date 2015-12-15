@@ -12,7 +12,7 @@ import (
 	"flag"
 	
 	// My packages:
-	"testsafeharbor/rest"
+	//"testsafeharbor/rest"
 	"testsafeharbor/utils"
 )
 
@@ -64,13 +64,9 @@ func main() {
 		os.Exit(0)
 	}
 	
-	var testContext *utils.TestContext = &utils.TestContext{
-		RestContext: *rest.CreateRestContext(*hostname, *port, setSessionId),
-		SessionId: "",
-		StopOnFirstError: *stopOnFirstError,
-		PerformDockerTests: ! (*doNotPerformDockerTests),
-	}
-	
+	var testContext = utils.NewTestContext(*hostname, *port, setSessionId,
+		*stopOnFirstError, *doNotPerformDockerTests)
+		
 	fmt.Println("Note: Ensure that the docker daemon is running on the server,",
 		"and that python 2 is installed on the server. To start the docker daemon",
 		"run 'sudo service docker start'")
@@ -89,7 +85,7 @@ func main() {
 	// Verify that we can log in as the admin user that we just created.
 	var sessionId string
 	var IsAdmin bool
-	sessionId, IsAdmin = testContext.TryAuthenticate("realm4admin", "realm4adminpswd")
+	sessionId, IsAdmin = testContext.TryAuthenticate("realm4admin", "realm4adminpswd", true)
 	testContext.SessionId = sessionId
 	testContext.IsAdmin = IsAdmin
 	fmt.Println("sessionId =", sessionId)
@@ -98,7 +94,7 @@ func main() {
 	testContext.AssertThat(testContext.IsAdmin, "User is not flagged as admin")
 	
 	// Log in so that we can do stuff.
-	sessionId, IsAdmin = testContext.TryAuthenticate("testuser1", "password1")
+	sessionId, IsAdmin = testContext.TryAuthenticate("testuser1", "password1", true)
 	testContext.SessionId = sessionId
 	testContext.IsAdmin = IsAdmin
 	fmt.Println("sessionId =", sessionId)
@@ -121,7 +117,7 @@ func main() {
 	testContext.AssertThat(len(johnDoeAdminRealms) == 0, "Wrong number of admin realms")
 	
 	// Login as the user that we just created.
-	sessionId, IsAdmin = testContext.TryAuthenticate(userId, "password1")
+	sessionId, IsAdmin = testContext.TryAuthenticate(userId, "password1", true)
 	testContext.SessionId = sessionId
 	testContext.IsAdmin = IsAdmin
 	
@@ -325,6 +321,7 @@ func main() {
 	
 	testContext.TryGetScanProviders()
 
+	/*
 	if testContext.PerformDockerTests {
 		var config1Id string = testContext.TryDefineScanConfig("My Config 1",
 			"A very find config", repoId, "clair",
@@ -334,6 +331,7 @@ func main() {
 		var scanScore string = testContext.TryScanImage(config1Id, dockerImageObjId)
 		testContext.AssertThat(scanScore != "", "Empty scan score")
 	}
+	*/
 
 	// ....Test that permissions work.
 	
@@ -347,9 +345,9 @@ func main() {
 	// Test that we can disable a user.
 	testContext.AssertThat(testContext.TryDisableUser(johnConnorUserObjId), "Unable to disable user")
 	// Now see if that user can authenticate.
-	var noSessionId string
-	noSessionId, _ = testContext.TryAuthenticate("jconnor", "ILoveCameron")
-	testContext.AssertThat(noSessionId == "", "Error: a session might have been created")		
+	var pass bool
+	_, pass = testContext.TryAuthenticate("jconnor", "ILoveCameron", false)
+	testContext.AssertThat(pass, "Error: user was able to log in")		
 		
 	// Test ability to log out.
 	testContext.AssertThat(testContext.TryLogout(), "Unable to log out")
@@ -381,6 +379,11 @@ func main() {
 	
 	
 	fmt.Println()
-	fmt.Println(fmt.Sprintf("%d tests failed out of %d", utils.NoOfTestsThatFailed,
-		utils.NoOfTests))
+	fmt.Println(fmt.Sprintf("%d tests failed out of %d:", testContext.NoOfTestsThatFailed,
+		testContext.NoOfTests))
+	for i, testName := range testContext.GetTestsThatFailed() {
+		if i > 0 { fmt.Print(", ") }
+		fmt.Print(testName)
+	}
+	fmt.Println()
 }

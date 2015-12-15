@@ -26,7 +26,7 @@ func (testContext *TestContext) TryCreateRealm(realmName, orgFullName,
 	
 	defer resp.Body.Close()
 	
-	testContext.Verify200Response(resp)
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	// Get the realm Id that is returned in the response body.
 	var responseMap map[string]interface{}
@@ -61,7 +61,7 @@ func (testContext *TestContext) TryCreateUser(userId string, userName string,
 	
 	defer resp.Body.Close()
 
-	testContext.Verify200Response(resp)
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
@@ -88,7 +88,8 @@ func (testContext *TestContext) TryCreateUser(userId string, userName string,
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryAuthenticate(userId string, pswd string) (string, bool) {
+func (testContext *TestContext) TryAuthenticate(userId string, pswd string,
+	expectSuccess bool) (string, bool) {
 	testContext.StartTest("TryAuthenticate")
 	
 	var resp *http.Response
@@ -100,7 +101,16 @@ func (testContext *TestContext) TryAuthenticate(userId string, pswd string) (str
 	
 	defer resp.Body.Close()
 
-	testContext.Verify200Response(resp)
+	if expectSuccess {
+		if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	} else {
+		if resp.StatusCode == 200 {
+			testContext.FailTest()
+		} else {
+			testContext.PassTest()
+			return "", true
+		}	
+	}
 	
 	// Get the repo Id that is returned in the response body.
 	var responseMap map[string]interface{}
@@ -133,7 +143,7 @@ func (testContext *TestContext) TryDisableUser(userObjId string) bool {
 	
 	defer resp.Body.Close()
 
-	testContext.Verify200Response(resp)
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
@@ -160,7 +170,7 @@ func (testContext *TestContext) TryDeleteGroup(groupId string) bool {
 	
 	defer resp.Body.Close()
 
-	testContext.Verify200Response(resp)
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
@@ -187,7 +197,7 @@ func (testContext *TestContext) TryLogout() bool {
 	
 	defer resp.Body.Close()
 
-	testContext.Verify200Response(resp)
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
@@ -228,7 +238,7 @@ func (testContext *TestContext) TryCreateRepo(realmId string, name string,
 	
 	defer resp.Body.Close()
 
-	testContext.Verify200Response(resp)
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	// Get the repo Id that is returned in the response body.
 	var responseMap map[string]interface{}
@@ -262,7 +272,7 @@ func (testContext *TestContext) TryAddDockerfile(repoId string, dockerfilePath s
 	
 	defer resp.Body.Close()
 
-	testContext.Verify200Response(resp)
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	// Get the DockerfileDesc that is returned.
 	var responseMap map[string]interface{}
@@ -293,7 +303,7 @@ func (testContext *TestContext) TryGetDockerfiles(repoId string) []string {
 	
 	defer resp.Body.Close()
 
-	testContext.Verify200Response(resp)
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMaps []map[string]interface{}
 	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)
@@ -334,7 +344,7 @@ func (testContext *TestContext) TryExecDockerfile(repoId string, dockerfileId st
 	
 	defer resp.Body.Close()
 
-	testContext.Verify200Response(resp)
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	// Get the repo Id that is returned in the response body.
 	var responseMap map[string]interface{}
@@ -371,7 +381,7 @@ func (testContext *TestContext) TryAddAndExecDockerfile(repoId string, desc stri
 
 	defer resp.Body.Close()
 
-	testContext.Verify200Response(resp)
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	// Get the repo Id that is returned in the response body.
 	var responseMap map[string]interface{}
@@ -405,7 +415,7 @@ func (testContext *TestContext) TryGetImages(repoId string) []string {
 	
 	defer resp.Body.Close()
 
-	testContext.Verify200Response(resp)
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMaps []map[string]interface{}
 	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)
@@ -441,7 +451,7 @@ func (testContext *TestContext) TryGetRealmUser(realmId, userId string) (string,
 	
 	defer resp.Body.Close()
 
-	testContext.Verify200Response(resp)
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
@@ -483,7 +493,7 @@ func (testContext *TestContext) TryCreateGroup(realmId, name, description string
 	
 	defer resp.Body.Close()
 
-	testContext.Verify200Response(resp)
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
@@ -522,7 +532,7 @@ func (testContext *TestContext) TryGetGroupUsers(groupId string) []string {
 	
 	defer resp.Body.Close()
 
-	testContext.Verify200Response(resp)
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMaps []map[string]interface{}
 	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)  // returns [UserDesc]
@@ -562,7 +572,7 @@ func (testContext *TestContext) TryAddGroupUser(groupId, userId string) bool {
 	
 	defer resp.Body.Close()
 
-	testContext.Verify200Response(resp)
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
@@ -594,7 +604,7 @@ func (testContext *TestContext) TryAddRealmUser(realmId string, userObjId string
 	
 	defer resp.Body.Close()
 
-	testContext.Verify200Response(resp)
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
@@ -622,7 +632,7 @@ func (testContext *TestContext) TryGetRealmGroups(realmId string) []string {
 	
 	defer resp.Body.Close()
 
-	testContext.Verify200Response(resp)
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMaps []map[string]interface{}
 	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)  // returns [GroupDesc]
@@ -665,7 +675,7 @@ func (testContext *TestContext) TryGetRealmRepos(realmId string) []string {
 	
 	defer resp.Body.Close()
 
-	testContext.Verify200Response(resp)
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMaps []map[string]interface{}
 	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)
@@ -701,7 +711,7 @@ func (testContext *TestContext) TryGetAllRealms() []string {
 	
 	defer resp.Body.Close()
 
-	testContext.Verify200Response(resp)
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMaps []map[string]interface{}
 	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)
@@ -735,7 +745,7 @@ func (testContext *TestContext) TryGetMyDockerfiles() []string {
 	
 	defer resp.Body.Close()
 
-	testContext.Verify200Response(resp)
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMaps []map[string]interface{}
 	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)
@@ -769,7 +779,7 @@ func (testContext *TestContext) TryGetMyDockerImages() []string {
 	
 	defer resp.Body.Close()
 
-	testContext.Verify200Response(resp)
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMaps []map[string]interface{}
 	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)
@@ -803,7 +813,7 @@ func (testContext *TestContext) TryGetRealmUsers(realmId string) []string {
 	
 	defer resp.Body.Close()
 
-	testContext.Verify200Response(resp)
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMaps []map[string]interface{}
 	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)
@@ -941,7 +951,7 @@ func (testContext *TestContext) TrySetPermission(partyId, resourceId string,
 	
 	defer resp.Body.Close()
 
-	testContext.Verify200Response(resp)
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
@@ -983,7 +993,7 @@ func (testContext *TestContext) TryAddPermission(partyId, resourceId string,
 	
 	defer resp.Body.Close()
 
-	testContext.Verify200Response(resp)
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
@@ -1022,7 +1032,7 @@ func (testContext *TestContext) TryGetPermission(partyId, resourceId string) []b
 	
 	defer resp.Body.Close()
 
-	testContext.Verify200Response(resp)
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
@@ -1059,7 +1069,7 @@ func (testContext *TestContext) TryGetScanProviders() {
 	
 	defer resp.Body.Close()
 
-	testContext.Verify200Response(resp)
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMaps []map[string]interface{}
 	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)
@@ -1103,7 +1113,7 @@ func (testContext *TestContext) TryDefineScanConfig(name, desc, repoId, provider
 	
 	defer resp.Body.Close()
 
-	testContext.Verify200Response(resp)
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
@@ -1151,7 +1161,7 @@ func (testContext *TestContext) TryScanImage(scriptId, imageObjId string) string
 	
 	defer resp.Body.Close()
 
-	testContext.Verify200Response(resp)
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
@@ -1188,7 +1198,7 @@ func (testContext *TestContext) TryGetMyDesc() (string, []interface{}) {
 	
 	defer resp.Body.Close()
 
-	testContext.Verify200Response(resp)
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
@@ -1224,7 +1234,7 @@ func (testContext *TestContext) TryGetMyGroups() []string {
 	
 	defer resp.Body.Close()
 
-	testContext.Verify200Response(resp)
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMaps []map[string]interface{}
 	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)
@@ -1263,7 +1273,7 @@ func (testContext *TestContext) TryGetMyRealms() []string {
 	
 	defer resp.Body.Close()
 
-	testContext.Verify200Response(resp)
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMaps []map[string]interface{}
 	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)
@@ -1297,7 +1307,7 @@ func (testContext *TestContext) TryGetMyRepos() []string {
 	
 	defer resp.Body.Close()
 
-	testContext.Verify200Response(resp)
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMaps []map[string]interface{}
 	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)
@@ -1336,11 +1346,11 @@ func (testContext *TestContext) TryReplaceDockerfile(dockerfileId, dockerfilePat
 	
 	defer resp.Body.Close()
 
-	testContext.Verify200Response(resp)
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
-	if ! testContext.AssertThat(err == nil, err.Error()) { return }
+	if ! testContext.assertErrIsNil(err, "") { return }
 	var retStatus string = responseMap["Status"].(string)
 	var retMessage string = responseMap["Message"].(string)
 	rest.PrintMap(responseMap)
@@ -1365,19 +1375,19 @@ func (testContext *TestContext) TryDownloadImage(imageId, filename string) {
 	
 	defer resp.Body.Close()
 
-	testContext.Verify200Response(resp)
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	defer resp.Body.Close()
 	// Check that the server actual sent compressed data
 	var reader io.ReadCloser = resp.Body
 	var file *os.File
 	file, err = os.Create(filename)
-	testContext.AssertThat(err == nil, err.Error())
+	testContext.assertErrIsNil(err, "")
 	_, err = io.Copy(file, reader)
-	testContext.AssertThat(err == nil, err.Error())
+	testContext.assertErrIsNil(err, "")
 	var fileInfo os.FileInfo
 	fileInfo, err = file.Stat()
-	if ! testContext.AssertThat(err == nil, err.Error()) { return }
+	if ! testContext.assertErrIsNil(err, "") { return }
 	testContext.AssertThat(fileInfo.Size() > 0, "File has zero size")
 }
 
@@ -1468,5 +1478,5 @@ func (testContext *TestContext) TryClearAll() {
 		)
 	if err != nil { fmt.Println(err.Error()); return }
 	
-	testContext.Verify200Response(resp)
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 }
