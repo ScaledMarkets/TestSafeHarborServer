@@ -265,15 +265,19 @@ func main() {
 	}
 	
 	var perms2 []bool = testContext.TryGetPermission(user3Id, dockerfileId)
-	for i, p := range perms1 {
-		testContext.AssertThat(p == perms2[i], "Returned permission does not match")
+	if perms2 != nil {
+		for i, p := range perms1 {
+			testContext.AssertThat(p == perms2[i], "Returned permission does not match")
+		}
 	}
 		
 	var perms3 []bool = []bool{false, false, true, true, true}
 	var retPerms3 []bool = testContext.TryAddPermission(user3Id, dockerfileId, perms3)
-	var expectedPerms3 []bool = []bool{false, true, true, true, true}
-	for i, p := range retPerms3 {
-		testContext.AssertThat(p == expectedPerms3[i], "Returned permission does not match")
+	if retPerms3 != nil {
+		var expectedPerms3 []bool = []bool{false, true, true, true, true}
+		for i, p := range retPerms3 {
+			testContext.AssertThat(p == expectedPerms3[i], "Returned permission does not match")
+		}
 	}
 	
 	var group2Id string = testContext.TryCreateGroup(jrealm2Id, "MySecondGroup",
@@ -294,14 +298,21 @@ func main() {
 			"My second image", "myimage2", "Dockerfile")
 		testContext.AssertThat(dockerImageObjId != "", "TryExecDockerfile failed - obj id is nil")
 		testContext.AssertThat(imageId != "", "TryExecDockerfile failed - docker image id is nil")
+	
+		
+		testContext.TryDownloadImage(dockerImageObjId, "MooOinkImage")
+		
+		testContext.TryGetDockerImageDesc(dockerImageObjId)
 	}
 	
+	testContext.TryGetGroupDesc(group2Id)
+	
+	testContext.TryGetRepoDesc(repoId)
+	
+	testContext.TryGetDockerfileDesc(dockerfileId)
+	
 	testContext.TryReplaceDockerfile(dockerfileId, "Dockerfile2", "The boo/ploink one")
-	
-	
-	testContext.TryDownloadImage(dockerImageObjId, "MooOinkImage")
-	
-	
+		
 	testContext.TryDeleteGroup(group2Id)
 	
 	
@@ -321,13 +332,17 @@ func main() {
 	
 	testContext.TryGetScanProviders()
 
+	var config1Id string = testContext.TryDefineScanConfig("My Config 1",
+		"A very find config", repoId, "clair", "Seal.png", []string{}, []string{})
+	testContext.AssertThat(config1Id != "", "No ScanConfig Id was returned")
+	
+	testContext.TryGetScanConfigDesc(config1Id)
+	//testContext.TryGetFlagDesc(....flagId)
+	//testContext.TryGetFlagImage(....flagId)
+
+	
 	/*
 	if testContext.PerformDockerTests {
-		var config1Id string = testContext.TryDefineScanConfig("My Config 1",
-			"A very find config", repoId, "clair",
-			"http://someimage.com", "http://someimage.com", []string{}, []string{})
-		testContext.AssertThat(config1Id != "", "No ScanConfig Id was returned")
-	
 		var scanScore string = testContext.TryScanImage(config1Id, dockerImageObjId)
 		testContext.AssertThat(scanScore != "", "Empty scan score")
 	}
@@ -359,7 +374,7 @@ func main() {
 	testContext.TryDeactivateUser()
 
 
-	testContext.TryReplaceScan()
+	testContext.TryReplaceScanConfig()
 
 
 	testContext.TryGetUserEvents()
@@ -368,7 +383,7 @@ func main() {
 	testContext.TryGetImageEvents()
 
 
-	testContext.TryGetImageStatus()
+	//testContext.TryGetImageStatus(....imageId)
 
 
 	testContext.TryGetDockerfileEvents()

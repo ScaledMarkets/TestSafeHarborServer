@@ -11,6 +11,142 @@ import (
 )
 
 /*******************************************************************************
+ * 
+ */
+func (testContext *TestContext) TryGetGroupDesc(groupId string) {
+	
+	testContext.StartTest("getGroupDesc")
+	var resp *http.Response
+	var err error
+	resp, err = testContext.SendPost(testContext.SessionId,
+		"getGroupDesc",
+		[]string{"GroupId"},
+		[]string{groupId})
+	
+	defer resp.Body.Close()
+	
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	var responseMap map[string]interface{}
+	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
+	if testContext.assertErrIsNil(err, "at ParseResponseBodyToMap") { return }
+	
+	// Expect a GroupDesc
+	var retGroupId string = responseMap["GroupId"].(string)
+	var retRealmId string = responseMap["RealmId"].(string)
+	var retGroupName string = responseMap["GroupName"].(string)
+	var retCreationDate string = responseMap["CreationDate"].(string)
+	var retDescription string = responseMap["Description"].(string)
+	
+	testContext.AssertThat(retGroupId != "", "retGroupId is empty")
+	testContext.AssertThat(retRealmId != "", "retRealmId is empty")
+	testContext.AssertThat(retGroupName != "", "retGroupName is empty")
+	testContext.AssertThat(retCreationDate != "", "retCreationDate is empty")
+	testContext.AssertThat(retDescription != "", "retDescription is empty")
+}
+	
+/*******************************************************************************
+ * 
+ */
+func (testContext *TestContext) TryGetRepoDesc(repoId string) {
+	
+	testContext.StartTest("getRepoDesc")
+	var resp *http.Response
+	var err error
+	resp, err = testContext.SendPost(testContext.SessionId,
+		"getRepoDesc",
+		[]string{"RepoId"},
+		[]string{repoId})
+	
+	defer resp.Body.Close()
+	
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	var responseMap map[string]interface{}
+	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
+	if testContext.assertErrIsNil(err, "at ParseResponseBodyToMap") { return }
+	
+	// Expect a RepoDesc
+	var retId string = responseMap["Id"].(string)
+	var retRealmId string = responseMap["RealmId"].(string)
+	var retRepoName string = responseMap["RepoName"].(string)
+	var retDescription string = responseMap["Description"].(string)
+	var retCreationDate string = responseMap["CreationDate"].(string)
+	var retDockerfileIds []string = responseMap["DockerfileIds"].([]string)
+	
+	testContext.AssertThat(retId != "", "retId is empty")
+	testContext.AssertThat(retRealmId != "", "retRealmId is empty")
+	testContext.AssertThat(retRepoName != "", "retRepoName is empty")
+	testContext.AssertThat(retDescription != "", "retDescription is empty")
+	testContext.AssertThat(retCreationDate != "", "retCreationDate is empty")
+	testContext.AssertThat(retDockerfileIds != nil, "retDockerfileIds is nil")
+}
+	
+/*******************************************************************************
+ * 
+ */
+func (testContext *TestContext) TryGetDockerImageDesc(dockerImageId string) {
+	
+	testContext.StartTest("getDockerImageDesc")
+	var resp *http.Response
+	var err error
+	resp, err = testContext.SendPost(testContext.SessionId,
+		"getDockerImageDesc",
+		[]string{"DockerImageId"},
+		[]string{dockerImageId})
+	
+	defer resp.Body.Close()
+	
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	var responseMap map[string]interface{}
+	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
+	if testContext.assertErrIsNil(err, "at ParseResponseBodyToMap") { return }
+	
+	// Expect a DockerImageDesc
+	var retObjId string = responseMap["ObjId"].(string)
+	var retRepoId string = responseMap["RepoId"].(string)
+	var retName string = responseMap["Name"].(string)
+	var retDescription string = responseMap["Description"].(string)
+	var retCreationDate string = responseMap["CreationDate"].(string)
+	
+	testContext.AssertThat(retObjId != "", "retObjId is empty")
+	testContext.AssertThat(retRepoId != "", "retRepoId is empty")
+	testContext.AssertThat(retName != "", "retName is empty")
+	testContext.AssertThat(retDescription != "", "retDescription is empty")
+	testContext.AssertThat(retCreationDate != "", "retCreationDate is empty")
+}
+	
+/*******************************************************************************
+ * 
+ */
+func (testContext *TestContext) TryGetDockerfileDesc(dockerfileId string) {
+	
+	testContext.StartTest("getDockerfileDesc")
+	var resp *http.Response
+	var err error
+	resp, err = testContext.SendPost(testContext.SessionId,
+		"getDockerfileDesc",
+		[]string{"DockerfileId"},
+		[]string{dockerfileId})
+	
+	defer resp.Body.Close()
+	
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	var responseMap map[string]interface{}
+	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
+	if testContext.assertErrIsNil(err, "at ParseResponseBodyToMap") { return }
+	
+	// Expect a DockerfileDesc
+	var retId string = responseMap["Id"].(string)
+	var retRepoId string = responseMap["RepoId"].(string)
+	var retDescription string = responseMap["Description"].(string)
+	var retDockerfileName string = responseMap["DockerfileName"].(string)
+	
+	testContext.AssertThat(retId != "", "retId is empty")
+	testContext.AssertThat(retRepoId != "", "retRepoId is empty")
+	testContext.AssertThat(retDescription != "", "retDescription is empty")
+	testContext.AssertThat(retDockerfileName != "", "retDockerfileName is empty")
+}
+
+/*******************************************************************************
  * Verify that we can create a new realm.
  */
 func (testContext *TestContext) TryCreateRealm(realmName, orgFullName,
@@ -1036,7 +1172,7 @@ func (testContext *TestContext) TryGetPermission(partyId, resourceId string) []b
 	
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
-	if err != nil { fmt.Println(err.Error()); return nil }
+	if ! testContext.assertErrIsNil(err, "while parsing response body to map") { return nil }
 	rest.PrintMap(responseMap)
 	
 	var retACLEntryId string = responseMap["ACLEntryId"].(string)
@@ -1089,15 +1225,13 @@ func (testContext *TestContext) TryGetScanProviders() {
  * Returns the Id of the ScanConfig that gets created.
  */
 func (testContext *TestContext) TryDefineScanConfig(name, desc, repoId, providerName,
-	successGraphicURL, failGraphicURL string, providerParamNames []string,
+	successGraphicFilePath string, providerParamNames []string,
 	providerParamValues []string) string {
 
 	testContext.StartTest("TryDefineScanConfig")
 	
-	var paramNames []string = []string{"Name", "Description", "RepoId", "ProviderName",
-		"SuccessGraphicImageURL", "FailureGraphicImageURL"}
-	var paramValues []string = []string{name, desc, repoId, providerName,
-		successGraphicURL, failGraphicURL}
+	var paramNames []string = []string{"Name", "Description", "RepoId", "ProviderName"}
+	var paramValues []string = []string{name, desc, repoId, providerName}
 	paramNames = append(paramNames, providerParamNames...)
 	paramValues = append(paramValues, providerParamValues...)
 	
@@ -1108,8 +1242,8 @@ func (testContext *TestContext) TryDefineScanConfig(name, desc, repoId, provider
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
-		"defineScanConfig", paramNames, paramValues)
+	resp, err = testContext.SendFilePost(testContext.SessionId,
+		"defineScanConfig", paramNames, paramValues, successGraphicFilePath)
 	
 	defer resp.Body.Close()
 
@@ -1430,7 +1564,7 @@ func (testContext *TestContext) TryRemPermission() {
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryReplaceScan() {
+func (testContext *TestContext) TryReplaceScanConfig() {
 }
 
 /*******************************************************************************
@@ -1448,7 +1582,20 @@ func (testContext *TestContext) TryGetImageEvents() {
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryGetImageStatus() {
+func (testContext *TestContext) TryGetImageStatus(imageId string) {
+	
+	testContext.StartTest("TryGetImageStatus")
+	
+	var resp *http.Response
+	var err error
+	resp, err = testContext.SendPost(testContext.SessionId,
+		"getImageStatus",
+		[]string{"ImageId"},
+		[]string{imageId},
+		)
+	if ! testContext.assertErrIsNil(err, "") { return }
+	
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 }
 
 /*******************************************************************************
@@ -1461,6 +1608,63 @@ func (testContext *TestContext) TryGetDockerfileEvents() {
  * 
  */
 func (testContext *TestContext) TryDefineFlag() {
+}
+
+/*******************************************************************************
+ * 
+ */
+func (testContext *TestContext) TryGetScanConfigDesc(scanConfigId string) {
+	
+	testContext.StartTest("TryGetScanConfigDesc")
+	
+	var resp *http.Response
+	var err error
+	resp, err = testContext.SendPost(testContext.SessionId,
+		"getScanConfigDesc",
+		[]string{"ScanConfigId"},
+		[]string{scanConfigId},
+		)
+	if ! testContext.assertErrIsNil(err, "") { return }
+	
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+}
+
+/*******************************************************************************
+ * 
+ */
+func (testContext *TestContext) TryGetFlagDesc(flagId string) {
+	
+	testContext.StartTest("TryGetFlagDesc")
+	
+	var resp *http.Response
+	var err error
+	resp, err = testContext.SendPost(testContext.SessionId,
+		"getFlagDesc",
+		[]string{"FlagId"},
+		[]string{flagId},
+		)
+	if ! testContext.assertErrIsNil(err, "") { return }
+	
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+}
+
+/*******************************************************************************
+ * 
+ */
+func (testContext *TestContext) TryGetFlagImage(flagId string) {
+	
+	testContext.StartTest("TryGetFlagImage")
+	
+	var resp *http.Response
+	var err error
+	resp, err = testContext.SendPost(testContext.SessionId,
+		"getFlagImage",
+		[]string{"FlagId"},
+		[]string{flagId},
+		)
+	if ! testContext.assertErrIsNil(err, "") { return }
+	
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 }
 
 /*******************************************************************************
