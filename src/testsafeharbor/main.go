@@ -300,7 +300,7 @@ func main() {
 		testContext.AssertThat(imageId != "", "TryExecDockerfile failed - docker image id is nil")
 	
 		
-		testContext.TryDownloadImage(dockerImageObjId, "MooOinkImage")
+		//testContext.TryDownloadImage(dockerImageObjId, "MooOinkImage")
 		
 		testContext.TryGetDockerImageDesc(dockerImageObjId)
 	}
@@ -341,12 +341,10 @@ func main() {
 	//testContext.TryGetFlagImage(....flagId)
 
 	
-	/*
 	if testContext.PerformDockerTests {
 		var scanScore string = testContext.TryScanImage(config1Id, dockerImageObjId)
 		testContext.AssertThat(scanScore != "", "Empty scan score")
 	}
-	*/
 
 	// ....Test that permissions work.
 	
@@ -389,7 +387,7 @@ func main() {
 	testContext.TryGetDockerfileEvents()
 
 
-	testContext.TryDefineFlag()
+	testContext.TryDefineFlag(repoId, "myflag", , "A really boss flag", "Seal2.png")
 
 	
 	

@@ -1607,7 +1607,22 @@ func (testContext *TestContext) TryGetDockerfileEvents() {
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryDefineFlag() {
+func (testContext *TestContext) TryDefineFlag(repoId, flagName, desc, imageFilePath string) bool {
+	
+	testContext.StartTest("TryDefineFlag")
+	
+	var resp *http.Response
+	var err error
+	resp, err = testContext.SendFilePost(testContext.SessionId,
+		"defineFlag",
+		[]string{"RepoId", "Name", "Description"},
+		[]string{repoId, flagName, },
+		imageFilePath
+		)
+	if ! testContext.assertErrIsNil(err, "") { return }
+	
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	return true
 }
 
 /*******************************************************************************
