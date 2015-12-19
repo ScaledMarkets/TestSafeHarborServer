@@ -509,10 +509,11 @@ func (testContext *TestContext) TryAddAndExecDockerfile(repoId string, desc stri
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendFilePost(testContext.SessionId,
+	//resp, err = testContext.SendFilePost(testContext.SessionId,
+	resp, err = testContext.SendFilePost("",
 		"addAndExecDockerfile",
-		[]string{"RepoId", "Description", "ImageName"},
-		[]string{repoId, desc, imageName},
+		[]string{"RepoId", "Description", "ImageName", "SessionId"},
+		[]string{repoId, desc, imageName, testContext.SessionId},
 		dockerfilePath)
 
 	defer resp.Body.Close()
@@ -1511,7 +1512,6 @@ func (testContext *TestContext) TryDownloadImage(imageId, filename string) {
 
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
-	defer resp.Body.Close()
 	// Check that the server actual sent compressed data
 	var reader io.ReadCloser = resp.Body
 	var file *os.File
@@ -1534,7 +1534,21 @@ func (testContext *TestContext) TryDeactivateUser() {
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryRemGroupUser() {
+func (testContext *TestContext) TryRemGroupUser(groupId, userObjId string) bool {
+
+	testContext.StartTest("TryRemGroupUser")
+	
+	var resp *http.Response
+	var err error
+	resp, err = testContext.SendPost(testContext.SessionId,
+		"remGroupUser",
+		[]string{" GroupId", "UserObjId"},
+		[]string{groupId, userObjId})
+	
+	defer resp.Body.Close()
+
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	return true
 }
 
 /*******************************************************************************
@@ -1558,7 +1572,23 @@ func (testContext *TestContext) TryDeleteRepo() {
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryRemPermission() {
+func (testContext *TestContext) TryRemPermission(partyId, resourceId string,
+	permissions bool) {
+	
+	testContext.StartTest("TryRemPermission")
+	
+	var resp *http.Response
+	var err error
+	resp, err = testContext.SendPost(testContext.SessionId,
+		"remPermission",
+		[]string{"PartyId", "ResourceId"},
+		[]string{partyId, resourceId})
+	
+	defer resp.Body.Close()
+
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	
+	return true
 }
 
 /*******************************************************************************
@@ -1616,10 +1646,9 @@ func (testContext *TestContext) TryDefineFlag(repoId, flagName, desc, imageFileP
 	resp, err = testContext.SendFilePost(testContext.SessionId,
 		"defineFlag",
 		[]string{"RepoId", "Name", "Description"},
-		[]string{repoId, flagName, },
-		imageFilePath
-		)
-	if ! testContext.assertErrIsNil(err, "") { return }
+		[]string{repoId, flagName, desc},
+		imageFilePath)
+	if ! testContext.assertErrIsNil(err, "") { return false}
 	
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	return true

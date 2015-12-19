@@ -280,6 +280,14 @@ func main() {
 		}
 	}
 	
+	if testContext.TryRemPermission(user3Id, dockerfileId) {
+		var retPerms4 []bool = testContext.TryGetPermission(user3Id, dockerfileId)
+		var expectedPerms4 []bool = []bool{false, false, false, false, false}
+		for i, p := range retPerms4 {
+			testContext.AssertThat(p == expectedPerms4[i], "Returned permission does not match")
+		}
+	}
+
 	var group2Id string = testContext.TryCreateGroup(jrealm2Id, "MySecondGroup",
 		"For Overthrowning Skynet Again", true)
 	testContext.AssertThat(group2Id != "", "Empty group Id returned")
@@ -313,11 +321,17 @@ func main() {
 	
 	testContext.TryReplaceDockerfile(dockerfileId, "Dockerfile2", "The boo/ploink one")
 		
+	if testContext.TryAddGroupUser(group2Id, sarahConnorUserObjId) {
+		if testContext.TryAddGroupUser(group2Id, johnConnorUserObjId) {
+			var userIdsBeforeRemoval []string = testContext.TryGetGroupUsers(group2Id)
+			testContext.TryRemGroupUser(sarahConnorUserObjId)
+			var userIdsAfterRemoval []string = testContext.TryGetGroupUsers(group2Id)
+			testContext.AssertThat(userIdsBeforeRemoval-userIdsAfterRemoval==1,
+				fmt.Sprintf("Before: %d users, after: %d users", userIdsBeforeRemoval, userIdsAfterRemoval)
+		}
+	}
+	
 	testContext.TryDeleteGroup(group2Id)
-	
-	
-	testContext.TryRemGroupUser()
-	
 	
 	testContext.TryDeactivateRealm()
 	
@@ -362,12 +376,7 @@ func main() {
 	_, pass = testContext.TryAuthenticate("jconnor", "ILoveCameron", false)
 	testContext.AssertThat(pass, "Error: user was able to log in")		
 		
-	// Test ability to log out.
-	testContext.AssertThat(testContext.TryLogout(), "Unable to log out")
-	
-	// Test ability to clear the entire database and docker repository.
-	//testContext.TryClearAll()
-	
+	testContext.TryDefineFlag(repoId, "myflag", "A really boss flag", "Seal2.png")
 	
 	testContext.TryDeactivateUser()
 
@@ -387,8 +396,12 @@ func main() {
 	testContext.TryGetDockerfileEvents()
 
 
-	testContext.TryDefineFlag(repoId, "myflag", , "A really boss flag", "Seal2.png")
-
+	// Test ability to log out.
+	testContext.AssertThat(testContext.TryLogout(), "Unable to log out")
+	
+	// Test ability to clear the entire database and docker repository.
+	testContext.TryClearAll()
+	
 	
 	
 	fmt.Println()
