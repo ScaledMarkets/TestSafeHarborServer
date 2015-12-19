@@ -1226,7 +1226,7 @@ func (testContext *TestContext) TryGetScanProviders() {
  * Returns the Id of the ScanConfig that gets created.
  */
 func (testContext *TestContext) TryDefineScanConfig(name, desc, repoId, providerName,
-	successGraphicFilePath string, providerParamNames []string,
+	successExpr, successGraphicFilePath string, providerParamNames []string,
 	providerParamValues []string) string {
 
 	testContext.StartTest("TryDefineScanConfig")
@@ -1279,6 +1279,16 @@ func (testContext *TestContext) TryDefineScanConfig(name, desc, repoId, provider
 	}
 	
 	return retId
+}
+
+/*******************************************************************************
+ * 
+ */
+func (testContext *TestContext) TryUpdateScanConfig(scanConfigId, desc, providerName,
+	successExpr, successGraphicFilePath string, providerParamNames []string,
+	providerParamValues []string) bool {
+	
+	
 }
 
 /*******************************************************************************
@@ -1594,12 +1604,6 @@ func (testContext *TestContext) TryRemPermission(partyId, resourceId string,
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryReplaceScanConfig() {
-}
-
-/*******************************************************************************
- * 
- */
 func (testContext *TestContext) TryGetUserEvents() {
 }
 
@@ -1657,7 +1661,8 @@ func (testContext *TestContext) TryDefineFlag(repoId, flagName, desc, imageFileP
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryGetScanConfigDesc(scanConfigId string) {
+func (testContext *TestContext) TryGetScanConfigDesc(scanConfigId string) (
+	map[string]interface{}) {
 	
 	testContext.StartTest("TryGetScanConfigDesc")
 	
@@ -1671,6 +1676,12 @@ func (testContext *TestContext) TryGetScanConfigDesc(scanConfigId string) {
 	if ! testContext.assertErrIsNil(err, "") { return }
 	
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	
+	var responseMap map[string]interface{}
+	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
+	if ! testContext.assertErrIsNil(err, "") { return }
+
+	return responseMap
 }
 
 /*******************************************************************************

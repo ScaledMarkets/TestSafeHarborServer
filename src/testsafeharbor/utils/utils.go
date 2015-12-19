@@ -32,6 +32,7 @@ type TestContext struct {
 	StopOnFirstError bool
 	PerformDockerTests bool
 	TestStatus map[string]string
+	CurrentTestPassed bool
 	NoOfTests int
 	NoOfTestsThatFailed int
 }
@@ -71,6 +72,7 @@ func (testContext *TestContext) StartTest(name string) {
 	var testNumber =testContext.NoOfTests
 	var hashKey = fmt.Sprintf("%d: %s", testNumber, name)
 	testContext.testName = hashKey
+	testContext.CurrentTestPassed = false
 	testContext.TestStatus[hashKey] = ""
 	fmt.Println()
 	fmt.Println(testNumber, "Begin Test", name, "-------------------------------------------")
@@ -81,6 +83,7 @@ func (testContext *TestContext) StartTest(name string) {
  */
 func (testContext *TestContext) PassTest() {
 	testContext.TestStatus[testContext.testName] = "Pass"
+	testContext.CurrentTestPassed = true
 }
 
 /*******************************************************************************

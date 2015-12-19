@@ -347,13 +347,25 @@ func main() {
 	testContext.TryGetScanProviders()
 
 	var config1Id string = testContext.TryDefineScanConfig("My Config 1",
-		"A very find config", repoId, "clair", "Seal.png", []string{}, []string{})
+		"A very find config", repoId, "clair", "", "Seal.png", []string{}, []string{})
 	testContext.AssertThat(config1Id != "", "No ScanConfig Id was returned")
 	
 	testContext.TryGetScanConfigDesc(config1Id)
 	//testContext.TryGetFlagDesc(....flagId)
 	//testContext.TryGetFlagImage(....flagId)
 
+	testContext.TryUpdateScanConfig(config1Id, "", "", "", "Seal2.png", []string{}, []string{})
+	var scanConfig1Map map[string]interface{}
+	scanConfig1Map = testContext.TryGetScanConfigDesc(config1Id)
+	if testContext.CurrentTestPassed {
+		// Id string
+		// ProviderName string
+		// SuccessExpression string
+		// FlagId string
+		// ParameterValueDescs []*ParameterValueDesc
+		var newFlagId = scanConfigMap[FlagId]
+		testContext.AssertThat(newFlagId != "")
+	}
 	
 	if testContext.PerformDockerTests {
 		var scanScore string = testContext.TryScanImage(config1Id, dockerImageObjId)
@@ -379,9 +391,6 @@ func main() {
 	testContext.TryDefineFlag(repoId, "myflag", "A really boss flag", "Seal2.png")
 	
 	testContext.TryDeactivateUser()
-
-
-	testContext.TryReplaceScanConfig()
 
 
 	testContext.TryGetUserEvents()
