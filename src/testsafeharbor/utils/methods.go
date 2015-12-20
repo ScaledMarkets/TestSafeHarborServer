@@ -1604,13 +1604,63 @@ func (testContext *TestContext) TryRemPermission(partyId, resourceId string,
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryGetUserEvents() {
+func (testContext *TestContext) TryGetUserEvents(userId string) {
+	
+	testContext.StartTest("TryGetUserEvents")
+	
+	var resp *http.Response
+	var err error
+	resp, err = testContext.SendPost(testContext.SessionId,
+		"getUserEvents",
+		[]string{"UserId"},
+		[]string{userId})
+	
+	defer resp.Body.Close()
+
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	
+	var responseMaps []map[string]interface{}
+	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)
+	if err != nil { fmt.Println(err.Error()); return nil }
+	var result []string = make([]string, 0)
+	for _, responseMap := range responseMaps {
+		rest.PrintMap(responseMap)
+		var retId string = responseMap["Id"].(string)
+		testContext.AssertThat(retId != "", "Returned Id is empty string")
+		result = append(result, retId)
+	}
+	return result
 }
 
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryGetImageEvents() {
+func (testContext *TestContext) TryGetDockerImageEvents(imageId string) []string {
+	
+	testContext.StartTest("TryGetDockerImageEvents")
+	
+	var resp *http.Response
+	var err error
+	resp, err = testContext.SendPost(testContext.SessionId,
+		"getDockerImageEvents",
+		[]string{"ImageId"},
+		[]string{imageId})
+	
+	defer resp.Body.Close()
+
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	
+	var responseMaps []map[string]interface{}
+	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)
+	if err != nil { fmt.Println(err.Error()); return nil }
+	var result []string = make([]string, 0)
+	for _, responseMap := range responseMaps {
+		rest.PrintMap(responseMap)
+		var retId string = responseMap["Id"].(string)
+		testContext.AssertThat(retId != "", "Returned Id is empty string")
+		result = append(result, retId)
+	}
+	return result
 }
 
 /*******************************************************************************
@@ -1635,7 +1685,32 @@ func (testContext *TestContext) TryGetImageStatus(imageId string) {
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryGetDockerfileEvents() {
+func (testContext *TestContext) TryGetDockerfileEvents(dockerfileId) []string {
+
+	testContext.StartTest("TryGetDockerfileEvents")
+	
+	var resp *http.Response
+	var err error
+	resp, err = testContext.SendPost(testContext.SessionId,
+		"getDockerfileEvents",
+		[]string{"DockerfileId"},
+		[]string{dockerfileId})
+	
+	defer resp.Body.Close()
+
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	
+	var responseMaps []map[string]interface{}
+	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)
+	if err != nil { fmt.Println(err.Error()); return nil }
+	var result []string = make([]string, 0)
+	for _, responseMap := range responseMaps {
+		rest.PrintMap(responseMap)
+		var retId string = responseMap["Id"].(string)
+		testContext.AssertThat(retId != "", "Returned Id is empty string")
+		result = append(result, retId)
+	}
+	return result
 }
 
 /*******************************************************************************
@@ -1682,6 +1757,32 @@ func (testContext *TestContext) TryGetScanConfigDesc(scanConfigId string) (
 	if ! testContext.assertErrIsNil(err, "") { return }
 
 	return responseMap
+}
+
+/*******************************************************************************
+ * 
+ */
+func (testContext *TestContext) TryChangePassword(userId, oldPswd, newPswd string) bool {
+	
+	
+	testContext.StartTest("TryChangePassword")
+	
+	var resp *http.Response
+	var err error
+	resp, err = testContext.SendPost(testContext.SessionId,
+		"changePassword",
+		[]string{"UserId", "OldPassword", "NewPassword"},
+		[]string{userId, oldPswd, newPswd},
+		)
+	if ! testContext.assertErrIsNil(err, "") { return }
+	
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	
+	var responseMap map[string]interface{}
+	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
+	if ! testContext.assertErrIsNil(err, "") { return }
+
+	return testContext.CurrentTestPassed
 }
 
 /*******************************************************************************

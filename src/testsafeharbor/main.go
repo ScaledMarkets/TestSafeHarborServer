@@ -90,6 +90,10 @@ func main() {
 	testContext.IsAdmin = IsAdmin
 	fmt.Println("sessionId =", sessionId)
 	
+	// -------------------------------
+	// User id realm4admin is authenticated.
+	//
+	
 	// Verify that the authenticated user is an admin user.
 	testContext.AssertThat(testContext.IsAdmin, "User is not flagged as admin")
 	
@@ -98,6 +102,10 @@ func main() {
 	testContext.SessionId = sessionId
 	testContext.IsAdmin = IsAdmin
 	fmt.Println("sessionId =", sessionId)
+	
+	// -------------------------------
+	// User id testuser1 is authenticated.
+	//
 	
 	// Verify that the authenticated user is NOT an admin user.
 	testContext.AssertThat(! testContext.IsAdmin, "User is flagged as admin")
@@ -120,6 +128,10 @@ func main() {
 	sessionId, IsAdmin = testContext.TryAuthenticate(userId, "password1", true)
 	testContext.SessionId = sessionId
 	testContext.IsAdmin = IsAdmin
+	
+	// -------------------------------
+	// User id jdoe is authenticated
+	//
 	
 	// Test ability to create a realm.
 	var jrealm1Id string = testContext.TryCreateRealm("johnsfirstrealm",
@@ -339,7 +351,7 @@ func main() {
 	testContext.TryRemRealmUser()
 	
 	
-	testContext.TryDeleteRepo()
+	//testContext.TryDeleteRepo()
 	
 	
 	testContext.TryRemPermission()
@@ -375,7 +387,21 @@ func main() {
 	// ....Test that permissions work.
 	
 	
+	// Verify that we can update our password.
+	if testContext.TryChangePassword(userId, "password1", "password2") {
+		testContext.TryLogout()
+		testContext.TryAuthenticate(userId, "password1", false)
+		testContext.TryAuthenticate(userId, "password2", true)
+	}
 	
+	// -------------------------------
+	// User id jdoe is authenticated.
+	//
+	
+	// Verify that we can log in as a different user, and the prior session is
+	// no longer valid.
+	testContext.TryLogout()
+	testContext.TryGetMyDesc()
 	
 	// Test ability to make a private image available to the SafeHarbor closed community.
 	
@@ -393,17 +419,20 @@ func main() {
 	testContext.TryDeactivateUser()
 
 
-	testContext.TryGetUserEvents()
-
-
-	testContext.TryGetImageEvents()
-
-
-	//testContext.TryGetImageStatus(....imageId)
-
-
-	testContext.TryGetDockerfileEvents()
-
+	if testContext.PerformDockerTests {
+		var eventIds []string = testContext.TryGetUserEvents(userId)
+		testContext.AssertThat(len(eventIds) == 2, "Wrong number of user events")
+	
+		eventIds = testContext.TryGetDockerImageEvents(imageId)
+		testContext.AssertThat(len(eventIds) == 1, "Wrong number of image events")
+	
+	
+		//testContext.TryGetImageStatus(....imageId)
+	
+	
+		eventIds = testContext.TryGetDockerfileEvents(dockerfileId)
+		testContext.AssertThat(len(eventIds) == 1, "Wrong number of image events")
+	}
 
 	// Test ability to log out.
 	testContext.AssertThat(testContext.TryLogout(), "Unable to log out")
