@@ -1176,7 +1176,7 @@ func (testContext *TestContext) TryGetPermission(partyId, resourceId string) []b
 	if ! testContext.assertErrIsNil(err, "while parsing response body to map") { return nil }
 	rest.PrintMap(responseMap)
 	
-	var retACLEntryId string = responseMap["ACLEntryId"].(string)
+	//var retACLEntryId string = responseMap["ACLEntryId"].(string)
 	var retPartyId string = responseMap["PartyId"].(string)
 	var retResourceId string = responseMap["ResourceId"].(string)
 	var retCreate bool = responseMap["CanCreateIn"].(bool)
@@ -1184,7 +1184,7 @@ func (testContext *TestContext) TryGetPermission(partyId, resourceId string) []b
 	var retWrite bool = responseMap["CanWrite"].(bool)
 	var retExecute bool = responseMap["CanExecute"].(bool)
 	var retDelete bool = responseMap["CanDelete"].(bool)
-	testContext.AssertThat(retACLEntryId != "", "Empty return retACLEntryId")
+	//testContext.AssertThat(retACLEntryId != "", "Empty return retACLEntryId")
 	testContext.AssertThat(retPartyId != "", "Empty return retPartyId")
 	testContext.AssertThat(retResourceId != "", "Empty return retResourceId")
 	
