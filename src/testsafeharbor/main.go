@@ -210,7 +210,6 @@ func main() {
 	var realm3Id string
 	var user3Id string
 	var user3AdminRealms []interface{}
-	var saveSessionId string = testContext.SessionId
 	realm3Id, user3Id, user3AdminRealms = testContext.TryCreateRealmAnon("realm3", "Realm 3 Org",
 		"realm3admin", "Realm 3 Admin Full Name", "realm3admin@gmail.com", "realm3adminpswd")
 	testContext.AssertThat(realm3Id != "", "Realm Id is empty")
@@ -218,23 +217,9 @@ func main() {
 	testContext.AssertThat(len(user3AdminRealms) == 1, "Wrong number of admin realms")
 	
 	// Restore user context to what it was before we called TryCreateRealmAnon.
-	testContext.SessionId = saveSessionId
-	
-	if testContext.PerformDockerTests {
-		// Test ability to build image from a dockerfile.
-		var dockerImageObjId string
-		var imageId string
-		dockerImageObjId, imageId = testContext.TryExecDockerfile(repoId, dockerfileId, "myimage")
-		testContext.AssertThat(dockerImageObjId != "", "TryExecDockerfile failed - obj id is nil")
-		testContext.AssertThat(imageId != "", "TryExecDockerfile failed - docker image id is nil")
-	
-		// Test ability to list the images in a repo.
-		var imageNames []string = testContext.TryGetImages(repoId)
-		testContext.AssertThat(len(imageNames) == 1, "Wrong number of images")
-	
-		var myDockerImageIds []string = testContext.TryGetMyDockerImages()
-		testContext.AssertThat(len(myDockerImageIds) == 1, "Wrong number of docker images")
-	}
+	sessionId, IsAdmin = testContext.TryAuthenticate(userId, "password1", true)
+	testContext.SessionId = sessionId
+	testContext.IsAdmin = IsAdmin
 	
 	var myDockerfileIds []string = testContext.TryGetMyDockerfiles()
 	testContext.AssertThat(len(myDockerfileIds) == 1, "Wrong number of dockerfiles")
@@ -296,6 +281,7 @@ func main() {
 		var retPerms4 []bool = testContext.TryGetPermission(user3Id, dockerfileId)
 		var expectedPerms4 []bool = []bool{false, false, false, false, false}
 		for i, p := range retPerms4 {
+			fmt.Println(fmt.Sprintf("\tret perm[%d]: %#v; exp perm[%d]: %#v", i, p, i, expectedPerms4[i]))
 			testContext.AssertThat(p == expectedPerms4[i], "Returned permission does not match")
 		}
 	}
@@ -311,20 +297,6 @@ func main() {
 		"A super smart repo", "dockerfile")
 	testContext.AssertThat(repo5Id != "", "TryCreateRepo failed")
 		
-	var dockerImageObjId string
-	if testContext.PerformDockerTests {
-		var imageId string
-		dockerImageObjId, imageId = testContext.TryAddAndExecDockerfile(repoId,
-			"My second image", "myimage2", "Dockerfile")
-		testContext.AssertThat(dockerImageObjId != "", "TryExecDockerfile failed - obj id is nil")
-		testContext.AssertThat(imageId != "", "TryExecDockerfile failed - docker image id is nil")
-	
-		
-		//testContext.TryDownloadImage(dockerImageObjId, "MooOinkImage")
-		
-		testContext.TryGetDockerImageDesc(dockerImageObjId)
-	}
-	
 	testContext.TryGetGroupDesc(group2Id)
 	
 	testContext.TryGetRepoDesc(repoId)
@@ -336,10 +308,10 @@ func main() {
 	if testContext.TryAddGroupUser(group2Id, sarahConnorUserObjId) {
 		if testContext.TryAddGroupUser(group2Id, johnConnorUserObjId) {
 			var userIdsBeforeRemoval []string = testContext.TryGetGroupUsers(group2Id)
-			testContext.TryRemGroupUser(sarahConnorUserObjId)
+			testContext.TryRemGroupUser(group2Id, sarahConnorUserObjId)
 			var userIdsAfterRemoval []string = testContext.TryGetGroupUsers(group2Id)
-			testContext.AssertThat(userIdsBeforeRemoval-userIdsAfterRemoval==1,
-				fmt.Sprintf("Before: %d users, after: %d users", userIdsBeforeRemoval, userIdsAfterRemoval)
+			testContext.AssertThat(len(userIdsBeforeRemoval)-len(userIdsAfterRemoval)==1,
+				fmt.Sprintf("Before: %d users, after: %d users", userIdsBeforeRemoval, userIdsAfterRemoval))
 		}
 	}
 	
@@ -353,9 +325,7 @@ func main() {
 	
 	//testContext.TryDeleteRepo()
 	
-	
-	testContext.TryRemPermission()
-	
+		
 	testContext.TryGetScanProviders()
 
 	var config1Id string = testContext.TryDefineScanConfig("My Config 1",
@@ -366,7 +336,7 @@ func main() {
 	//testContext.TryGetFlagDesc(....flagId)
 	//testContext.TryGetFlagImage(....flagId)
 
-	testContext.TryUpdateScanConfig(config1Id, "", "", "", "Seal2.png", []string{}, []string{})
+	testContext.TryUpdateScanConfig(config1Id, "", "", "", "", "Seal2.png", []string{}, []string{})
 	var scanConfig1Map map[string]interface{}
 	scanConfig1Map = testContext.TryGetScanConfigDesc(config1Id)
 	if testContext.CurrentTestPassed {
@@ -375,15 +345,10 @@ func main() {
 		// SuccessExpression string
 		// FlagId string
 		// ParameterValueDescs []*ParameterValueDesc
-		var newFlagId = scanConfigMap[FlagId]
-		testContext.AssertThat(newFlagId != "")
+		var newFlagId = scanConfig1Map["FlagId"]
+		testContext.AssertThat(newFlagId != "", "FlagId returned empty")
 	}
 	
-	if testContext.PerformDockerTests {
-		var scanScore string = testContext.TryScanImage(config1Id, dockerImageObjId)
-		testContext.AssertThat(scanScore != "", "Empty scan score")
-	}
-
 	// ....Test that permissions work.
 	
 	
@@ -420,14 +385,43 @@ func main() {
 
 
 	if testContext.PerformDockerTests {
+		// Test ability to build image from a dockerfile.
+		var dockerImage1ObjId string
+		var image1Id string
+		dockerImage1ObjId, image1Id = testContext.TryExecDockerfile(repoId, dockerfileId, "myimage")
+		testContext.AssertThat(dockerImage1ObjId != "", "TryExecDockerfile failed - obj id is nil")
+		testContext.AssertThat(image1Id != "", "TryExecDockerfile failed - docker image id is nil")
+	
+		// Test ability to list the images in a repo.
+		var imageNames []string = testContext.TryGetImages(repoId)
+		testContext.AssertThat(len(imageNames) == 1, "Wrong number of images")
+	
+		var myDockerImageIds []string = testContext.TryGetMyDockerImages()
+		testContext.AssertThat(len(myDockerImageIds) == 1, "Wrong number of docker images")
+	
+		var scanScore string = testContext.TryScanImage(config1Id, dockerImage1ObjId)
+		testContext.AssertThat(scanScore != "", "Empty scan score")
+
+		var dockerImage2ObjId string
+		var image2Id string
+		dockerImage2ObjId, image2Id = testContext.TryAddAndExecDockerfile(repoId,
+			"My second image", "myimage2", "Dockerfile")
+		testContext.AssertThat(dockerImage2ObjId != "", "TryExecDockerfile failed - obj id is nil")
+		testContext.AssertThat(image2Id != "", "TryExecDockerfile failed - docker image id is nil")
+	
+		
+		//testContext.TryDownloadImage(dockerImage2ObjId, "MooOinkImage")
+		
+		testContext.TryGetDockerImageDesc(dockerImage2ObjId)
+	
 		var eventIds []string = testContext.TryGetUserEvents(userId)
 		testContext.AssertThat(len(eventIds) == 2, "Wrong number of user events")
 	
-		eventIds = testContext.TryGetDockerImageEvents(imageId)
+		eventIds = testContext.TryGetDockerImageEvents(image2Id)
 		testContext.AssertThat(len(eventIds) == 1, "Wrong number of image events")
 	
 	
-		//testContext.TryGetImageStatus(....imageId)
+		//testContext.TryGetImageStatus(....image2Id)
 	
 	
 		eventIds = testContext.TryGetDockerfileEvents(dockerfileId)

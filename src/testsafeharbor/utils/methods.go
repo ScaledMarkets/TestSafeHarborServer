@@ -1284,11 +1284,79 @@ func (testContext *TestContext) TryDefineScanConfig(name, desc, repoId, provider
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryUpdateScanConfig(scanConfigId, desc, providerName,
+func (testContext *TestContext) TryUpdateScanConfig(scanConfigId, name, desc, providerName,
 	successExpr, successGraphicFilePath string, providerParamNames []string,
 	providerParamValues []string) bool {
 	
+	testContext.StartTest("TryUpdateScanConfig")
 	
+	var paramNames []string = []string{"ScanConfigId", "Name", "Description", "ProviderName"}
+	var paramValues []string = []string{scanConfigId, name, desc, providerName}
+	paramNames = append(paramNames, providerParamNames...)
+	paramValues = append(paramValues, providerParamValues...)
+	
+	fmt.Println("Param names:")
+	for _, n := range paramNames { fmt.Println("\t" + n) }
+	fmt.Println("Param values:")
+	for _, v := range paramValues { fmt.Println("\t" + v) }
+	
+	var resp *http.Response
+	var err error
+	resp, err = testContext.SendFilePost(testContext.SessionId,
+		"updateScanConfig", paramNames, paramValues, successGraphicFilePath)
+	
+	defer resp.Body.Close()
+
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	
+	var responseMap map[string]interface{}
+	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
+	if ! testContext.assertErrIsNil(err, "") { return false }
+	rest.PrintMap(responseMap)
+	
+	// Returns ScanConfigDesc
+	var retId string
+	var retProviderName string
+	var retSuccessExpression string
+	var retFlagId string
+	var retParameterValueDescs []map[string]interface{}
+	
+	var isType bool
+	
+	retId, isType = responseMap["Id"].(string)
+	if testContext.AssertThat(isType, "Id") {
+		testContext.AssertThat(retId != "", "Returned Id is empty")
+	}
+	
+	retProviderName, isType = responseMap["ProviderName"].(string)
+	if testContext.AssertThat(isType, "ProviderName") {
+		testContext.AssertThat(retProviderName != "", "Returned ProviderName is empty")
+	}
+	
+	retSuccessExpression, isType = responseMap["SuccessExpression"].(string)
+	if testContext.AssertThat(isType, "SuccessExpression") {
+		testContext.AssertThat(retSuccessExpression != "", "Returned SuccessExpression is empty")
+	}
+	
+	retFlagId, isType = responseMap["FlagId"].(string)
+	if testContext.AssertThat(isType, "FlagId") {
+		testContext.AssertThat(retFlagId != "", "Returned FlagId is empty")
+	}
+	
+	retParameterValueDescs, isType = responseMap["ParameterValueDescs"].([]map[string]interface{})
+	if testContext.AssertThat(isType, "ParameterValueDescs") {
+		if testContext.AssertThat(len(retParameterValueDescs) == len(providerParamNames),
+			"Wrong number of parameter descriptions returned") {
+			for i, _ := range providerParamNames {
+				testContext.AssertThat(providerParamNames[i] == retParameterValueDescs[i]["Name"],
+					fmt.Sprintf("Parameter name %d mismatch", i))
+				testContext.AssertThat(providerParamValues[i] == retParameterValueDescs[i]["StringValue"],
+					fmt.Sprintf("Parameter value %d mismatch", i))
+			}
+		}
+	}
+	
+	return testContext.CurrentTestPassed
 }
 
 /*******************************************************************************
@@ -1556,6 +1624,7 @@ func (testContext *TestContext) TryRemGroupUser(groupId, userObjId string) bool 
 		[]string{groupId, userObjId})
 	
 	defer resp.Body.Close()
+	if ! testContext.assertErrIsNil(err, "") { return false }
 
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	return true
@@ -1582,8 +1651,7 @@ func (testContext *TestContext) TryDeleteRepo() {
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryRemPermission(partyId, resourceId string,
-	permissions bool) {
+func (testContext *TestContext) TryRemPermission(partyId, resourceId string) bool {
 	
 	testContext.StartTest("TryRemPermission")
 	
@@ -1595,6 +1663,7 @@ func (testContext *TestContext) TryRemPermission(partyId, resourceId string,
 		[]string{partyId, resourceId})
 	
 	defer resp.Body.Close()
+	if ! testContext.assertErrIsNil(err, "") { return false }
 
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
@@ -1604,7 +1673,7 @@ func (testContext *TestContext) TryRemPermission(partyId, resourceId string,
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryGetUserEvents(userId string) {
+func (testContext *TestContext) TryGetUserEvents(userId string) []string {
 	
 	testContext.StartTest("TryGetUserEvents")
 	
@@ -1685,7 +1754,7 @@ func (testContext *TestContext) TryGetImageStatus(imageId string) {
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryGetDockerfileEvents(dockerfileId) []string {
+func (testContext *TestContext) TryGetDockerfileEvents(dockerfileId string) []string {
 
 	testContext.StartTest("TryGetDockerfileEvents")
 	
@@ -1748,13 +1817,13 @@ func (testContext *TestContext) TryGetScanConfigDesc(scanConfigId string) (
 		[]string{"ScanConfigId"},
 		[]string{scanConfigId},
 		)
-	if ! testContext.assertErrIsNil(err, "") { return }
+	if ! testContext.assertErrIsNil(err, "") { return nil }
 	
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
-	if ! testContext.assertErrIsNil(err, "") { return }
+	testContext.assertErrIsNil(err, "")
 
 	return responseMap
 }
@@ -1774,13 +1843,13 @@ func (testContext *TestContext) TryChangePassword(userId, oldPswd, newPswd strin
 		[]string{"UserId", "OldPassword", "NewPassword"},
 		[]string{userId, oldPswd, newPswd},
 		)
-	if ! testContext.assertErrIsNil(err, "") { return }
+	if ! testContext.assertErrIsNil(err, "") { return false }
 	
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
-	var responseMap map[string]interface{}
-	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
-	if ! testContext.assertErrIsNil(err, "") { return }
+	//var responseMap map[string]interface{}
+	_, err = rest.ParseResponseBodyToMap(resp.Body)
+	if ! testContext.assertErrIsNil(err, "") { return false }
 
 	return testContext.CurrentTestPassed
 }
