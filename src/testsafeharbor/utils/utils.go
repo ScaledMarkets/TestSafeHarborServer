@@ -19,6 +19,8 @@ import (
 	//"errors"
 	//"encoding/json"
 	//"reflect"
+	"crypto/sha512"
+	"hash"
 	
 	// My packages:
 	"testsafeharbor/rest"
@@ -124,4 +126,37 @@ func (testContext *TestContext) assertErrIsNil(err error, msg string) bool {
  */
 func BoolToString(b bool) string {
 	if b { return "true" } else { return "false" }	
+}
+
+/*******************************************************************************
+ * Utility to determine if an array contains a specified value.
+ */
+func Contains(ar []interface{}, val interface{}) bool {
+	for _, v := range ar {
+		if v == val { return true }
+	}
+	return false
+}
+
+/*******************************************************************************
+ * 
+ */
+func ComputeFileSignature(filepath string) ([]byte, error) {
+	
+	var file *os.File
+	var err error
+	file, err = os.Open(filepath)
+	if err != nil { return nil, err }
+	var numBytesRead int
+	var buf [100000]byte
+	var hash hash.Hash = sha512.New()
+	for {
+		numBytesRead, err = file.Read(buf)
+		if numBytesRead == 0 { break }
+		hash.Write(buf)
+		if err != nil { break }
+		if numBytesRead < 100000 { break }
+	}
+	
+	return hash.Sum([]byte), nil
 }

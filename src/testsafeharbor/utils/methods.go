@@ -83,7 +83,7 @@ func (testContext *TestContext) TryGetRepoDesc(repoId string) {
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryGetDockerImageDesc(dockerImageId string) {
+func (testContext *TestContext) TryGetDockerImageDesc(dockerImageId string) map[string]interface{} {
 	
 	testContext.StartTest("getDockerImageDesc")
 	var resp *http.Response
@@ -112,6 +112,8 @@ func (testContext *TestContext) TryGetDockerImageDesc(dockerImageId string) {
 	testContext.AssertThat(retName != "", "retName is empty")
 	testContext.AssertThat(retDescription != "", "retDescription is empty")
 	testContext.AssertThat(retCreationDate != "", "retCreationDate is empty")
+	
+	return responseMap
 }
 	
 /*******************************************************************************
@@ -222,7 +224,7 @@ func (testContext *TestContext) TryCreateUser(userId string, userName string,
 }
 
 /*******************************************************************************
- * 
+ * Returns session Id, and isAdmin.
  */
 func (testContext *TestContext) TryAuthenticate(userId string, pswd string,
 	expectSuccess bool) (string, bool) {
@@ -242,6 +244,7 @@ func (testContext *TestContext) TryAuthenticate(userId string, pswd string,
 	} else {
 		if resp.StatusCode == 200 {
 			testContext.FailTest()
+			return "", false
 		} else {
 			testContext.PassTest()
 			return "", true
@@ -574,15 +577,16 @@ func (testContext *TestContext) TryGetImages(repoId string) []string {
 }
 
 /*******************************************************************************
- * Return the object Id of the specified user.
+ * Return the object Id of the specified user, and a list of the realms that
+ * the user can modify.
  */
-func (testContext *TestContext) TryGetRealmUser(realmId, userId string) (string, []interface{}) {
-	testContext.StartTest("TryGetRealmUser")
+func (testContext *TestContext) TryGetUserDesc(realmId, userId string) map[string]interface{} {
+	testContext.StartTest("TryGetUserDesc")
 	
 	var resp *http.Response
 	var err error
 	resp, err = testContext.SendPost(testContext.SessionId,
-		"getRealmUser",
+		"getUserDesc",
 		[]string{"RealmId", "UserId"},
 		[]string{realmId, userId})
 	
@@ -608,7 +612,7 @@ func (testContext *TestContext) TryGetRealmUser(realmId, userId string) (string,
 		" does not match the original realm Id")
 	testContext.AssertThat(retCanModifyTheseRealms != nil, "No realms returned")
 	
-	return retUserObjId, retCanModifyTheseRealms
+	return responseMap
 }
 
 /*******************************************************************************
@@ -729,15 +733,15 @@ func (testContext *TestContext) TryAddGroupUser(groupId, userId string) bool {
 /*******************************************************************************
  * Returns result.
  */
-func (testContext *TestContext) TryAddRealmUser(realmId string, userObjId string) string {
-	testContext.StartTest("TryAddRealmUser")
+func (testContext *TestContext) TryMoveUserToRealm(realmId string, userObjId string) bool {
+	testContext.StartTest("TryMoveUserToRealm")
 	
 	var resp *http.Response
 	var err error
 	resp, err = testContext.SendPost(testContext.SessionId,
-		"addRealmUser",
-		[]string{"RealmId", "UserObjId"},
-		[]string{realmId, userObjId})
+		"moveUserToRealm",
+		[]string{"UserObjId", "RealmId"},
+		[]string{userObjId, realmId})
 	
 	defer resp.Body.Close()
 
@@ -751,7 +755,7 @@ func (testContext *TestContext) TryAddRealmUser(realmId string, userObjId string
 	rest.PrintMap(responseMap)
 	testContext.AssertThat(retStatus != "", "Empty return status")
 	testContext.AssertThat(retMsg != "", "Empty return message")
-	return retMsg
+	return testContext.CurrentTestPassed
 }
 
 /*******************************************************************************
@@ -1399,7 +1403,7 @@ func (testContext *TestContext) TryScanImage(scriptId, imageObjId string) string
 /*******************************************************************************
  * Return the object Id of the current authenticated user.
  */
-func (testContext *TestContext) TryGetMyDesc() (string, []interface{}) {
+func (testContext *TestContext) TryGetMyDesc(expectSuccess bool) (string, []interface{}) {
 	testContext.StartTest("TryGetMyDesc")
 	
 	var resp *http.Response
@@ -1411,7 +1415,16 @@ func (testContext *TestContext) TryGetMyDesc() (string, []interface{}) {
 	
 	defer resp.Body.Close()
 
-	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	if expectSuccess {
+		if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	} else {
+		if resp.StatusCode == 200 {
+			testContext.FailTest()
+		} else {
+			testContext.PassTest()
+		}
+		return "", nil
+	}
 	
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
@@ -1583,7 +1596,7 @@ func (testContext *TestContext) TryDownloadImage(imageId, filename string) {
 	var err error
 	resp, err = testContext.SendPost(testContext.SessionId,
 		"downloadImage",
-		[]string{"ImageId"},
+		[]string{"ImageObjId"},
 		[]string{imageId})
 	
 	defer resp.Body.Close()
@@ -1779,20 +1792,35 @@ func (testContext *TestContext) TryGetDockerImageEvents(imageId string) []string
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryGetDockerImageStatus(imageId string) {
+func (testContext *TestContext) TryGetDockerImageStatus(imageObjId string) map[string]interface{} {
 	
 	testContext.StartTest("TryGetImageStatus")
 	
 	var resp *http.Response
 	var err error
 	resp, err = testContext.SendPost(testContext.SessionId,
-		"getImageStatus",
-		[]string{"ImageId"},
-		[]string{imageId},
+		"getDockerImageStatus",
+		[]string{"ImageObjId"},
+		[]string{imageObjId},
 		)
-	if ! testContext.assertErrIsNil(err, "") { return }
+	if ! testContext.assertErrIsNil(err, "") { return nil }
 	
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	
+	var responseMap map[string]interface{}
+	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
+	if ! testContext.assertErrIsNil(err, "") { return }
+
+	//EventId string
+	//When time.Time
+	//UserObjId string
+	//EventDescBase
+	//ScanConfigId string
+	//ProviderName string
+    //ParameterValueDescs []*ParameterValueDesc
+	//Score string
+
+	return responseMap
 }
 
 /*******************************************************************************
@@ -1829,7 +1857,8 @@ func (testContext *TestContext) TryGetDockerfileEvents(dockerfileId string) []st
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryDefineFlag(repoId, flagName, desc, imageFilePath string) bool {
+func (testContext *TestContext) TryDefineFlag(repoId, flagName, desc,
+	imageFilePath string) map[string]interface{} {
 	
 	testContext.StartTest("TryDefineFlag")
 	
@@ -1843,13 +1872,18 @@ func (testContext *TestContext) TryDefineFlag(repoId, flagName, desc, imageFileP
 	if ! testContext.assertErrIsNil(err, "") { return false}
 	
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
-	return testContext.CurrentTestPassed
+	var responseMap map[string]interface{}
+	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
+	testContext.assertErrIsNil(err, "")
+
+	return responseMap
 }
 
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryGetScanConfigDesc(scanConfigId string) (
+func (testContext *TestContext) TryGetScanConfigDesc(scanConfigId string,
+	expectToFindIt bool) map[string]interface{} (
 	map[string]interface{}) {
 	
 	testContext.StartTest("TryGetScanConfigDesc")
@@ -1862,12 +1896,29 @@ func (testContext *TestContext) TryGetScanConfigDesc(scanConfigId string) (
 		[]string{scanConfigId})
 	if ! testContext.assertErrIsNil(err, "") { return nil }
 	
-	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	if expectToFindIt {
+		if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	} else {
+		if resp.StatusCode == 200 {
+			testContext.FailTest()
+		} else {
+			testContext.PassTest()
+		}	
+		return nil
+	}
 	
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
 	testContext.assertErrIsNil(err, "")
 
+	var retScanConfigId string = ""
+	var scanConfigIdIsType bool
+	if retScanConfigId, scanConfigIdIsType = responseMap["Id"].(string); (! isType) || (retScanConfigId == "") { testContext.FailTest() }
+	if retProviderName, isType := responseMap["ProviderName"].(string); (! isType) || (retProviderName == "") { testContext.FailTest() }
+	if retSuccessExpression, isType := responseMap["SuccessExpression"].(string); (! isType) || (retSuccessExpression == "") { testContext.FailTest() }
+	if retFlagId, isType := responseMap["FlagId"].(string); (! isType) || (retFlagId == "") { testContext.FailTest() }
+	if retParameterValueDescs, isType := responseMap["ParameterValueDescs"].(string); (! isType) || (retParameterValueDescs == "") { testContext.FailTest() }
+	
 	return responseMap
 }
 
@@ -1897,9 +1948,9 @@ func (testContext *TestContext) TryChangePassword(userId, oldPswd, newPswd strin
 }
 
 /*******************************************************************************
- * 
+ * Returns the name of the flag.
  */
-func (testContext *TestContext) TryGetFlagDesc(flagId string) string {
+func (testContext *TestContext) TryGetFlagDesc(flagId string, expectToFindIt bool) string {
 	
 	testContext.StartTest("TryGetFlagDesc")
 	
@@ -1911,7 +1962,16 @@ func (testContext *TestContext) TryGetFlagDesc(flagId string) string {
 		[]string{flagId})
 	if ! testContext.assertErrIsNil(err, "") { return }
 	
-	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	if expectToFindIt {
+		if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	} else {
+		if resp.StatusCode == 200 {
+			testContext.FailTest()
+		} else {
+			testContext.PassTest()
+		}	
+		return nil
+	}
 
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
@@ -1928,9 +1988,9 @@ func (testContext *TestContext) TryGetFlagDesc(flagId string) string {
 }
 
 /*******************************************************************************
- * 
+ * Returns the size of the file that was downloaded.
  */
-func (testContext *TestContext) TryGetFlagImage(flagId string, filename string) bool {
+func (testContext *TestContext) TryGetFlagImage(flagId string, filename string) int64 {
 	
 	testContext.StartTest("TryGetFlagImage")
 	
@@ -1959,7 +2019,7 @@ func (testContext *TestContext) TryGetFlagImage(flagId string, filename string) 
 	if ! testContext.assertErrIsNil(err, "") { return }
 	testContext.AssertThat(fileInfo.Size() > 0, "File has zero size")
 	
-	return testContext.CurrentTestPassed
+	return fileInfo.Size()
 }
 
 /*******************************************************************************
@@ -2094,7 +2154,7 @@ func (testContext *TestContext) TryGetMyFlags() []string {
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryGetFlagDescByName(repoId, flagName string) bool {
+func (testContext *TestContext) TryGetFlagDescByName(repoId, flagName string) string {
 	testContext.StartTest("TryGetFlagDescByName")
 	
 	var resp *http.Response

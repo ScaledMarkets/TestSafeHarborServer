@@ -72,6 +72,8 @@ func main() {
 		"run 'sudo service docker start'")
 	fmt.Println()
 	
+	var responseMap map[string]interface{}
+	
 	// Verify that we can create a realm without being logged in first.
 	var realm4Id string
 	var user4Id string
@@ -178,7 +180,9 @@ func main() {
 	// Test ability to retrieve user by user id from realm.
 	var userObjId string
 	var userAdminRealms []interface{}
-	userObjId, userAdminRealms = testContext.TryGetRealmUser(realmId, userId)
+	responseMap = testContext.TryGetUserDesc(realmId, userId)
+	userObjId = responseMap["Id"]
+	userAdminRealms = responseMap["CanModifyTheseRealms"]
 	testContext.AssertThat(userObjId == johnDoeUserObjId, "Looking up user by user id failed")
 	testContext.AssertThat(len(userAdminRealms) == 2, "Wrong number of admin realms")
 	
@@ -190,7 +194,7 @@ func main() {
 	// Assumes that server is in debug mode, which creates test data.
 	testContext.AssertThat(len(realmIds) == 5, "Wrong number of realms found")
 	
-	userObjId, userAdminRealms = testContext.TryGetMyDesc()
+	userObjId, userAdminRealms = testContext.TryGetMyDesc(true)
 	testContext.AssertThat(userObjId == johnDoeUserObjId,
 		"Returned user obj id was " + userObjId)
 	testContext.AssertThat(len(userAdminRealms) == 2, "Wrong number of admin realms")
@@ -243,7 +247,7 @@ func main() {
 	
 	var myObjId string
 	var myAdminRealms []interface{}
-	myObjId, myAdminRealms = testContext.TryGetMyDesc()
+	myObjId, myAdminRealms = testContext.TryGetMyDesc(true)
 	testContext.AssertThat(len(myAdminRealms) == 3, "Wrong number of admin realms")
 	
 	success = testContext.TryAddGroupUser(group1Id, myObjId)
@@ -319,20 +323,42 @@ func main() {
 		"A very find config", repoId, "clair", "", "Seal.png", []string{}, []string{})
 	testContext.AssertThat(config1Id != "", "No ScanConfig Id was returned")
 	
-	if testContext.TryDefineFlag(repoId, "myflag", "A really boss flag", "Seal2.png") {
-		var flagName string = testContext.TryGetFlagDesc(....flagId)
-		....
+	responseMap = testContext.TryDefineFlag(repoId, "myflag", "A really boss flag", "Seal2.png")
+	if testContext.CurrentTestPassed {
+		var flagId string = responseMap["FlagId"]
+		if flagId == "" { testContext.FailTest() } else {
+			var flagName string = testContext.TryGetFlagDesc(flagId, true)
+			if flagName != "myflag" { testContext.FailTest() }
+			
+			var flagIds []string = TryGetMyFlags()
+			testContext.AssertThat(utils.Contains(flagIds, flagId)
+			
+			var fId string = TryGetFlagDescByName(repoId, "myflag")
+			testContext.AssertThat(fId == flagId, "Flag not found by name")
+		}
 	}
 	
-	testContext.TryGetScanConfigDesc(config1Id)
-	testContext.TryGetFlagDesc(....flagId)
-	if testContext.TryGetFlagImage(....flagId, ....filename) {
-		....
+	responseMap = testContext.TryGetScanConfigDesc(config1Id, true)
+	var flag1Id string
+	if testContext.CurrentTestPassed {
+		flag1Id = responseMap["FlagId"]
+		if flag1Id == "" { testContext.FailTest() } else {
+			var flagName string = testContext.TryGetFlagDesc(flag1Id, true)
+			if flagName == "" { testContext.FailTest() } else {
+				if flagName != "My Config 1" { testContext.FailTest() }
+			}
+			var size int64 = testContext.TryGetFlagImage(flag1Id, "ShouldBeIdenticalToSeal2.png")
+			var fileInfo os.FileInfo
+			fileInfo, err = os.Stat("Seal.png")
+			if testContext.assertErrIsNil(err, "") {
+				testContext.AssertThat(fileInfo.Size() == size, "File has wrong size")
+			}
+		}
 	}
 
 	testContext.TryUpdateScanConfig(config1Id, "", "", "", "", "Seal2.png", []string{}, []string{})
 	var scanConfig1Map map[string]interface{}
-	scanConfig1Map = testContext.TryGetScanConfigDesc(config1Id)
+	scanConfig1Map = testContext.TryGetScanConfigDesc(config1Id, true)
 	if testContext.CurrentTestPassed {
 		// Id string
 		// ProviderName string
@@ -342,6 +368,12 @@ func main() {
 		var newFlagId = scanConfig1Map["FlagId"]
 		testContext.AssertThat(newFlagId != "", "FlagId returned empty")
 	}
+	
+	var configIds []string = TryGetMyScanConfigs()
+	testContext.AssertThat(utils.Contains(configIds, config1Id), "Scan config not found")
+	
+	var configId string = TryGetScanConfigDescByName(repoId, "My Config 1")
+	testContext.AssertThat(configId == config1Id, "Did not find scan config")
 	
 	// ....Test that permissions work.
 	
@@ -356,11 +388,6 @@ func main() {
 	// -------------------------------
 	// User id jdoe is authenticated.
 	//
-	
-	// Verify that we can log in as a different user, and the prior session is
-	// no longer valid.
-	testContext.TryLogout()
-	testContext.TryGetMyDesc()
 	
 	// Test ability to make a private image available to the SafeHarbor closed community.
 	
@@ -392,19 +419,38 @@ func main() {
 		testContext.AssertThat(dockerImage2ObjId != "", "TryExecDockerfile failed - obj id is nil")
 		testContext.AssertThat(image2Id != "", "TryExecDockerfile failed - docker image id is nil")
 	
-		
-		//testContext.TryDownloadImage(dockerImage2ObjId, "MooOinkImage")
-		
-		testContext.TryGetDockerImageDesc(dockerImage2ObjId)
+		testContext.TryDownloadImage(dockerImage2ObjId, "MooOinkImage")
+		responseMap = testContext.TryGetDockerImageDesc(dockerImage2ObjId)
+		if testContext.CurrentTestPassed {
+			// Check image signature.
+			var image2Signature []byte
+			image2Signature, err = ComputeFileSignature("MooOinkImage")
+			if testContext.assertErrIsNil(err, "Unable to compute signature") {
+				var obj interface{} = responseMap["Signature"]
+				var isType bool
+				var sig []byte
+				sig, isType = obj.([]byte)
+				if testContext.AssertThat(isType, "Signature is not an array of byte") {
+					for i, b := range sig {
+						if ! testContext.AssertThat(b == image2Signature[i], "Wrong signature") { break }
+					}
+				}
+			}
+		}
 	
 		var eventIds []string = testContext.TryGetUserEvents(userId)
 		testContext.AssertThat(len(eventIds) == 2, "Wrong number of user events")
 	
-		eventIds = testContext.TryGetDockerImageEvents(image2Id)
+		eventIds = testContext.TryGetDockerImageEvents(dockerImage1ObjId)
 		testContext.AssertThat(len(eventIds) == 1, "Wrong number of image events")
 	
-		if testContext.TryGetDockerImageStatus(....image2Id) {
-			....
+		responseMap = testContext.TryGetDockerImageStatus(dockerImage1ObjId)
+		if testContext.CurrentTestPassed {
+			testContext.AssertThat(responseMap["EventId"] != "", "No image status")
+			testContext.AssertThat(responseMap["ScanConfigId"] == config1Id,
+				"Wrong scan config Id")
+			testContext.AssertThat(responseMap["ProviderName"] == "clair",
+				"Wrong provider")
 		}
 	
 		eventIds = testContext.TryGetDockerfileEvents(dockerfileId)
@@ -412,56 +458,48 @@ func main() {
 	}
 
 	// Test that we can disable a user.
-	testContext.AssertThat(testContext.TryDisableUser(johnConnorUserObjId), "Unable to disable user")
-	// Now see if that user can authenticate.
-	var pass bool
-	_, pass = testContext.TryAuthenticate("jconnor", "ILoveCameron", false)
-	testContext.AssertThat(pass, "Error: user was able to log in")		
-	
-	if testContext.TryReenableUser(....) {
-		....
+	if testContext.TryDisableUser(johnConnorUserObjId), "Unable to disable user") {
+		// Now see if that user can authenticate.
+		var isAdmin bool
+		_, isAdmin = testContext.TryAuthenticate("jconnor", "ILoveCameron", false)
+		if testContext.CurrentTestPassed {
+			testContext.AssertThat(!isAdmin, "Error: user is an admin but should not be")		
+		}
+		if testContext.TryReenableUser(johnConnorUserObjId) {
+			_, isAdmin = testContext.TryAuthenticate("jconnor", "ILoveCameron", true)
+		}
 	}
 	
 	testContext.TryDeleteGroup(group2Id)
 	
-	if testContext.TryRemRealmUser(....) {
-		....
+	// Try moving a user from one realm to another.
+	if testContext.moveUserToRealm(sarahConnorUserObjId, jrealm3Id) {
+		// Verify that Sarah is no longer in her realm.
+		responseMap = testContext.TryGetUserDesc(jrealm2Id, sconnor)
+		if testContext.CurrentTestPassed {
+			// Verify that Sarah is in John's realm.
+			testContext.AssertThat(responseMap["RealmId"] == realm3Id,
+				"Error: Sarah Connor does not belong to John's realm")
+		}
 	}
 	
-	var msg string = testContext.TryAddRealmUser(....realmId, userObjId)
-	....	
-	
-	
-	
-	var configIds []string = TryGetMyScanConfigs()
-	....
-	
-	var configId string = TryGetScanConfigDescByName(RepoId, ScanConfigName)
-	....
-	
-	if TryRemScanConfig(ScanConfigId) {
-		....
+	if TryRemScanConfig(config1Id) {
+		testContext.TryGetScanConfigDesc(config1Id, false)
 	}
 	
-	var flagIds []string = TryGetMyFlags()
-	....
-	
-	var flagId string = TryGetFlagDescByName(Repoid, FlagName)
-	....
-	
-	if TryRemFlag(FlagId) {
-		....
+	if TryRemFlag(flag1Id) {
+		testContext.TryGetFlagDesc(flag1Id)
 	}
 	
 	// Test ability to log out.
 	if testContext.TryLogout() {
-		....
+		testContext.TryGetMyDesc(false)
 	} else {
 		testContext.AssertThat(false, "Unable to log out")
 	}
 	
-	if testContext.TryDeactivateRealm(....realmId) {
-		....
+	if testContext.TryDeactivateRealm(jrealm2Id) {
+		testContext.TryGetMyDesc(false)
 	}
 	
 	// Test ability to clear the entire database and docker repository.
