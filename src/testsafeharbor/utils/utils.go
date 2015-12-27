@@ -113,7 +113,7 @@ func (testContext *TestContext) AssertThat(condition bool, msg string) bool {
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) assertErrIsNil(err error, msg string) bool {
+func (testContext *TestContext) AssertErrIsNil(err error, msg string) bool {
 	if err == nil { return true }
 	testContext.FailTest()
 	fmt.Print(msg, err.Error())
@@ -131,7 +131,7 @@ func BoolToString(b bool) string {
 /*******************************************************************************
  * Utility to determine if an array contains a specified value.
  */
-func Contains(ar []interface{}, val interface{}) bool {
+func ContainsString(ar []string, val string) bool {
 	for _, v := range ar {
 		if v == val { return true }
 	}
@@ -148,7 +148,7 @@ func ComputeFileSignature(filepath string) ([]byte, error) {
 	file, err = os.Open(filepath)
 	if err != nil { return nil, err }
 	var numBytesRead int
-	var buf [100000]byte
+	var buf []byte = make([]byte, 100000)
 	var hash hash.Hash = sha512.New()
 	for {
 		numBytesRead, err = file.Read(buf)
@@ -158,5 +158,5 @@ func ComputeFileSignature(filepath string) ([]byte, error) {
 		if numBytesRead < 100000 { break }
 	}
 	
-	return hash.Sum([]byte), nil
+	return hash.Sum(make([]byte, 20)), nil
 }

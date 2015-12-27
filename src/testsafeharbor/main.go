@@ -181,8 +181,13 @@ func main() {
 	var userObjId string
 	var userAdminRealms []interface{}
 	responseMap = testContext.TryGetUserDesc(realmId, userId)
-	userObjId = responseMap["Id"]
-	userAdminRealms = responseMap["CanModifyTheseRealms"]
+	var obj = responseMap["Id"]
+	var isType bool
+	userObjId, isType = obj.(string)
+	testContext.AssertThat(isType, "Wrong type for Id")
+	obj = responseMap["CanModifyTheseRealms"]
+	userAdminRealms, isType = obj.([]interface{})
+	testContext.AssertThat(isType, "Wrong type for CanModifyTheseRealms")
 	testContext.AssertThat(userObjId == johnDoeUserObjId, "Looking up user by user id failed")
 	testContext.AssertThat(len(userAdminRealms) == 2, "Wrong number of admin realms")
 	
@@ -325,15 +330,19 @@ func main() {
 	
 	responseMap = testContext.TryDefineFlag(repoId, "myflag", "A really boss flag", "Seal2.png")
 	if testContext.CurrentTestPassed {
-		var flagId string = responseMap["FlagId"]
+		var obj interface{} = responseMap["FlagId"]
+		var flagId string
+		var isType bool
+		flagId, isType = obj.(string)
+		testContext.AssertThat(isType, "Returned FlagId is not a string")
 		if flagId == "" { testContext.FailTest() } else {
 			var flagName string = testContext.TryGetFlagDesc(flagId, true)
 			if flagName != "myflag" { testContext.FailTest() }
 			
-			var flagIds []string = TryGetMyFlags()
-			testContext.AssertThat(utils.Contains(flagIds, flagId)
+			var flagIds []string = testContext.TryGetMyFlags()
+			testContext.AssertThat(utils.ContainsString(flagIds, flagId), "Flag Id not returned")
 			
-			var fId string = TryGetFlagDescByName(repoId, "myflag")
+			var fId string = testContext.TryGetFlagDescByName(repoId, "myflag")
 			testContext.AssertThat(fId == flagId, "Flag not found by name")
 		}
 	}
@@ -341,7 +350,10 @@ func main() {
 	responseMap = testContext.TryGetScanConfigDesc(config1Id, true)
 	var flag1Id string
 	if testContext.CurrentTestPassed {
-		flag1Id = responseMap["FlagId"]
+		var obj = responseMap["FlagId"]
+		var isType bool
+		flag1Id, isType = obj.(string)
+		testContext.AssertThat(isType, "Wrong type for returned FlagId")
 		if flag1Id == "" { testContext.FailTest() } else {
 			var flagName string = testContext.TryGetFlagDesc(flag1Id, true)
 			if flagName == "" { testContext.FailTest() } else {
@@ -349,8 +361,9 @@ func main() {
 			}
 			var size int64 = testContext.TryGetFlagImage(flag1Id, "ShouldBeIdenticalToSeal2.png")
 			var fileInfo os.FileInfo
+			var err error
 			fileInfo, err = os.Stat("Seal.png")
-			if testContext.assertErrIsNil(err, "") {
+			if testContext.AssertErrIsNil(err, "") {
 				testContext.AssertThat(fileInfo.Size() == size, "File has wrong size")
 			}
 		}
@@ -369,10 +382,11 @@ func main() {
 		testContext.AssertThat(newFlagId != "", "FlagId returned empty")
 	}
 	
-	var configIds []string = TryGetMyScanConfigs()
-	testContext.AssertThat(utils.Contains(configIds, config1Id), "Scan config not found")
+	var configIds []string = testContext.TryGetMyScanConfigs()
+	testContext.AssertThat(utils.ContainsString(configIds, config1Id),
+		"Scan config not found")
 	
-	var configId string = TryGetScanConfigDescByName(repoId, "My Config 1")
+	var configId string = testContext.TryGetScanConfigDescByName(repoId, "My Config 1")
 	testContext.AssertThat(configId == config1Id, "Did not find scan config")
 	
 	// ....Test that permissions work.
@@ -424,8 +438,9 @@ func main() {
 		if testContext.CurrentTestPassed {
 			// Check image signature.
 			var image2Signature []byte
-			image2Signature, err = ComputeFileSignature("MooOinkImage")
-			if testContext.assertErrIsNil(err, "Unable to compute signature") {
+			var err error
+			image2Signature, err = utils.ComputeFileSignature("MooOinkImage")
+			if testContext.AssertErrIsNil(err, "Unable to compute signature") {
 				var obj interface{} = responseMap["Signature"]
 				var isType bool
 				var sig []byte
@@ -458,7 +473,7 @@ func main() {
 	}
 
 	// Test that we can disable a user.
-	if testContext.TryDisableUser(johnConnorUserObjId), "Unable to disable user") {
+	if testContext.TryDisableUser(johnConnorUserObjId) {
 		// Now see if that user can authenticate.
 		var isAdmin bool
 		_, isAdmin = testContext.TryAuthenticate("jconnor", "ILoveCameron", false)
@@ -473,9 +488,9 @@ func main() {
 	testContext.TryDeleteGroup(group2Id)
 	
 	// Try moving a user from one realm to another.
-	if testContext.moveUserToRealm(sarahConnorUserObjId, jrealm3Id) {
+	if testContext.TryMoveUserToRealm(sarahConnorUserObjId, realm3Id) {
 		// Verify that Sarah is no longer in her realm.
-		responseMap = testContext.TryGetUserDesc(jrealm2Id, sconnor)
+		responseMap = testContext.TryGetUserDesc(jrealm2Id, "sconnor")
 		if testContext.CurrentTestPassed {
 			// Verify that Sarah is in John's realm.
 			testContext.AssertThat(responseMap["RealmId"] == realm3Id,
@@ -483,12 +498,12 @@ func main() {
 		}
 	}
 	
-	if TryRemScanConfig(config1Id) {
+	if testContext.TryRemScanConfig(config1Id) {
 		testContext.TryGetScanConfigDesc(config1Id, false)
 	}
 	
-	if TryRemFlag(flag1Id) {
-		testContext.TryGetFlagDesc(flag1Id)
+	if testContext.TryRemFlag(flag1Id) {
+		testContext.TryGetFlagDesc(flag1Id, false)
 	}
 	
 	// Test ability to log out.

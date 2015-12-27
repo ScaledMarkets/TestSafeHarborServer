@@ -28,7 +28,7 @@ func (testContext *TestContext) TryGetGroupDesc(groupId string) {
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
-	if testContext.assertErrIsNil(err, "at ParseResponseBodyToMap") { return }
+	if testContext.AssertErrIsNil(err, "at ParseResponseBodyToMap") { return }
 	
 	// Expect a GroupDesc
 	var retGroupId string = responseMap["GroupId"].(string)
@@ -62,7 +62,7 @@ func (testContext *TestContext) TryGetRepoDesc(repoId string) {
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
-	if testContext.assertErrIsNil(err, "at ParseResponseBodyToMap") { return }
+	if testContext.AssertErrIsNil(err, "at ParseResponseBodyToMap") { return }
 	
 	// Expect a RepoDesc
 	var retId string = responseMap["Id"].(string)
@@ -98,7 +98,7 @@ func (testContext *TestContext) TryGetDockerImageDesc(dockerImageId string) map[
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
-	if testContext.assertErrIsNil(err, "at ParseResponseBodyToMap") { return }
+	if testContext.AssertErrIsNil(err, "at ParseResponseBodyToMap") { return nil }
 	
 	// Expect a DockerImageDesc
 	var retObjId string = responseMap["ObjId"].(string)
@@ -134,7 +134,7 @@ func (testContext *TestContext) TryGetDockerfileDesc(dockerfileId string) {
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
-	if testContext.assertErrIsNil(err, "at ParseResponseBodyToMap") { return }
+	if testContext.AssertErrIsNil(err, "at ParseResponseBodyToMap") { return }
 	
 	// Expect a DockerfileDesc
 	var retId string = responseMap["Id"].(string)
@@ -596,7 +596,7 @@ func (testContext *TestContext) TryGetUserDesc(realmId, userId string) map[strin
 	
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
-	if err != nil { fmt.Println(err.Error()); return "", nil }
+	if ! testContext.AssertErrIsNil(err, "") { return nil }
 	var retUserObjId string = responseMap["Id"].(string)
 	var retUserId string = responseMap["UserId"].(string)
 	var retUserName string = responseMap["UserName"].(string)
@@ -749,7 +749,7 @@ func (testContext *TestContext) TryMoveUserToRealm(realmId string, userObjId str
 	
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
-	if err != nil { fmt.Println(err.Error()); return "" }
+	if ! testContext.AssertErrIsNil(err, "") { return false }
 	var retStatus string = responseMap["Status"].(string)
 	var retMsg string = responseMap["Message"].(string)
 	rest.PrintMap(responseMap)
@@ -1177,7 +1177,7 @@ func (testContext *TestContext) TryGetPermission(partyId, resourceId string) []b
 	
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
-	if ! testContext.assertErrIsNil(err, "while parsing response body to map") { return nil }
+	if ! testContext.AssertErrIsNil(err, "while parsing response body to map") { return nil }
 	rest.PrintMap(responseMap)
 	
 	//var retACLEntryId string = responseMap["ACLEntryId"].(string)
@@ -1315,7 +1315,7 @@ func (testContext *TestContext) TryUpdateScanConfig(scanConfigId, name, desc, pr
 	
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
-	if ! testContext.assertErrIsNil(err, "") { return false }
+	if ! testContext.AssertErrIsNil(err, "") { return false }
 	rest.PrintMap(responseMap)
 	
 	// Returns ScanConfigDesc
@@ -1576,7 +1576,7 @@ func (testContext *TestContext) TryReplaceDockerfile(dockerfileId, dockerfilePat
 	
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
-	if ! testContext.assertErrIsNil(err, "") { return }
+	if ! testContext.AssertErrIsNil(err, "") { return }
 	var retStatus string = responseMap["Status"].(string)
 	var retMessage string = responseMap["Message"].(string)
 	rest.PrintMap(responseMap)
@@ -1607,12 +1607,12 @@ func (testContext *TestContext) TryDownloadImage(imageId, filename string) {
 	var reader io.ReadCloser = resp.Body
 	var file *os.File
 	file, err = os.Create(filename)
-	testContext.assertErrIsNil(err, "")
+	testContext.AssertErrIsNil(err, "")
 	_, err = io.Copy(file, reader)
-	testContext.assertErrIsNil(err, "")
+	testContext.AssertErrIsNil(err, "")
 	var fileInfo os.FileInfo
 	fileInfo, err = file.Stat()
-	if ! testContext.assertErrIsNil(err, "") { return }
+	if ! testContext.AssertErrIsNil(err, "") { return }
 	testContext.AssertThat(fileInfo.Size() > 0, "File has zero size")
 }
 
@@ -1631,7 +1631,7 @@ func (testContext *TestContext) TryRemGroupUser(groupId, userObjId string) bool 
 		[]string{groupId, userObjId})
 	
 	defer resp.Body.Close()
-	if ! testContext.assertErrIsNil(err, "") { return false }
+	if ! testContext.AssertErrIsNil(err, "") { return false }
 
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	return testContext.CurrentTestPassed
@@ -1640,7 +1640,7 @@ func (testContext *TestContext) TryRemGroupUser(groupId, userObjId string) bool 
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryReenableUser(realmId string) bool {
+func (testContext *TestContext) TryReenableUser(userObjId string) bool {
 	testContext.StartTest("TryReenableUser")
 	
 	var resp *http.Response
@@ -1651,7 +1651,7 @@ func (testContext *TestContext) TryReenableUser(realmId string) bool {
 		[]string{userObjId})
 	
 	defer resp.Body.Close()
-	if ! testContext.assertErrIsNil(err, "") { return false }
+	if ! testContext.AssertErrIsNil(err, "") { return false }
 
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	return testContext.CurrentTestPassed
@@ -1671,7 +1671,7 @@ func (testContext *TestContext) TryRemRealmUser(realmId, userObjId string) bool 
 		[]string{realmId, userObjId})
 	
 	defer resp.Body.Close()
-	if ! testContext.assertErrIsNil(err, "") { return false }
+	if ! testContext.AssertErrIsNil(err, "") { return false }
 
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	return testContext.CurrentTestPassed
@@ -1691,7 +1691,7 @@ func (testContext *TestContext) TryDeactivateRealm(realmId string) bool {
 		[]string{realmId})
 	
 	defer resp.Body.Close()
-	if ! testContext.assertErrIsNil(err, "") { return false }
+	if ! testContext.AssertErrIsNil(err, "") { return false }
 
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	return testContext.CurrentTestPassed
@@ -1720,7 +1720,7 @@ func (testContext *TestContext) TryRemPermission(partyId, resourceId string) boo
 		[]string{partyId, resourceId})
 	
 	defer resp.Body.Close()
-	if ! testContext.assertErrIsNil(err, "") { return false }
+	if ! testContext.AssertErrIsNil(err, "") { return false }
 
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
@@ -1803,13 +1803,13 @@ func (testContext *TestContext) TryGetDockerImageStatus(imageObjId string) map[s
 		[]string{"ImageObjId"},
 		[]string{imageObjId},
 		)
-	if ! testContext.assertErrIsNil(err, "") { return nil }
+	if ! testContext.AssertErrIsNil(err, "") { return nil }
 	
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
-	if ! testContext.assertErrIsNil(err, "") { return }
+	if ! testContext.AssertErrIsNil(err, "") { return nil }
 
 	//EventId string
 	//When time.Time
@@ -1869,12 +1869,12 @@ func (testContext *TestContext) TryDefineFlag(repoId, flagName, desc,
 		[]string{"RepoId", "Name", "Description"},
 		[]string{repoId, flagName, desc},
 		imageFilePath)
-	if ! testContext.assertErrIsNil(err, "") { return false}
+	if ! testContext.AssertErrIsNil(err, "") { return nil}
 	
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
-	testContext.assertErrIsNil(err, "")
+	testContext.AssertErrIsNil(err, "")
 
 	return responseMap
 }
@@ -1883,8 +1883,7 @@ func (testContext *TestContext) TryDefineFlag(repoId, flagName, desc,
  * 
  */
 func (testContext *TestContext) TryGetScanConfigDesc(scanConfigId string,
-	expectToFindIt bool) map[string]interface{} (
-	map[string]interface{}) {
+	expectToFindIt bool) map[string]interface{} {
 	
 	testContext.StartTest("TryGetScanConfigDesc")
 	
@@ -1894,7 +1893,7 @@ func (testContext *TestContext) TryGetScanConfigDesc(scanConfigId string,
 		"getScanConfigDesc",
 		[]string{"ScanConfigId"},
 		[]string{scanConfigId})
-	if ! testContext.assertErrIsNil(err, "") { return nil }
+	if ! testContext.AssertErrIsNil(err, "") { return nil }
 	
 	if expectToFindIt {
 		if ! testContext.Verify200Response(resp) { testContext.FailTest() }
@@ -1909,11 +1908,11 @@ func (testContext *TestContext) TryGetScanConfigDesc(scanConfigId string,
 	
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
-	testContext.assertErrIsNil(err, "")
+	testContext.AssertErrIsNil(err, "")
 
 	var retScanConfigId string = ""
 	var scanConfigIdIsType bool
-	if retScanConfigId, scanConfigIdIsType = responseMap["Id"].(string); (! isType) || (retScanConfigId == "") { testContext.FailTest() }
+	if retScanConfigId, scanConfigIdIsType = responseMap["Id"].(string); (! scanConfigIdIsType) || (retScanConfigId == "") { testContext.FailTest() }
 	if retProviderName, isType := responseMap["ProviderName"].(string); (! isType) || (retProviderName == "") { testContext.FailTest() }
 	if retSuccessExpression, isType := responseMap["SuccessExpression"].(string); (! isType) || (retSuccessExpression == "") { testContext.FailTest() }
 	if retFlagId, isType := responseMap["FlagId"].(string); (! isType) || (retFlagId == "") { testContext.FailTest() }
@@ -1936,13 +1935,13 @@ func (testContext *TestContext) TryChangePassword(userId, oldPswd, newPswd strin
 		"changePassword",
 		[]string{"UserId", "OldPassword", "NewPassword"},
 		[]string{userId, oldPswd, newPswd})
-	if ! testContext.assertErrIsNil(err, "") { return false }
+	if ! testContext.AssertErrIsNil(err, "") { return false }
 	
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	//var responseMap map[string]interface{}
 	_, err = rest.ParseResponseBodyToMap(resp.Body)
-	if ! testContext.assertErrIsNil(err, "") { return false }
+	if ! testContext.AssertErrIsNil(err, "") { return false }
 
 	return testContext.CurrentTestPassed
 }
@@ -1960,7 +1959,7 @@ func (testContext *TestContext) TryGetFlagDesc(flagId string, expectToFindIt boo
 		"getFlagDesc",
 		[]string{"FlagId"},
 		[]string{flagId})
-	if ! testContext.assertErrIsNil(err, "") { return }
+	if ! testContext.AssertErrIsNil(err, "") { return ""}
 	
 	if expectToFindIt {
 		if ! testContext.Verify200Response(resp) { testContext.FailTest() }
@@ -1970,12 +1969,12 @@ func (testContext *TestContext) TryGetFlagDesc(flagId string, expectToFindIt boo
 		} else {
 			testContext.PassTest()
 		}	
-		return nil
+		return ""
 	}
 
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
-	if ! testContext.assertErrIsNil(err, "") { return false }
+	if ! testContext.AssertErrIsNil(err, "") { return "" }
 
 	var retNameIsType bool
 	var retName string = ""
@@ -2000,23 +1999,23 @@ func (testContext *TestContext) TryGetFlagImage(flagId string, filename string) 
 		"getFlagImage",
 		[]string{"FlagId"},
 		[]string{flagId})
-	if ! testContext.assertErrIsNil(err, "") { return }
+	if ! testContext.AssertErrIsNil(err, "") { return 0 }
 	
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	//var responseMap map[string]interface{}
 	_, err = rest.ParseResponseBodyToMap(resp.Body)
-	if ! testContext.assertErrIsNil(err, "") { return false }
+	if ! testContext.AssertErrIsNil(err, "") { return 0 }
 
 	var reader io.ReadCloser = resp.Body
 	var file *os.File
 	file, err = os.Create(filename)
-	testContext.assertErrIsNil(err, "")
+	testContext.AssertErrIsNil(err, "")
 	_, err = io.Copy(file, reader)
-	testContext.assertErrIsNil(err, "")
+	testContext.AssertErrIsNil(err, "")
 	var fileInfo os.FileInfo
 	fileInfo, err = file.Stat()
-	if ! testContext.assertErrIsNil(err, "") { return }
+	if ! testContext.AssertErrIsNil(err, "") { return 0 }
 	testContext.AssertThat(fileInfo.Size() > 0, "File has zero size")
 	
 	return fileInfo.Size()
@@ -2034,7 +2033,7 @@ func (testContext *TestContext) TryGetMyScanConfigs() []string {
 		"getMyScanConfigs",
 		[]string{""},
 		[]string{})
-	if err != nil { fmt.Println(err.Error()); return }
+	if ! testContext.AssertErrIsNil(err, "") { return nil }
 	
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
@@ -2071,17 +2070,17 @@ func (testContext *TestContext) TryGetScanConfigDescByName(repoId, scanConfigNam
 		"getScanConfigDescByName",
 		[]string{"RepoId", "ScanConfigName"},
 		[]string{repoId, scanConfigName})
-	if err != nil { fmt.Println(err.Error()); return }
+	if ! testContext.AssertErrIsNil(err, "") { return "" }
 	
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
-	//var responseMap map[string]interface{}
-	_, err = rest.ParseResponseBodyToMap(resp.Body)
-	if ! testContext.assertErrIsNil(err, "") { return false }
+	var responseMap map[string]interface{}
+	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
+	if ! testContext.AssertErrIsNil(err, "") { return "" }
 
 	var retScanConfigId string = ""
 	var scanConfigIdIsType bool
-	if retScanConfigId, scanConfigIdIsType = responseMap["Id"].(string); (! isType) || (retScanConfigId == "") { testContext.FailTest() }
+	if retScanConfigId, scanConfigIdIsType = responseMap["Id"].(string); (! scanConfigIdIsType) || (retScanConfigId == "") { testContext.FailTest() }
 	if retProviderName, isType := responseMap["ProviderName"].(string); (! isType) || (retProviderName == "") { testContext.FailTest() }
 	if retSuccessExpression, isType := responseMap["SuccessExpression"].(string); (! isType) || (retSuccessExpression == "") { testContext.FailTest() }
 	if retFlagId, isType := responseMap["FlagId"].(string); (! isType) || (retFlagId == "") { testContext.FailTest() }
@@ -2101,13 +2100,13 @@ func (testContext *TestContext) TryRemScanConfig(scanConfigId string) bool {
 		"remScanConfig",
 		[]string{"ScanConfigId"},
 		[]string{scanConfigId})
-	if err != nil { fmt.Println(err.Error()); return }
+	if testContext.AssertErrIsNil(err, "") { return false }
 	
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
-	//var responseMap map[string]interface{}
-	_, err = rest.ParseResponseBodyToMap(resp.Body)
-	if ! testContext.assertErrIsNil(err, "") { return false }
+	var responseMap map[string]interface{}
+	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
+	if ! testContext.AssertErrIsNil(err, "") { return false }
 
 	if retStatus, isType := responseMap["Status"].(string); (! isType) || (retStatus == "") { testContext.FailTest() }
 	if retMessage, isType := responseMap["Message"].(string); (! isType) || (retMessage == "") { testContext.FailTest() }
@@ -2127,7 +2126,7 @@ func (testContext *TestContext) TryGetMyFlags() []string {
 		"getMyFlags",
 		[]string{},
 		[]string{})
-	if err != nil { fmt.Println(err.Error()); return }
+	if testContext.AssertErrIsNil(err, "") { return nil }
 	
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
@@ -2161,19 +2160,19 @@ func (testContext *TestContext) TryGetFlagDescByName(repoId, flagName string) st
 	var err error
 	resp, err = testContext.SendPost(testContext.SessionId,
 		"getFlagDescByName",
-		[]string{Repoid, FlagName},
+		[]string{"RepoId", "FlagName"},
 		[]string{repoId, flagName})
-	if err != nil { fmt.Println(err.Error()); return }
+	if err != nil { fmt.Println(err.Error()); return "" }
 	
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
-	//var responseMap map[string]interface{}
-	_, err = rest.ParseResponseBodyToMap(resp.Body)
-	if ! testContext.assertErrIsNil(err, "") { return false }
+	var responseMap map[string]interface{}
+	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
+	if ! testContext.AssertErrIsNil(err, "") { return "" }
 
 	var retFlagId string = ""
 	var flagIdIsType bool
-	if retFlagId, flagIdIsType = responseMap["FlagId"].(string); (! isType) || (retFlagId == "") { testContext.FailTest() }
+	if retFlagId, flagIdIsType = responseMap["FlagId"].(string); (! flagIdIsType) || (retFlagId == "") { testContext.FailTest() }
 	if retRepoId, isType := responseMap["RepoId"].(string); (! isType) || (retRepoId == "") { testContext.FailTest() }
 	if retName, isType := responseMap["Name"].(string); (! isType) || (retName == "") { testContext.FailTest() }
 	if retImageURL, isType := responseMap["ImageURL"].(string); (! isType) || (retImageURL == "") { testContext.FailTest() }
@@ -2192,13 +2191,13 @@ func (testContext *TestContext) TryRemFlag(flagId string) bool {
 		"remFlag",
 		[]string{"FlagId"},
 		[]string{flagId})
-	if err != nil { fmt.Println(err.Error()); return }
+	if ! testContext.AssertErrIsNil(err, "") { return false }
 	
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
-	//var responseMap map[string]interface{}
-	_, err = rest.ParseResponseBodyToMap(resp.Body)
-	if ! testContext.assertErrIsNil(err, "") { return false }
+	var responseMap map[string]interface{}
+	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
+	if ! testContext.AssertErrIsNil(err, "") { return false }
 
 	if retStatus, isType := responseMap["Status"].(string); (! isType) || (retStatus == "") { testContext.FailTest() }
 	if retMessage, isType := responseMap["Message"].(string); (! isType) || (retMessage == "") { testContext.FailTest() }
@@ -2219,7 +2218,7 @@ func (testContext *TestContext) TryClearAll() {
 		[]string{},
 		[]string{},
 		)
-	if err != nil { fmt.Println(err.Error()); return }
+	if ! testContext.AssertErrIsNil(err, "") { return }
 	
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 }
