@@ -2031,7 +2031,7 @@ func (testContext *TestContext) TryGetMyScanConfigs() []string {
 	var err error
 	resp, err = testContext.SendPost(testContext.SessionId,
 		"getMyScanConfigs",
-		[]string{""},
+		[]string{},
 		[]string{})
 	if ! testContext.AssertErrIsNil(err, "") { return nil }
 	
