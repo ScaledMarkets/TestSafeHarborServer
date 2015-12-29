@@ -434,7 +434,7 @@ func main() {
 		testContext.AssertThat(image2Id != "", "TryExecDockerfile failed - docker image id is nil")
 	
 		testContext.TryDownloadImage(dockerImage2ObjId, "MooOinkImage")
-		responseMap = testContext.TryGetDockerImageDesc(dockerImage2ObjId)
+		responseMap = testContext.TryGetDockerImageDesc(dockerImage2ObjId, true)
 		if testContext.CurrentTestPassed {
 			// Check image signature.
 			var image2Signature []byte
@@ -470,6 +470,14 @@ func main() {
 	
 		eventIds = testContext.TryGetDockerfileEvents(dockerfileId)
 		testContext.AssertThat(len(eventIds) == 1, "Wrong number of image events")
+		
+		if testContext.TryRemScanConfig(config1Id, false) {
+			testContext.TryGetScanConfigDesc(config1Id, true)
+		}
+		
+		if testContext.TryRemDockerImage(dockerImage1ObjId) {
+			testContext.TryGetDockerImageDesc(dockerImage1ObjId, false)
+		}
 	}
 
 	// Test that we can disable a user.
@@ -498,7 +506,7 @@ func main() {
 		}
 	}
 	
-	if testContext.TryRemScanConfig(config1Id) {
+	if testContext.TryRemScanConfig(config1Id, true) {
 		testContext.TryGetScanConfigDesc(config1Id, false)
 	}
 	

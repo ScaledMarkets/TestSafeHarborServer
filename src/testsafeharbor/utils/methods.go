@@ -83,7 +83,8 @@ func (testContext *TestContext) TryGetRepoDesc(repoId string) {
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryGetDockerImageDesc(dockerImageId string) map[string]interface{} {
+func (testContext *TestContext) TryGetDockerImageDesc(dockerImageId string,
+	expectSuccess bool) map[string]interface{} {
 	
 	testContext.StartTest("getDockerImageDesc")
 	var resp *http.Response
@@ -95,7 +96,21 @@ func (testContext *TestContext) TryGetDockerImageDesc(dockerImageId string) map[
 	
 	defer resp.Body.Close()
 	
-	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	if expectSuccess {
+		if ! testContext.Verify200Response(resp) {
+			testContext.FailTest()
+			return nil
+		}
+	} else {
+		if resp.StatusCode == 200 {
+			testContext.FailTest()
+			return nil
+		} else {
+			testContext.PassTest()
+			return nil
+		}	
+	}
+	
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
 	if testContext.AssertErrIsNil(err, "at ParseResponseBodyToMap") { return nil }
@@ -2091,7 +2106,8 @@ func (testContext *TestContext) TryGetScanConfigDescByName(repoId, scanConfigNam
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryRemScanConfig(scanConfigId string) bool {
+func (testContext *TestContext) TryRemScanConfig(scanConfigId string,
+	expectSuccess bool) bool {
 	testContext.StartTest("TryRemScanConfig")
 	
 	var resp *http.Response
@@ -2102,8 +2118,21 @@ func (testContext *TestContext) TryRemScanConfig(scanConfigId string) bool {
 		[]string{scanConfigId})
 	if testContext.AssertErrIsNil(err, "") { return false }
 	
-	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
-	
+	if expectSuccess {
+		if ! testContext.Verify200Response(resp) {
+			testContext.FailTest()
+			return false
+		}
+	} else {
+		if resp.StatusCode == 200 {
+			testContext.FailTest()
+			return false
+		} else {
+			testContext.PassTest()
+			return true
+		}	
+	}
+		
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
 	if ! testContext.AssertErrIsNil(err, "") { return false }
@@ -2191,6 +2220,32 @@ func (testContext *TestContext) TryRemFlag(flagId string) bool {
 		"remFlag",
 		[]string{"FlagId"},
 		[]string{flagId})
+	if ! testContext.AssertErrIsNil(err, "") { return false }
+	
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	
+	var responseMap map[string]interface{}
+	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
+	if ! testContext.AssertErrIsNil(err, "") { return false }
+
+	if retStatus, isType := responseMap["Status"].(string); (! isType) || (retStatus == "") { testContext.FailTest() }
+	if retMessage, isType := responseMap["Message"].(string); (! isType) || (retMessage == "") { testContext.FailTest() }
+
+	return testContext.CurrentTestPassed
+}
+
+/*******************************************************************************
+ * 
+ */
+func (testContext *TestContext) TryRemDockerImage(imageId string) bool {
+	testContext.StartTest("TryRemDockerImage")
+	
+	var resp *http.Response
+	var err error
+	resp, err = testContext.SendPost(testContext.SessionId,
+		"remDockerImage",
+		[]string{"ImageId"},
+		[]string{imageId})
 	if ! testContext.AssertErrIsNil(err, "") { return false }
 	
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }

@@ -147,10 +147,10 @@ func ComputeFileSignature(filepath string) ([]byte, error) {
 	var err error
 	file, err = os.Open(filepath)
 	if err != nil { return nil, err }
-	var numBytesRead int
-	var buf []byte = make([]byte, 100000)
+	var buf = make([]byte, 100000)
 	var hash hash.Hash = sha512.New()
 	for {
+		var numBytesRead int
 		numBytesRead, err = file.Read(buf)
 		if numBytesRead == 0 { break }
 		hash.Write(buf)
@@ -158,5 +158,6 @@ func ComputeFileSignature(filepath string) ([]byte, error) {
 		if numBytesRead < 100000 { break }
 	}
 	
-	return hash.Sum(make([]byte, 20)), nil
+	var empty = []byte{}
+	return hash.Sum(empty), nil
 }
