@@ -1960,8 +1960,8 @@ func (testContext *TestContext) TryGetScanConfigDesc(scanConfigId string,
 	var err error
 	resp, err = testContext.SendPost(testContext.SessionId,
 		"getScanConfigDesc",
-		[]string{"ScanConfigId"},
-		[]string{scanConfigId})
+		[]string{"ScanConfigId", "Log"},
+		[]string{scanConfigId, ">>>>>>>>>>>>>TryGetScanConfigDesc"})
 	if ! testContext.AssertErrIsNil(err, "") { return nil }
 	
 	if expectToFindIt {
@@ -1983,7 +1983,6 @@ func (testContext *TestContext) TryGetScanConfigDesc(scanConfigId string,
 	var scanConfigIdIsType bool
 	if retScanConfigId, scanConfigIdIsType = responseMap["Id"].(string); (! scanConfigIdIsType) || (retScanConfigId == "") { testContext.FailTest() }
 	if retProviderName, isType := responseMap["ProviderName"].(string); (! isType) || (retProviderName == "") { testContext.FailTest() }
-	if retSuccessExpression, isType := responseMap["SuccessExpression"].(string); (! isType) || (retSuccessExpression == "") { testContext.FailTest() }
 	if retFlagId, isType := responseMap["FlagId"].(string); (! isType) || (retFlagId == "") { testContext.FailTest() }
 	if retParameterValueDescs, isType := responseMap["ParameterValueDescs"].(string); (! isType) || (retParameterValueDescs == "") { testContext.FailTest() }
 	
