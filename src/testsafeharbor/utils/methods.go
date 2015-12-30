@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"io"
+	//"reflect"
 	//"flag"
 	"testsafeharbor/rest"
 	//"testsafeharbor/utils"
@@ -28,7 +29,7 @@ func (testContext *TestContext) TryGetGroupDesc(groupId string) {
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
-	if testContext.AssertErrIsNil(err, "at ParseResponseBodyToMap") { return }
+	if ! testContext.AssertErrIsNil(err, "at ParseResponseBodyToMap") { return }
 	
 	// Expect a GroupDesc
 	var retGroupId string = responseMap["GroupId"].(string)
@@ -42,6 +43,7 @@ func (testContext *TestContext) TryGetGroupDesc(groupId string) {
 	testContext.AssertThat(retGroupName != "", "retGroupName is empty")
 	testContext.AssertThat(retCreationDate != "", "retCreationDate is empty")
 	testContext.AssertThat(retDescription != "", "retDescription is empty")
+	testContext.PassTestIfNoFailures()
 }
 	
 /*******************************************************************************
@@ -49,7 +51,7 @@ func (testContext *TestContext) TryGetGroupDesc(groupId string) {
  */
 func (testContext *TestContext) TryGetRepoDesc(repoId string) {
 	
-	testContext.StartTest("getRepoDesc")
+	testContext.StartTest("TryGetRepoDesc")
 	var resp *http.Response
 	var err error
 	resp, err = testContext.SendPost(testContext.SessionId,
@@ -62,7 +64,8 @@ func (testContext *TestContext) TryGetRepoDesc(repoId string) {
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
-	if testContext.AssertErrIsNil(err, "at ParseResponseBodyToMap") { return }
+	if ! testContext.AssertErrIsNil(err, "at ParseResponseBodyToMap") { return }
+	rest.PrintMap(responseMap)
 	
 	// Expect a RepoDesc
 	var retId string = responseMap["Id"].(string)
@@ -70,14 +73,16 @@ func (testContext *TestContext) TryGetRepoDesc(repoId string) {
 	var retRepoName string = responseMap["RepoName"].(string)
 	var retDescription string = responseMap["Description"].(string)
 	var retCreationDate string = responseMap["CreationDate"].(string)
-	var retDockerfileIds []string = responseMap["DockerfileIds"].([]string)
-	
+	if retDockerfileIds, isType := responseMap["DockerfileIds"].([]interface{}); (! isType) ||
+		(retDockerfileIds == nil) {
+		testContext.FailTest()
+	}
 	testContext.AssertThat(retId != "", "retId is empty")
 	testContext.AssertThat(retRealmId != "", "retRealmId is empty")
 	testContext.AssertThat(retRepoName != "", "retRepoName is empty")
 	testContext.AssertThat(retDescription != "", "retDescription is empty")
 	testContext.AssertThat(retCreationDate != "", "retCreationDate is empty")
-	testContext.AssertThat(retDockerfileIds != nil, "retDockerfileIds is nil")
+	testContext.PassTestIfNoFailures()
 }
 	
 /*******************************************************************************
@@ -106,14 +111,14 @@ func (testContext *TestContext) TryGetDockerImageDesc(dockerImageId string,
 			testContext.FailTest()
 			return nil
 		} else {
-			testContext.PassTest()
+			testContext.PassTestIfNoFailures()
 			return nil
 		}	
 	}
 	
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
-	if testContext.AssertErrIsNil(err, "at ParseResponseBodyToMap") { return nil }
+	if ! testContext.AssertErrIsNil(err, "at ParseResponseBodyToMap") { return nil }
 	
 	// Expect a DockerImageDesc
 	var retObjId string = responseMap["ObjId"].(string)
@@ -128,6 +133,7 @@ func (testContext *TestContext) TryGetDockerImageDesc(dockerImageId string,
 	testContext.AssertThat(retDescription != "", "retDescription is empty")
 	testContext.AssertThat(retCreationDate != "", "retCreationDate is empty")
 	
+	testContext.PassTestIfNoFailures()
 	return responseMap
 }
 	
@@ -149,7 +155,7 @@ func (testContext *TestContext) TryGetDockerfileDesc(dockerfileId string) {
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
-	if testContext.AssertErrIsNil(err, "at ParseResponseBodyToMap") { return }
+	if ! testContext.AssertErrIsNil(err, "at ParseResponseBodyToMap") { return }
 	
 	// Expect a DockerfileDesc
 	var retId string = responseMap["Id"].(string)
@@ -161,6 +167,7 @@ func (testContext *TestContext) TryGetDockerfileDesc(dockerfileId string) {
 	testContext.AssertThat(retRepoId != "", "retRepoId is empty")
 	testContext.AssertThat(retDescription != "", "retDescription is empty")
 	testContext.AssertThat(retDockerfileName != "", "retDockerfileName is empty")
+	testContext.PassTestIfNoFailures()
 }
 
 /*******************************************************************************
@@ -195,6 +202,7 @@ func (testContext *TestContext) TryCreateRealm(realmName, orgFullName,
 	testContext.AssertThat(retOrgFullName != "", "Realm OrgFullName not found in response body")
 	testContext.AssertThat(retAdminUserId != "", "Realm AdminUserId not found in response body")
 	
+	testContext.PassTestIfNoFailures()
 	return retId
 }
 
@@ -235,6 +243,7 @@ func (testContext *TestContext) TryCreateUser(userId string, userName string,
 		" does not match the original realm Id")
 	testContext.AssertThat(retCanModifyTheseRealms != nil, "No realms returned")
 	
+	testContext.PassTestIfNoFailures()
 	return retUserObjId, retCanModifyTheseRealms
 }
 
@@ -261,7 +270,7 @@ func (testContext *TestContext) TryAuthenticate(userId string, pswd string,
 			testContext.FailTest()
 			return "", false
 		} else {
-			testContext.PassTest()
+			testContext.PassTestIfNoFailures()
 			return "", true
 		}	
 	}
@@ -279,6 +288,7 @@ func (testContext *TestContext) TryAuthenticate(userId string, pswd string,
 	testContext.AssertThat(retSessionId != "", "Session id is empty string")
 	testContext.AssertThat(retUserId == userId, "Returned user id '" + retUserId +
 		"' does not match user id")
+	testContext.PassTestIfNoFailures()
 	return retSessionId, retIsAdmin
 }
 
@@ -306,6 +316,7 @@ func (testContext *TestContext) TryDisableUser(userObjId string) bool {
 	var retStatus string = responseMap["Status"].(string)
 	//var retMessage string = responseMap["Message"].(string)
 	if retStatus != "200" { return false }
+	testContext.PassTestIfNoFailures()
 	return testContext.CurrentTestPassed
 }
 
@@ -333,6 +344,7 @@ func (testContext *TestContext) TryDeleteGroup(groupId string) bool {
 	var retStatus string = responseMap["Status"].(string)
 	//var retMessage string = responseMap["Message"].(string)
 	if retStatus != "200" { return false }
+	testContext.PassTestIfNoFailures()
 	return testContext.CurrentTestPassed
 }
 
@@ -360,6 +372,7 @@ func (testContext *TestContext) TryLogout() bool {
 	var retStatus string = responseMap["Status"].(string)
 	//var retMessage string = responseMap["Message"].(string)
 	if retStatus != "200" { return false }
+	testContext.PassTestIfNoFailures()
 	return testContext.CurrentTestPassed
 }
 
@@ -404,6 +417,7 @@ func (testContext *TestContext) TryCreateRepo(realmId string, name string,
 	testContext.AssertThat(repoId != "", "Repo Id not found in response body")
 	testContext.AssertThat(repoName != "", "Repo Name not found in response body")
 	
+	testContext.PassTestIfNoFailures()
 	return repoId
 }
 
@@ -438,6 +452,7 @@ func (testContext *TestContext) TryAddDockerfile(repoId string, dockerfilePath s
 	//AssertThat(dockerfileId != "", "Dockerfile Id not found in response body")
 	//AssertThat(dockerfileName != "", "Dockerfile Name not found in response body")
 	
+	testContext.PassTestIfNoFailures()
 	return dockerfileId
 }
 
@@ -477,6 +492,7 @@ func (testContext *TestContext) TryGetDockerfiles(repoId string) []string {
 		result = append(result, dockerfileName)
 	}
 		
+	testContext.PassTestIfNoFailures()
 	return result
 }
 
@@ -514,6 +530,7 @@ func (testContext *TestContext) TryExecDockerfile(repoId string, dockerfileId st
 	testContext.AssertThat(retDockerImageTag != "", "Name is empty")
 	testContext.AssertThat(retDesc != "", "Description is empty")
 	testContext.AssertThat(retCreationDate != "", "CreationDate is empty")
+	testContext.PassTestIfNoFailures()
 	return retObjId, retDockerImageTag
 }
 
@@ -552,6 +569,7 @@ func (testContext *TestContext) TryAddAndExecDockerfile(repoId string, desc stri
 	testContext.AssertThat(retDockerImageTag != "", "Name is empty")
 	testContext.AssertThat(retDesc != "", "Description is empty")
 	testContext.AssertThat(retCreationDate != "", "CreationDate is empty")
+	testContext.PassTestIfNoFailures()
 	return retObjId, retDockerImageTag
 }
 
@@ -588,6 +606,7 @@ func (testContext *TestContext) TryGetImages(repoId string) []string {
 		result = append(result, dockerImageTag)
 	}
 	
+	testContext.PassTestIfNoFailures()
 	return result
 }
 
@@ -627,6 +646,7 @@ func (testContext *TestContext) TryGetUserDesc(realmId, userId string) map[strin
 		" does not match the original realm Id")
 	testContext.AssertThat(retCanModifyTheseRealms != nil, "No realms returned")
 	
+	testContext.PassTestIfNoFailures()
 	return responseMap
 }
 
@@ -670,6 +690,7 @@ func (testContext *TestContext) TryCreateGroup(realmId, name, description string
 	testContext.AssertThat(retCreationDate != "", "Returned CreationDate is empty")
 	testContext.AssertThat(retDescription != "", "Returned Description is empty")
 	
+	testContext.PassTestIfNoFailures()
 	return retGroupId
 }
 
@@ -710,6 +731,7 @@ func (testContext *TestContext) TryGetGroupUsers(groupId string) []string {
 		result = append(result, retId)
 	}
 	
+	testContext.PassTestIfNoFailures()
 	return result
 }
 
@@ -742,6 +764,7 @@ func (testContext *TestContext) TryAddGroupUser(groupId, userId string) bool {
 	testContext.AssertThat(retStatus == "200", "Returned Status is empty")
 	testContext.AssertThat(retMessage != "", "Returned Message is empty")
 	
+	testContext.PassTestIfNoFailures()
 	return testContext.CurrentTestPassed
 }
 
@@ -770,6 +793,7 @@ func (testContext *TestContext) TryMoveUserToRealm(realmId string, userObjId str
 	rest.PrintMap(responseMap)
 	testContext.AssertThat(retStatus != "", "Empty return status")
 	testContext.AssertThat(retMsg != "", "Empty return message")
+	testContext.PassTestIfNoFailures()
 	return testContext.CurrentTestPassed
 }
 
@@ -813,6 +837,7 @@ func (testContext *TestContext) TryGetRealmGroups(realmId string) []string {
 		result = append(result, retGroupId)
 	}
 	
+	testContext.PassTestIfNoFailures()
 	return result
 }
 
@@ -849,6 +874,7 @@ func (testContext *TestContext) TryGetRealmRepos(realmId string) []string {
 		
 		result = append(result, retRepoId)
 	}
+	testContext.PassTestIfNoFailures()
 	return result
 }
 
@@ -883,6 +909,7 @@ func (testContext *TestContext) TryGetAllRealms() []string {
 		
 		result = append(result, retRealmId)
 	}
+	testContext.PassTestIfNoFailures()
 	return result
 }
 
@@ -917,6 +944,7 @@ func (testContext *TestContext) TryGetMyDockerfiles() []string {
 		
 		result = append(result, retId)
 	}
+	testContext.PassTestIfNoFailures()
 	return result
 }
 
@@ -951,6 +979,7 @@ func (testContext *TestContext) TryGetMyDockerImages() []string {
 		
 		result = append(result, retObjId)
 	}
+	testContext.PassTestIfNoFailures()
 	return result
 }
 
@@ -989,6 +1018,7 @@ func (testContext *TestContext) TryGetRealmUsers(realmId string) []string {
 		testContext.AssertThat(retCanModifyTheseRealms != nil, "No realms returned")
 		result = append(result, retId)
 	}
+	testContext.PassTestIfNoFailures()
 	return result
 }
 
@@ -1085,6 +1115,7 @@ func (testContext *TestContext) TryCreateRealmAnon(realmName, orgFullName, admin
 	testContext.AssertThat(ret3Name != "", "Empty return Name")
 	testContext.AssertThat(ret3OrgFullName != "", "Empty return Org Full Name")
 	
+	testContext.PassTestIfNoFailures()
 	return ret3Id, retId, retCanModifyTheseRealms
 }
 
@@ -1127,6 +1158,7 @@ func (testContext *TestContext) TrySetPermission(partyId, resourceId string,
 	testContext.AssertThat(retPartyId != "", "Empty return retPartyId")
 	testContext.AssertThat(retResourceId != "", "Empty return retResourceId")
 	
+	testContext.PassTestIfNoFailures()
 	return retMask
 }
 
@@ -1169,6 +1201,7 @@ func (testContext *TestContext) TryAddPermission(partyId, resourceId string,
 	testContext.AssertThat(retPartyId != "", "Empty return retPartyId")
 	testContext.AssertThat(retResourceId != "", "Empty return retResourceId")
 	
+	testContext.PassTestIfNoFailures()
 	return retMask
 }
 
@@ -1207,6 +1240,7 @@ func (testContext *TestContext) TryGetPermission(partyId, resourceId string) []b
 	testContext.AssertThat(retPartyId != "", "Empty return retPartyId")
 	testContext.AssertThat(retResourceId != "", "Empty return retResourceId")
 	
+	testContext.PassTestIfNoFailures()
 	return []bool{retCreate, retRead, retWrite, retExecute, retDelete}
 }
 
@@ -1239,6 +1273,7 @@ func (testContext *TestContext) TryGetScanProviders() {
 		testContext.AssertThat(retParameters != nil, "Returned Parameters is nil")
 		result = append(result, retProviderName)
 	}
+	testContext.PassTestIfNoFailures()
 }
 
 /*******************************************************************************
@@ -1297,6 +1332,7 @@ func (testContext *TestContext) TryDefineScanConfig(name, desc, repoId, provider
 		}
 	}
 	
+	testContext.PassTestIfNoFailures()
 	return retId
 }
 
@@ -1375,6 +1411,7 @@ func (testContext *TestContext) TryUpdateScanConfig(scanConfigId, name, desc, pr
 		}
 	}
 	
+	testContext.PassTestIfNoFailures()
 	return testContext.CurrentTestPassed
 }
 
@@ -1412,6 +1449,7 @@ func (testContext *TestContext) TryScanImage(scriptId, imageObjId string) string
 	testContext.AssertThat(retScanConfigId != "", "Returned ScanConfigId is empty")
 	testContext.AssertThat(retScore != "", "Returned Score is empty")
 	
+	testContext.PassTestIfNoFailures()
 	return retScore
 }
 
@@ -1436,7 +1474,7 @@ func (testContext *TestContext) TryGetMyDesc(expectSuccess bool) (string, []inte
 		if resp.StatusCode == 200 {
 			testContext.FailTest()
 		} else {
-			testContext.PassTest()
+			testContext.PassTestIfNoFailures()
 		}
 		return "", nil
 	}
@@ -1457,6 +1495,7 @@ func (testContext *TestContext) TryGetMyDesc(expectSuccess bool) (string, []inte
 	testContext.AssertThat(retRealmId != "", "Returned RealmId is empty string")
 	testContext.AssertThat(retCanModifyTheseRealms != nil, "No realms returned")
 	
+	testContext.PassTestIfNoFailures()
 	return retId, retCanModifyTheseRealms
 }
 
@@ -1496,6 +1535,7 @@ func (testContext *TestContext) TryGetMyGroups() []string {
 		
 		result = append(result, retGroupId)
 	}
+	testContext.PassTestIfNoFailures()
 	return result
 }
 
@@ -1530,6 +1570,7 @@ func (testContext *TestContext) TryGetMyRealms() []string {
 		
 		result = append(result, retId)
 	}
+	testContext.PassTestIfNoFailures()
 	return result
 }
 
@@ -1566,6 +1607,7 @@ func (testContext *TestContext) TryGetMyRepos() []string {
 		
 		result = append(result, retId)
 	}
+	testContext.PassTestIfNoFailures()
 	return result
 }
 
@@ -1598,6 +1640,7 @@ func (testContext *TestContext) TryReplaceDockerfile(dockerfileId, dockerfilePat
 	
 	testContext.AssertThat(retStatus == "200", "Returned Status is empty")
 	testContext.AssertThat(retMessage != "", "Returned Message is empty")
+	testContext.PassTestIfNoFailures()
 }
 
 /*******************************************************************************
@@ -1629,6 +1672,7 @@ func (testContext *TestContext) TryDownloadImage(imageId, filename string) {
 	fileInfo, err = file.Stat()
 	if ! testContext.AssertErrIsNil(err, "") { return }
 	testContext.AssertThat(fileInfo.Size() > 0, "File has zero size")
+	testContext.PassTestIfNoFailures()
 }
 
 /*******************************************************************************
@@ -1649,6 +1693,7 @@ func (testContext *TestContext) TryRemGroupUser(groupId, userObjId string) bool 
 	if ! testContext.AssertErrIsNil(err, "") { return false }
 
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	testContext.PassTestIfNoFailures()
 	return testContext.CurrentTestPassed
 }
 
@@ -1669,6 +1714,7 @@ func (testContext *TestContext) TryReenableUser(userObjId string) bool {
 	if ! testContext.AssertErrIsNil(err, "") { return false }
 
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	testContext.PassTestIfNoFailures()
 	return testContext.CurrentTestPassed
 }
 	
@@ -1689,6 +1735,7 @@ func (testContext *TestContext) TryRemRealmUser(realmId, userObjId string) bool 
 	if ! testContext.AssertErrIsNil(err, "") { return false }
 
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	testContext.PassTestIfNoFailures()
 	return testContext.CurrentTestPassed
 }
 
@@ -1709,6 +1756,7 @@ func (testContext *TestContext) TryDeactivateRealm(realmId string) bool {
 	if ! testContext.AssertErrIsNil(err, "") { return false }
 
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	testContext.PassTestIfNoFailures()
 	return testContext.CurrentTestPassed
 }
 
@@ -1739,6 +1787,7 @@ func (testContext *TestContext) TryRemPermission(partyId, resourceId string) boo
 
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
+	testContext.PassTestIfNoFailures()
 	return testContext.CurrentTestPassed
 }
 
@@ -1770,6 +1819,7 @@ func (testContext *TestContext) TryGetUserEvents(userId string) []string {
 		testContext.AssertThat(retId != "", "Returned Id is empty string")
 		result = append(result, retId)
 	}
+	testContext.PassTestIfNoFailures()
 	return result
 }
 
@@ -1801,6 +1851,7 @@ func (testContext *TestContext) TryGetDockerImageEvents(imageId string) []string
 		testContext.AssertThat(retId != "", "Returned Id is empty string")
 		result = append(result, retId)
 	}
+	testContext.PassTestIfNoFailures()
 	return result
 }
 
@@ -1835,6 +1886,7 @@ func (testContext *TestContext) TryGetDockerImageStatus(imageObjId string) map[s
     //ParameterValueDescs []*ParameterValueDesc
 	//Score string
 
+	testContext.PassTestIfNoFailures()
 	return responseMap
 }
 
@@ -1866,6 +1918,7 @@ func (testContext *TestContext) TryGetDockerfileEvents(dockerfileId string) []st
 		testContext.AssertThat(retId != "", "Returned Id is empty string")
 		result = append(result, retId)
 	}
+	testContext.PassTestIfNoFailures()
 	return result
 }
 
@@ -1891,6 +1944,7 @@ func (testContext *TestContext) TryDefineFlag(repoId, flagName, desc,
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
 	testContext.AssertErrIsNil(err, "")
 
+	testContext.PassTestIfNoFailures()
 	return responseMap
 }
 
@@ -1916,7 +1970,7 @@ func (testContext *TestContext) TryGetScanConfigDesc(scanConfigId string,
 		if resp.StatusCode == 200 {
 			testContext.FailTest()
 		} else {
-			testContext.PassTest()
+			testContext.PassTestIfNoFailures()
 		}	
 		return nil
 	}
@@ -1933,6 +1987,7 @@ func (testContext *TestContext) TryGetScanConfigDesc(scanConfigId string,
 	if retFlagId, isType := responseMap["FlagId"].(string); (! isType) || (retFlagId == "") { testContext.FailTest() }
 	if retParameterValueDescs, isType := responseMap["ParameterValueDescs"].(string); (! isType) || (retParameterValueDescs == "") { testContext.FailTest() }
 	
+	testContext.PassTestIfNoFailures()
 	return responseMap
 }
 
@@ -1958,6 +2013,7 @@ func (testContext *TestContext) TryChangePassword(userId, oldPswd, newPswd strin
 	_, err = rest.ParseResponseBodyToMap(resp.Body)
 	if ! testContext.AssertErrIsNil(err, "") { return false }
 
+	testContext.PassTestIfNoFailures()
 	return testContext.CurrentTestPassed
 }
 
@@ -1982,7 +2038,7 @@ func (testContext *TestContext) TryGetFlagDesc(flagId string, expectToFindIt boo
 		if resp.StatusCode == 200 {
 			testContext.FailTest()
 		} else {
-			testContext.PassTest()
+			testContext.PassTestIfNoFailures()
 		}	
 		return ""
 	}
@@ -1998,6 +2054,7 @@ func (testContext *TestContext) TryGetFlagDesc(flagId string, expectToFindIt boo
 	if retName, retNameIsType = responseMap["Name"].(string); (! retNameIsType) || (retName == "") { testContext.FailTest() }
 	if retImageURL, isType := responseMap["ImageURL"].(string); (! isType) || (retImageURL == "") { testContext.FailTest() }
 
+	testContext.PassTestIfNoFailures()
 	return retName
 }
 
@@ -2033,6 +2090,7 @@ func (testContext *TestContext) TryGetFlagImage(flagId string, filename string) 
 	if ! testContext.AssertErrIsNil(err, "") { return 0 }
 	testContext.AssertThat(fileInfo.Size() > 0, "File has zero size")
 	
+	testContext.PassTestIfNoFailures()
 	return fileInfo.Size()
 }
 
@@ -2070,6 +2128,7 @@ func (testContext *TestContext) TryGetMyScanConfigs() []string {
 		if retParameterValueDescs, isType := responseMap["ParameterValueDescs"].(string); (! isType) || (retParameterValueDescs == "") { testContext.FailTest() }
 	}
 
+	testContext.PassTestIfNoFailures()
 	return retConfigIds
 }
 
@@ -2100,6 +2159,7 @@ func (testContext *TestContext) TryGetScanConfigDescByName(repoId, scanConfigNam
 	if retSuccessExpression, isType := responseMap["SuccessExpression"].(string); (! isType) || (retSuccessExpression == "") { testContext.FailTest() }
 	if retFlagId, isType := responseMap["FlagId"].(string); (! isType) || (retFlagId == "") { testContext.FailTest() }
 	if retParameterValueDescs, isType := responseMap["ParameterValueDescs"].(string); (! isType) || (retParameterValueDescs == "") { testContext.FailTest() }
+	testContext.PassTestIfNoFailures()
 	return retScanConfigId
 }
 
@@ -2116,7 +2176,7 @@ func (testContext *TestContext) TryRemScanConfig(scanConfigId string,
 		"remScanConfig",
 		[]string{"ScanConfigId"},
 		[]string{scanConfigId})
-	if testContext.AssertErrIsNil(err, "") { return false }
+	if ! testContext.AssertErrIsNil(err, "") { return false }
 	
 	if expectSuccess {
 		if ! testContext.Verify200Response(resp) {
@@ -2128,7 +2188,7 @@ func (testContext *TestContext) TryRemScanConfig(scanConfigId string,
 			testContext.FailTest()
 			return false
 		} else {
-			testContext.PassTest()
+			testContext.PassTestIfNoFailures()
 			return true
 		}	
 	}
@@ -2140,6 +2200,7 @@ func (testContext *TestContext) TryRemScanConfig(scanConfigId string,
 	if retStatus, isType := responseMap["Status"].(string); (! isType) || (retStatus == "") { testContext.FailTest() }
 	if retMessage, isType := responseMap["Message"].(string); (! isType) || (retMessage == "") { testContext.FailTest() }
 
+	testContext.PassTestIfNoFailures()
 	return testContext.CurrentTestPassed
 }
 
@@ -2149,33 +2210,46 @@ func (testContext *TestContext) TryRemScanConfig(scanConfigId string,
 func (testContext *TestContext) TryGetMyFlags() []string {
 	testContext.StartTest("TryGetMyFlags")
 	
+	fmt.Println("TryGetMyFlags:1")  // debug
 	var resp *http.Response
 	var err error
 	resp, err = testContext.SendPost(testContext.SessionId,
 		"getMyFlags",
 		[]string{},
 		[]string{})
-	if testContext.AssertErrIsNil(err, "") { return nil }
+	fmt.Println("TryGetMyFlags:2")  // debug
+	if ! testContext.AssertErrIsNil(err, "while performing SendPost") { return nil }
+	fmt.Println("TryGetMyFlags:3")  // debug
 	
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	
+	fmt.Println("TryGetMyFlags:A")  // debug
 	
 	var responseMaps []map[string]interface{}
 	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)
 	if err != nil { fmt.Println(err.Error()); return nil }
+	fmt.Println("TryGetMyFlags:B")  // debug
 	var retFlagIds []string = make([]string, 0)
 	for _, responseMap := range responseMaps {
+		fmt.Println("TryGetMyFlags:C")  // debug
 		rest.PrintMap(responseMap)
 		
+		fmt.Println("TryGetMyFlags:D")  // debug
 		if retFlagId, isType := responseMap["FlagId"].(string); (! isType) || (retFlagId == "") {
 			testContext.FailTest()
 		} else {
 			retFlagIds = append(retFlagIds, retFlagId)
 		}
+		fmt.Println("TryGetMyFlags:E")  // debug
 		if retRepoId, isType := responseMap["RepoId"].(string); (! isType) || (retRepoId == "") { testContext.FailTest() }
 		if retName, isType := responseMap["Name"].(string); (! isType) || (retName == "") { testContext.FailTest() }
 		if retImageURL, isType := responseMap["ImageURL"].(string); (! isType) || (retImageURL == "") { testContext.FailTest() }
+		fmt.Println("TryGetMyFlags:F")  // debug
 	}
 
+	fmt.Println("TryGetMyFlags:G")  // debug
+	fmt.Println(fmt.Sprintf("Returning %d flag ids", len(retFlagIds)))
+	testContext.PassTestIfNoFailures()
 	return retFlagIds
 }
 
@@ -2205,6 +2279,7 @@ func (testContext *TestContext) TryGetFlagDescByName(repoId, flagName string) st
 	if retRepoId, isType := responseMap["RepoId"].(string); (! isType) || (retRepoId == "") { testContext.FailTest() }
 	if retName, isType := responseMap["Name"].(string); (! isType) || (retName == "") { testContext.FailTest() }
 	if retImageURL, isType := responseMap["ImageURL"].(string); (! isType) || (retImageURL == "") { testContext.FailTest() }
+	testContext.PassTestIfNoFailures()
 	return retFlagId
 }
 
@@ -2231,6 +2306,7 @@ func (testContext *TestContext) TryRemFlag(flagId string) bool {
 	if retStatus, isType := responseMap["Status"].(string); (! isType) || (retStatus == "") { testContext.FailTest() }
 	if retMessage, isType := responseMap["Message"].(string); (! isType) || (retMessage == "") { testContext.FailTest() }
 
+	testContext.PassTestIfNoFailures()
 	return testContext.CurrentTestPassed
 }
 
@@ -2257,6 +2333,7 @@ func (testContext *TestContext) TryRemDockerImage(imageId string) bool {
 	if retStatus, isType := responseMap["Status"].(string); (! isType) || (retStatus == "") { testContext.FailTest() }
 	if retMessage, isType := responseMap["Message"].(string); (! isType) || (retMessage == "") { testContext.FailTest() }
 
+	testContext.PassTestIfNoFailures()
 	return testContext.CurrentTestPassed
 }
 
@@ -2275,5 +2352,6 @@ func (testContext *TestContext) TryClearAll() {
 		)
 	if ! testContext.AssertErrIsNil(err, "") { return }
 	
+	testContext.PassTestIfNoFailures()
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 }

@@ -5,6 +5,7 @@
 PRODUCTNAME=Safe Harbor Server
 ORG=Scaled Markets
 PACKAGENAME=testsafeharbor
+EXECNAME=$(PACKAGENAME)
 
 .DELETE_ON_ERROR:
 .ONESHELL:
@@ -15,7 +16,7 @@ SHELL = /bin/sh
 
 CURDIR=$(shell pwd)
 
-.PHONY: all compile authcert vm deploy clean info
+.PHONY: all compile clean info
 .DEFAULT: all
 
 src_dir = $(CURDIR)/src

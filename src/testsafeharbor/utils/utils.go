@@ -21,6 +21,7 @@ import (
 	//"reflect"
 	"crypto/sha512"
 	"hash"
+	"runtime/debug"	
 	
 	// My packages:
 	"testsafeharbor/rest"
@@ -83,19 +84,27 @@ func (testContext *TestContext) StartTest(name string) {
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) PassTest() {
-	testContext.TestStatus[testContext.testName] = "Pass"
-	testContext.CurrentTestPassed = true
+func (testContext *TestContext) PassTestIfNoFailures() bool {
+	if testContext.TestStatus[testContext.testName] == "" {
+		testContext.CurrentTestPassed = true
+		testContext.TestStatus[testContext.testName] = "Pass"
+	}
+	return testContext.CurrentTestPassed
 }
 
 /*******************************************************************************
  * 
  */
 func (testContext *TestContext) FailTest() {
+	fmt.Println("FailTest:A")  // debug
 	if testContext.TestStatus[testContext.testName] == "Fail" { return }
+	fmt.Println("FailTest:B")  // debug
 	testContext.NoOfTestsThatFailed++
+	fmt.Println("FailTest:C")  // debug
 	testContext.TestStatus[testContext.testName] = "Fail"
 	fmt.Println("Failed test", testContext.testName)
+	fmt.Println("Stack trace:")
+	debug.PrintStack()
 }
 
 /*******************************************************************************
@@ -114,9 +123,13 @@ func (testContext *TestContext) AssertThat(condition bool, msg string) bool {
  * 
  */
 func (testContext *TestContext) AssertErrIsNil(err error, msg string) bool {
+	fmt.Println("AssertErrIsNil:A")  // debug
 	if err == nil { return true }
+	fmt.Println("AssertErrIsNil:B")  // debug
 	testContext.FailTest()
-	fmt.Print(msg, err.Error())
+	fmt.Println("AssertErrIsNil:C")  // debug
+	fmt.Println("Message:", msg)
+	fmt.Println("Original error message:", err.Error())
 	if testContext.StopOnFirstError { os.Exit(1) }
 	return false
 }

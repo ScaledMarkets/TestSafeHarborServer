@@ -340,7 +340,8 @@ func main() {
 			if flagName != "myflag" { testContext.FailTest() }
 			
 			var flagIds []string = testContext.TryGetMyFlags()
-			testContext.AssertThat(utils.ContainsString(flagIds, flagId), "Flag Id not returned")
+			testContext.AssertThat(utils.ContainsString(flagIds, flagId),
+				"Flag Id " + flagId + " not returned")
 			
 			var fId string = testContext.TryGetFlagDescByName(repoId, "myflag")
 			testContext.AssertThat(fId == flagId, "Flag not found by name")
