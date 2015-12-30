@@ -1315,6 +1315,13 @@ func (testContext *TestContext) TryDefineScanConfig(name, desc, repoId, provider
 	var retProvName string = obj.(string)
 	testContext.AssertThat(retId != "", "Returned Id is empty")
 	testContext.AssertThat(retProvName != "", "Returned ProviderName is empty")
+	if successGraphicFilePath != "" {
+		obj = responseMap["FlagId"]
+		var retFlagId string
+		var isType bool
+		retFlagId, isType = obj.(string)
+		testContext.AssertThat(isType && (retFlagId != ""), "Returned FlagId is empty")
+	}
 	// ParamValueDescs []*ParameterValueDesc
 	var retParamValueDescs []interface{} = responseMap["ParameterValueDescs"].([]interface{})
 	for _, desc := range retParamValueDescs {
