@@ -69,6 +69,20 @@ func (testContext *TestContext) GetTestsThatFailed() []string {
 /*******************************************************************************
  * 
  */
+func (testContext *TestContext) GetCurrentTestName() string {
+	return testContext.testName
+}
+
+/*******************************************************************************
+ * Write this line to the server''s stdout at the start of each test.
+ */
+func (testContext *TestContext) TestDemarcation() string {
+	return "\n\n" + testContext.GetCurrentTestName() + "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+}
+
+/*******************************************************************************
+ * 
+ */
 func (testContext *TestContext) StartTest(name string) {
 	
 	testContext.NoOfTests++
@@ -96,11 +110,8 @@ func (testContext *TestContext) PassTestIfNoFailures() bool {
  * 
  */
 func (testContext *TestContext) FailTest() {
-	fmt.Println("FailTest:A")  // debug
 	if testContext.TestStatus[testContext.testName] == "Fail" { return }
-	fmt.Println("FailTest:B")  // debug
 	testContext.NoOfTestsThatFailed++
-	fmt.Println("FailTest:C")  // debug
 	testContext.TestStatus[testContext.testName] = "Fail"
 	fmt.Println("Failed test", testContext.testName)
 	fmt.Println("Stack trace:")
@@ -123,11 +134,8 @@ func (testContext *TestContext) AssertThat(condition bool, msg string) bool {
  * 
  */
 func (testContext *TestContext) AssertErrIsNil(err error, msg string) bool {
-	fmt.Println("AssertErrIsNil:A")  // debug
 	if err == nil { return true }
-	fmt.Println("AssertErrIsNil:B")  // debug
 	testContext.FailTest()
-	fmt.Println("AssertErrIsNil:C")  // debug
 	fmt.Println("Message:", msg)
 	fmt.Println("Original error message:", err.Error())
 	if testContext.StopOnFirstError { os.Exit(1) }
