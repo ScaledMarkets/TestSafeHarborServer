@@ -271,7 +271,7 @@ func (testContext *TestContext) TryAuthenticate(userId string, pswd string,
 			return "", false
 		} else {
 			testContext.PassTestIfNoFailures()
-			return "", true
+			return "", false
 		}	
 	}
 	
@@ -614,15 +614,15 @@ func (testContext *TestContext) TryGetImages(repoId string) []string {
  * Return the object Id of the specified user, and a list of the realms that
  * the user can modify.
  */
-func (testContext *TestContext) TryGetUserDesc(realmId, userId string) map[string]interface{} {
+func (testContext *TestContext) TryGetUserDesc(userId string) map[string]interface{} {
 	testContext.StartTest("TryGetUserDesc")
 	
 	var resp *http.Response
 	var err error
 	resp, err = testContext.SendPost(testContext.SessionId,
 		"getUserDesc",
-		[]string{"Log", "RealmId", "UserId"},
-		[]string{testContext.TestDemarcation(), realmId, userId})
+		[]string{"Log", "UserId"},
+		[]string{testContext.TestDemarcation(), userId})
 	
 	defer resp.Body.Close()
 
@@ -634,7 +634,6 @@ func (testContext *TestContext) TryGetUserDesc(realmId, userId string) map[strin
 	var retUserObjId string = responseMap["Id"].(string)
 	var retUserId string = responseMap["UserId"].(string)
 	var retUserName string = responseMap["UserName"].(string)
-	var retRealmId string = responseMap["RealmId"].(string)
 	var retCanModifyTheseRealms []interface{} = responseMap["CanModifyTheseRealms"].([]interface{})
 	rest.PrintMap(responseMap)
 	
@@ -642,8 +641,6 @@ func (testContext *TestContext) TryGetUserDesc(realmId, userId string) map[strin
 	testContext.AssertThat(retUserId == userId, "Returned user id, " + retUserId +
 		" does not match the original user id")
 	testContext.AssertThat(retUserName != "", "Returned user name is blank")
-	testContext.AssertThat(retRealmId == realmId, "Returned realm Id, " + retRealmId +
-		" does not match the original realm Id")
 	testContext.AssertThat(retCanModifyTheseRealms != nil, "No realms returned")
 	
 	testContext.PassTestIfNoFailures()
@@ -771,7 +768,7 @@ func (testContext *TestContext) TryAddGroupUser(groupId, userId string) bool {
 /*******************************************************************************
  * Returns result.
  */
-func (testContext *TestContext) TryMoveUserToRealm(realmId string, userObjId string) bool {
+func (testContext *TestContext) TryMoveUserToRealm(userObjId, realmId string) bool {
 	testContext.StartTest("TryMoveUserToRealm")
 	
 	var resp *http.Response
@@ -1285,8 +1282,8 @@ func (testContext *TestContext) TryDefineScanConfig(name, desc, repoId, provider
 
 	testContext.StartTest("TryDefineScanConfig")
 	
-	var paramNames []string = []string{"Name", "Description", "RepoId", "ProviderName"}
-	var paramValues []string = []string{name, desc, repoId, providerName}
+	var paramNames []string = []string{"Log", "Name", "Description", "RepoId", "ProviderName"}
+	var paramValues []string = []string{testContext.TestDemarcation(), name, desc, repoId, providerName}
 	paramNames = append(paramNames, providerParamNames...)
 	paramValues = append(paramValues, providerParamValues...)
 	
@@ -1348,12 +1345,12 @@ func (testContext *TestContext) TryDefineScanConfig(name, desc, repoId, provider
  */
 func (testContext *TestContext) TryUpdateScanConfig(scanConfigId, name, desc, providerName,
 	successExpr, successGraphicFilePath string, providerParamNames []string,
-	providerParamValues []string) bool {
+	providerParamValues []string) map[string]interface{} {
 	
 	testContext.StartTest("TryUpdateScanConfig")
 	
-	var paramNames []string = []string{"ScanConfigId", "Name", "Description", "ProviderName"}
-	var paramValues []string = []string{scanConfigId, name, desc, providerName}
+	var paramNames []string = []string{"Log", "ScanConfigId", "Name", "Description", "ProviderName"}
+	var paramValues []string = []string{testContext.TestDemarcation(), scanConfigId, name, desc, providerName}
 	paramNames = append(paramNames, providerParamNames...)
 	paramValues = append(paramValues, providerParamValues...)
 	
@@ -1373,13 +1370,12 @@ func (testContext *TestContext) TryUpdateScanConfig(scanConfigId, name, desc, pr
 	
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
-	if ! testContext.AssertErrIsNil(err, "") { return false }
+	if ! testContext.AssertErrIsNil(err, "") { return nil }
 	rest.PrintMap(responseMap)
 	
 	// Returns ScanConfigDesc
 	var retId string
 	var retProviderName string
-	var retSuccessExpression string
 	var retFlagId string
 	var retParameterValueDescs []map[string]interface{}
 	
@@ -1395,31 +1391,28 @@ func (testContext *TestContext) TryUpdateScanConfig(scanConfigId, name, desc, pr
 		testContext.AssertThat(retProviderName != "", "Returned ProviderName is empty")
 	}
 	
-	retSuccessExpression, isType = responseMap["SuccessExpression"].(string)
-	if testContext.AssertThat(isType, "SuccessExpression") {
-		testContext.AssertThat(retSuccessExpression != "", "Returned SuccessExpression is empty")
-	}
-	
 	retFlagId, isType = responseMap["FlagId"].(string)
 	if testContext.AssertThat(isType, "FlagId") {
 		testContext.AssertThat(retFlagId != "", "Returned FlagId is empty")
 	}
 	
-	retParameterValueDescs, isType = responseMap["ParameterValueDescs"].([]map[string]interface{})
-	if testContext.AssertThat(isType, "ParameterValueDescs") {
-		if testContext.AssertThat(len(retParameterValueDescs) == len(providerParamNames),
-			"Wrong number of parameter descriptions returned") {
-			for i, _ := range providerParamNames {
-				testContext.AssertThat(providerParamNames[i] == retParameterValueDescs[i]["Name"],
-					fmt.Sprintf("Parameter name %d mismatch", i))
-				testContext.AssertThat(providerParamValues[i] == retParameterValueDescs[i]["StringValue"],
-					fmt.Sprintf("Parameter value %d mismatch", i))
+	if len(providerParamNames) > 0 {
+		retParameterValueDescs, isType = responseMap["ParameterValueDescs"].([]map[string]interface{})
+		if testContext.AssertThat(isType, "ParameterValueDescs") {
+			if testContext.AssertThat(len(retParameterValueDescs) == len(providerParamNames),
+				"Wrong number of parameter descriptions returned") {
+				for i, _ := range providerParamNames {
+					testContext.AssertThat(providerParamNames[i] == retParameterValueDescs[i]["Name"],
+						fmt.Sprintf("Parameter name %d mismatch", i))
+					testContext.AssertThat(providerParamValues[i] == retParameterValueDescs[i]["StringValue"],
+						fmt.Sprintf("Parameter value %d mismatch", i))
+				}
 			}
 		}
 	}
 	
 	testContext.PassTestIfNoFailures()
-	return testContext.CurrentTestPassed
+	return responseMap
 }
 
 /*******************************************************************************
@@ -1991,7 +1984,7 @@ func (testContext *TestContext) TryGetScanConfigDesc(scanConfigId string,
 	if retScanConfigId, scanConfigIdIsType = responseMap["Id"].(string); (! scanConfigIdIsType) || (retScanConfigId == "") { testContext.FailTest() }
 	if retProviderName, isType := responseMap["ProviderName"].(string); (! isType) || (retProviderName == "") { testContext.FailTest() }
 	if retFlagId, isType := responseMap["FlagId"].(string); (! isType) || (retFlagId == "") { testContext.FailTest() }
-	if retParameterValueDescs, isType := responseMap["ParameterValueDescs"].(string); (! isType) || (retParameterValueDescs == "") { testContext.FailTest() }
+	if retParameterValueDescs, isType := responseMap["ParameterValueDescs"].([]interface{}); (! isType) || (retParameterValueDescs == nil) { testContext.FailTest() }
 	
 	testContext.PassTestIfNoFailures()
 	return responseMap
@@ -2081,10 +2074,6 @@ func (testContext *TestContext) TryGetFlagImage(flagId string, filename string) 
 	
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
-	//var responseMap map[string]interface{}
-	_, err = rest.ParseResponseBodyToMap(resp.Body)
-	if ! testContext.AssertErrIsNil(err, "") { return 0 }
-
 	var reader io.ReadCloser = resp.Body
 	var file *os.File
 	file, err = os.Create(filename)
@@ -2103,7 +2092,7 @@ func (testContext *TestContext) TryGetFlagImage(flagId string, filename string) 
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryGetMyScanConfigs() []string {
+func (testContext *TestContext) TryGetMyScanConfigs() ([]map[string]interface{}, []string) {
 	testContext.StartTest("TryGetMyScanConfigs")
 	
 	var resp *http.Response
@@ -2112,13 +2101,13 @@ func (testContext *TestContext) TryGetMyScanConfigs() []string {
 		"getMyScanConfigs",
 		[]string{"Log"},
 		[]string{testContext.TestDemarcation()})
-	if ! testContext.AssertErrIsNil(err, "") { return nil }
+	if ! testContext.AssertErrIsNil(err, "") { return nil, nil }
 	
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMaps []map[string]interface{}
 	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)
-	if err != nil { fmt.Println(err.Error()); return nil }
+	if err != nil { fmt.Println(err.Error()); return nil, nil }
 	var retConfigIds []string = make([]string, 0)
 	for _, responseMap := range responseMaps {
 		rest.PrintMap(responseMap)
@@ -2129,13 +2118,11 @@ func (testContext *TestContext) TryGetMyScanConfigs() []string {
 			retConfigIds = append(retConfigIds, retId)
 		}
 		if retProviderName, isType := responseMap["ProviderName"].(string); (! isType) || (retProviderName == "") { testContext.FailTest() }
-		if retSuccessExpression, isType := responseMap["SuccessExpression"].(string); (! isType) || (retSuccessExpression == "") { testContext.FailTest() }
 		if retFlagId, isType := responseMap["FlagId"].(string); (! isType) || (retFlagId == "") { testContext.FailTest() }
-		if retParameterValueDescs, isType := responseMap["ParameterValueDescs"].(string); (! isType) || (retParameterValueDescs == "") { testContext.FailTest() }
 	}
 
 	testContext.PassTestIfNoFailures()
-	return retConfigIds
+	return responseMaps, retConfigIds
 }
 
 /*******************************************************************************
@@ -2162,9 +2149,7 @@ func (testContext *TestContext) TryGetScanConfigDescByName(repoId, scanConfigNam
 	var scanConfigIdIsType bool
 	if retScanConfigId, scanConfigIdIsType = responseMap["Id"].(string); (! scanConfigIdIsType) || (retScanConfigId == "") { testContext.FailTest() }
 	if retProviderName, isType := responseMap["ProviderName"].(string); (! isType) || (retProviderName == "") { testContext.FailTest() }
-	if retSuccessExpression, isType := responseMap["SuccessExpression"].(string); (! isType) || (retSuccessExpression == "") { testContext.FailTest() }
 	if retFlagId, isType := responseMap["FlagId"].(string); (! isType) || (retFlagId == "") { testContext.FailTest() }
-	if retParameterValueDescs, isType := responseMap["ParameterValueDescs"].(string); (! isType) || (retParameterValueDescs == "") { testContext.FailTest() }
 	testContext.PassTestIfNoFailures()
 	return retScanConfigId
 }

@@ -100,7 +100,7 @@ func main() {
 	testContext.AssertThat(testContext.IsAdmin, "User is not flagged as admin")
 	
 	// Log in so that we can do stuff.
-	sessionId, IsAdmin = testContext.TryAuthenticate("testuser1", "password1", true)
+	sessionId, IsAdmin = testContext.TryAuthenticate("testuser1", "Password1", true)
 	testContext.SessionId = sessionId
 	testContext.IsAdmin = IsAdmin
 	fmt.Println("sessionId =", sessionId)
@@ -127,7 +127,7 @@ func main() {
 	testContext.AssertThat(len(johnDoeAdminRealms) == 0, "Wrong number of admin realms")
 	
 	// Login as the user that we just created.
-	sessionId, IsAdmin = testContext.TryAuthenticate(userId, "password1", true)
+	sessionId, IsAdmin = testContext.TryAuthenticate(userId, "weakpswd", true)
 	testContext.SessionId = sessionId
 	testContext.IsAdmin = IsAdmin
 	
@@ -180,7 +180,7 @@ func main() {
 	// Test ability to retrieve user by user id from realm.
 	var userObjId string
 	var userAdminRealms []interface{}
-	responseMap = testContext.TryGetUserDesc(realmId, userId)
+	responseMap = testContext.TryGetUserDesc(userId)
 	var obj = responseMap["Id"]
 	var isType bool
 	userObjId, isType = obj.(string)
@@ -224,7 +224,7 @@ func main() {
 	testContext.AssertThat(len(user3AdminRealms) == 1, "Wrong number of admin realms")
 	
 	// Restore user context to what it was before we called TryCreateRealmAnon.
-	sessionId, IsAdmin = testContext.TryAuthenticate(userId, "password1", true)
+	sessionId, IsAdmin = testContext.TryAuthenticate(userId, "weakpswd", true)
 	testContext.SessionId = sessionId
 	testContext.IsAdmin = IsAdmin
 	
@@ -370,7 +370,9 @@ func main() {
 		}
 	}
 
-	testContext.TryUpdateScanConfig(config1Id, "", "", "", "", "Seal2.png", []string{}, []string{})
+	// Replace the Scan Config's flag with a new flag.
+	testContext.TryUpdateScanConfig(config1Id, "", "", "", "", "Seal2.png",
+		[]string{}, []string{})
 	var scanConfig1Map map[string]interface{}
 	scanConfig1Map = testContext.TryGetScanConfigDesc(config1Id, true)
 	if testContext.CurrentTestPassed {
@@ -383,7 +385,8 @@ func main() {
 		testContext.AssertThat(newFlagId != "", "FlagId returned empty")
 	}
 	
-	var configIds []string = testContext.TryGetMyScanConfigs()
+	var configIds []string
+	_, configIds = testContext.TryGetMyScanConfigs()
 	testContext.AssertThat(utils.ContainsString(configIds, config1Id),
 		"Scan config not found")
 	
@@ -394,10 +397,10 @@ func main() {
 	
 	
 	// Verify that we can update our password.
-	if testContext.TryChangePassword(userId, "password1", "password2") {
+	if testContext.TryChangePassword(userId, "weakpswd", "password2") {
 		testContext.TryLogout()
-		testContext.TryAuthenticate(userId, "password1", false)
-		testContext.TryAuthenticate(userId, "password2", true)
+		testContext.TryAuthenticate(userId, "weakpswd", false)
+		testContext.SessionId, testContext.IsAdmin = testContext.TryAuthenticate(userId, "password2", true)
 	}
 	
 	// -------------------------------
@@ -472,10 +475,6 @@ func main() {
 		eventIds = testContext.TryGetDockerfileEvents(dockerfileId)
 		testContext.AssertThat(len(eventIds) == 1, "Wrong number of image events")
 		
-		if testContext.TryRemScanConfig(config1Id, false) {
-			testContext.TryGetScanConfigDesc(config1Id, true)
-		}
-		
 		if testContext.TryRemDockerImage(dockerImage1ObjId) {
 			testContext.TryGetDockerImageDesc(dockerImage1ObjId, false)
 		}
@@ -490,7 +489,7 @@ func main() {
 			testContext.AssertThat(!isAdmin, "Error: user is an admin but should not be")		
 		}
 		if testContext.TryReenableUser(johnConnorUserObjId) {
-			_, isAdmin = testContext.TryAuthenticate("jconnor", "ILoveCameron", true)
+			testContext.SessionId, testContext.IsAdmin = testContext.TryAuthenticate("jconnor", "ILoveCameron", true)
 		}
 	}
 	
@@ -499,7 +498,7 @@ func main() {
 	// Try moving a user from one realm to another.
 	if testContext.TryMoveUserToRealm(sarahConnorUserObjId, realm3Id) {
 		// Verify that Sarah is no longer in her realm.
-		responseMap = testContext.TryGetUserDesc(jrealm2Id, "sconnor")
+		responseMap = testContext.TryGetUserDesc("sconnor")
 		if testContext.CurrentTestPassed {
 			// Verify that Sarah is in John's realm.
 			testContext.AssertThat(responseMap["RealmId"] == realm3Id,
