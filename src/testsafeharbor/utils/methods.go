@@ -5,10 +5,8 @@ import (
 	"net/http"
 	"os"
 	"io"
-	//"reflect"
-	//"flag"
+	
 	"testsafeharbor/rest"
-	//"testsafeharbor/utils"
 )
 
 /*******************************************************************************
@@ -174,15 +172,15 @@ func (testContext *TestContext) TryGetDockerfileDesc(dockerfileId string) {
  * Verify that we can create a new realm.
  */
 func (testContext *TestContext) TryCreateRealm(realmName, orgFullName,
-	adminUserId string) string {
+	desc string) string {
 	
 	testContext.StartTest("TryCreateRealm")
 	var resp *http.Response
 	var err error
 	resp, err = testContext.SendPost(testContext.SessionId,
 		"createRealm",
-		[]string{"Log", "RealmName", "OrgFullName", "AdminUserId"},
-		[]string{testContext.TestDemarcation(), realmName, orgFullName, adminUserId})
+		[]string{"Log", "RealmName", "OrgFullName", "Description"},
+		[]string{testContext.TestDemarcation(), realmName, orgFullName, desc})
 	
 	defer resp.Body.Close()
 	
@@ -289,6 +287,8 @@ func (testContext *TestContext) TryAuthenticate(userId string, pswd string,
 	testContext.AssertThat(retUserId == userId, "Returned user id '" + retUserId +
 		"' does not match user id")
 	testContext.PassTestIfNoFailures()
+	testContext.sessionId = retSessionId
+	testContext.IsAdmin = retIsAdmin
 	return retSessionId, retIsAdmin
 }
 
@@ -447,10 +447,10 @@ func (testContext *TestContext) TryAddDockerfile(repoId string, dockerfilePath s
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
 	if err != nil { fmt.Println(err.Error()); return "" }
 	var dockerfileId string = responseMap["Id"].(string)
-	//var dockerfileName string = responseMap["Name"]
+	var dockerfileName string = responseMap["Name"]
 	rest.PrintMap(responseMap)
-	//AssertThat(dockerfileId != "", "Dockerfile Id not found in response body")
-	//AssertThat(dockerfileName != "", "Dockerfile Name not found in response body")
+	AssertThat(dockerfileId != "", "Dockerfile Id not found in response body")
+	AssertThat(dockerfileName != "", "Dockerfile Name not found in response body")
 	
 	testContext.PassTestIfNoFailures()
 	return dockerfileId
@@ -841,7 +841,7 @@ func (testContext *TestContext) TryGetRealmGroups(realmId string) []string {
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryGetRealmRepos(realmId string) []string {
+func (testContext *TestContext) TryGetRealmRepos(realmId string, expectSuccess bool) []string {
 	testContext.StartTest("TryGetRealmRepos")
 	
 	var resp *http.Response
@@ -851,9 +851,20 @@ func (testContext *TestContext) TryGetRealmRepos(realmId string) []string {
 		[]string{"Log", "RealmId"},
 		[]string{testContext.TestDemarcation(), realmId})
 	
+	if expectSuccess {
+		if ! testContext.Verify200Response(resp) {
+			testContext.FailTest()
+		}
+	} else {
+		if resp.StatusCode == 200 {
+			testContext.FailTest()
+		} else {
+			testContext.PassTestIfNoFailures()
+		}
+		return nil
+	}
+	
 	defer resp.Body.Close()
-
-	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMaps []map[string]interface{}
 	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)
@@ -1066,8 +1077,8 @@ func (testContext *TestContext) TryCreateRealmAnon(realmName, orgFullName, admin
 	var resp2 *http.Response
 	resp2, err = testContext.SendPost(testContext.SessionId,
 		"authenticate",
-		[]string{"Log", "UserId", "Password"},
-		[]string{testContext.TestDemarcation(), adminUserId, adminPassword})
+		[]string{"UserId", "Password"},
+		[]string{adminUserId, adminPassword})
 	if err != nil { fmt.Println(err.Error()); return "", "", nil }
 	
 	defer resp2.Body.Close()

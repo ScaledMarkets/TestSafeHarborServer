@@ -85,6 +85,7 @@ func (testContext *TestContext) TestDemarcation() string {
  */
 func (testContext *TestContext) StartTest(name string) {
 	
+	if testContext.StopOnFirstError && (testContext.NoOfTestsThatFailed > 0) { return }
 	testContext.NoOfTests++
 	var testNumber =testContext.NoOfTests
 	var hashKey = fmt.Sprintf("%d: %s", testNumber, name)
@@ -125,7 +126,6 @@ func (testContext *TestContext) AssertThat(condition bool, msg string) bool {
 	if ! condition {
 		testContext.FailTest()
 		fmt.Println(fmt.Sprintf("ERROR: %s", msg))
-		if testContext.StopOnFirstError { os.Exit(1) }
 	}
 	return condition
 }
@@ -138,7 +138,6 @@ func (testContext *TestContext) AssertErrIsNil(err error, msg string) bool {
 	testContext.FailTest()
 	fmt.Println("Message:", msg)
 	fmt.Println("Original error message:", err.Error())
-	if testContext.StopOnFirstError { os.Exit(1) }
 	return false
 }
 
@@ -181,4 +180,43 @@ func ComputeFileSignature(filepath string) ([]byte, error) {
 	
 	var empty = []byte{}
 	return hash.Sum(empty), nil
+}
+
+/*******************************************************************************
+ * Create a temporary file, with the given name, write the given content to it,
+ * and return the path to the file.
+ */
+func createTempFile(name string, content string) string {
+	.....
+}
+
+/*******************************************************************************
+ * Set the session Id as a cookie.
+ */
+func setSessionId(req *http.Request, sessionId string) {
+	
+	// Set cookie containing the session Id.
+	var cookie = &http.Cookie{
+		Name: "SessionId",
+		Value: sessionId,
+		//Path: 
+		//Domain: 
+		//Expires: 
+		//RawExpires: 
+		MaxAge: 86400,  // 24 hrs
+		Secure: false,  //....change to true later.
+		HttpOnly: true,
+		//Raw: 
+		//Unparsed: 
+	}
+	
+	req.AddCookie(cookie)
+}
+
+/*******************************************************************************
+ * 
+ */
+func usage() {
+	fmt.Fprintf(os.Stderr, "Usage: %s [options]\n", os.Args[0])
+	flag.PrintDefaults()
 }
