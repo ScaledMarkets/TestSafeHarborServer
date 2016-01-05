@@ -5,11 +5,12 @@
 package utils
 
 import (
+	"flag"
 	"fmt"
 	"net/http"
 	//"net/url"
 	//"io"
-	//"io/ioutil"
+	"io/ioutil"
 	"os"
 	//"path/filepath"
 	//"mime/multipart"
@@ -85,9 +86,12 @@ func (testContext *TestContext) TestDemarcation() string {
  */
 func (testContext *TestContext) StartTest(name string) {
 	
-	if testContext.StopOnFirstError && (testContext.NoOfTestsThatFailed > 0) { return }
+	if testContext.StopOnFirstError && (testContext.NoOfTestsThatFailed > 0) {
+		testContext.AbortAllTests(fmt.Sprintf("After test number %d, before test %s",
+			testContext.NoOfTests, name))
+	}
 	testContext.NoOfTests++
-	var testNumber =testContext.NoOfTests
+	var testNumber = testContext.NoOfTests
 	var hashKey = fmt.Sprintf("%d: %s", testNumber, name)
 	testContext.testName = hashKey
 	testContext.CurrentTestPassed = false
@@ -117,6 +121,14 @@ func (testContext *TestContext) FailTest() {
 	fmt.Println("Failed test", testContext.testName)
 	fmt.Println("Stack trace:")
 	debug.PrintStack()
+}
+
+/*******************************************************************************
+ * 
+ */
+func (testContext *TestContext) AbortAllTests(msg string) {
+	fmt.Println("Aborting tests: " + msg)
+	os.Exit(1)
 }
 
 /*******************************************************************************
@@ -186,14 +198,51 @@ func ComputeFileSignature(filepath string) ([]byte, error) {
  * Create a temporary file, with the given name, write the given content to it,
  * and return the path to the file.
  */
-func createTempFile(name string, content string) string {
-	.....
+func CreateTempFile(name string, content string) (string, error) {
+	var file *os.File
+	var err error
+	file, err = ioutil.TempFile("", "test")
+	var bytes []byte = []byte(content)
+	var mode os.FileMode = os.ModeTemporary | os.ModePerm
+	err = ioutil.WriteFile(file.Name(), bytes, mode)
+	return file.Name(), err
+}
+
+/*******************************************************************************
+ * Retrieve a file at the specified URL and save it to the specified path.
+ * If the file already exists at that path, and useCachedFile is true, then
+ * merely return.
+ */
+func DownloadFile(url string, finalPath string, useCachedFile bool) error {
+	
+	var err error
+	
+	if useCachedFile {
+		var file *os.File
+		file, err = os.Open(finalPath)
+		if err != nil {
+			_, err = file.Stat()
+			if err == nil { return nil }  // file exists
+		}
+	}
+	
+	var resp *http.Response
+	resp, err = http.Get(url)
+	if err != nil { return err }
+	
+	var bytes []byte
+	bytes, err = ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+	if err != nil { return err }
+	
+	err = ioutil.WriteFile(finalPath, bytes, os.ModePerm)
+	return err
 }
 
 /*******************************************************************************
  * Set the session Id as a cookie.
  */
-func setSessionId(req *http.Request, sessionId string) {
+func SetSessionId(req *http.Request, sessionId string) {
 	
 	// Set cookie containing the session Id.
 	var cookie = &http.Cookie{
@@ -216,7 +265,7 @@ func setSessionId(req *http.Request, sessionId string) {
 /*******************************************************************************
  * 
  */
-func usage() {
+func Usage() {
 	fmt.Fprintf(os.Stderr, "Usage: %s [options]\n", os.Args[0])
 	flag.PrintDefaults()
 }

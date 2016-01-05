@@ -287,7 +287,7 @@ func (testContext *TestContext) TryAuthenticate(userId string, pswd string,
 	testContext.AssertThat(retUserId == userId, "Returned user id '" + retUserId +
 		"' does not match user id")
 	testContext.PassTestIfNoFailures()
-	testContext.sessionId = retSessionId
+	testContext.SessionId = retSessionId
 	testContext.IsAdmin = retIsAdmin
 	return retSessionId, retIsAdmin
 }
@@ -447,10 +447,10 @@ func (testContext *TestContext) TryAddDockerfile(repoId string, dockerfilePath s
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
 	if err != nil { fmt.Println(err.Error()); return "" }
 	var dockerfileId string = responseMap["Id"].(string)
-	var dockerfileName string = responseMap["Name"]
+	var dockerfileName string = responseMap["DockerfileName"].(string)
 	rest.PrintMap(responseMap)
-	AssertThat(dockerfileId != "", "Dockerfile Id not found in response body")
-	AssertThat(dockerfileName != "", "Dockerfile Name not found in response body")
+	testContext.AssertThat(dockerfileId != "", "Dockerfile Id not found in response body")
+	testContext.AssertThat(dockerfileName != "", "Dockerfile Name not found in response body")
 	
 	testContext.PassTestIfNoFailures()
 	return dockerfileId
@@ -1305,8 +1305,17 @@ func (testContext *TestContext) TryDefineScanConfig(name, desc, repoId, provider
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendFilePost(testContext.SessionId,
-		"defineScanConfig", paramNames, paramValues, successGraphicFilePath)
+	if successGraphicFilePath == "" {
+		resp, err = testContext.SendPost(testContext.SessionId,
+			"defineScanConfig", paramNames, paramValues)
+	} else {
+		resp, err = testContext.SendFilePost(testContext.SessionId,
+			"defineScanConfig",
+			paramNames,
+			paramValues,
+			successGraphicFilePath)
+	}
+	testContext.AssertErrIsNil(err, "at the POST")
 	
 	defer resp.Body.Close()
 
@@ -1314,7 +1323,7 @@ func (testContext *TestContext) TryDefineScanConfig(name, desc, repoId, provider
 	
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
-	if err != nil { fmt.Println(err.Error()); return "" }
+	testContext.AssertErrIsNil(err, "at ParseResponseBodyToMap")
 	rest.PrintMap(responseMap)
 	
 	var retId string = responseMap["Id"].(string)
@@ -2129,7 +2138,6 @@ func (testContext *TestContext) TryGetMyScanConfigs() ([]map[string]interface{},
 			retConfigIds = append(retConfigIds, retId)
 		}
 		if retProviderName, isType := responseMap["ProviderName"].(string); (! isType) || (retProviderName == "") { testContext.FailTest() }
-		if retFlagId, isType := responseMap["FlagId"].(string); (! isType) || (retFlagId == "") { testContext.FailTest() }
 	}
 
 	testContext.PassTestIfNoFailures()

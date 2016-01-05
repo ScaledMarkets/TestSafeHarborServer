@@ -7,12 +7,17 @@ package main
 
 import (
 	"fmt"
-	"net/http"
+	//"net/http"
 	"os"
 	"flag"
 	
 	// SafeHarbor packages:
 	"testsafeharbor/utils"
+)
+
+const (
+	SealURL = "https://itsonlywords55.files.wordpress.com/2010/01/seal-of-approval.jpg"
+	Seal2URL = "http://thumb10.shutterstock.com/display_pic_with_logo/681547/140365213/stock-photo-seal-of-approval-quality-check-grunge-vector-on-white-background-this-graphic-illustration-140365213.jpg"
 )
 
 func main() {
@@ -26,16 +31,16 @@ func main() {
 	flag.Parse()
 
 	if flag.NArg() > 0 {
-		usage()
+		utils.Usage()
 		os.Exit(2)
 	}
 	
 	if *help {
-		usage()
+		utils.Usage()
 		os.Exit(0)
 	}
 	
-	var testContext = utils.NewTestContext(*hostname, *port, setSessionId,
+	var testContext = utils.NewTestContext(*hostname, *port, utils.SetSessionId,
 		*stopOnFirstError, *doNotPerformDockerTests)
 		
 	fmt.Println("Note: Ensure that the docker daemon is running on the server,",
@@ -68,7 +73,7 @@ func main() {
  *	realm4
  *	realm4admin
  */
-func TestCreateRealmsAndUsers(testContext *TestContext) {
+func TestCreateRealmsAndUsers(testContext *utils.TestContext) {
 	
 	defer testContext.TryClearAll()
 	
@@ -77,21 +82,21 @@ func TestCreateRealmsAndUsers(testContext *TestContext) {
 	
 	var realm4AdminUserId = "realm4admin"
 	var realm4AdminPswd = "RealmPswd"
-	var defaultUserId = "user4" // the built-in user that exists in debug mode
-	var defaultUserPswd = "mypassword"
+	var defaultUserId = "testuser1" // the built-in user that exists in debug mode
+	var defaultUserPswd = "Password1"
 	
 	// -------------------------------------
 	// Tests
 	//
 	
 	var realm4Id string
-	var realm4AdminObjId string
-	var defaultUserObjId string
+	//var realm4AdminObjId string
+	//var defaultUserObjId string
 
 	// Verify that we can create a realm without being logged in first.
 	{
 		var user4AdminRealms []interface{}
-		realm4Id, realm4AdminObjId, user4AdminRealms = testContext.TryCreateRealmAnon(
+		realm4Id, _, user4AdminRealms = testContext.TryCreateRealmAnon(
 			"realm4", "realm 4 Org",
 			realm4AdminUserId, "realm 4 Admin Full Name", "realm4admin@gmail.com", realm4AdminPswd)
 		testContext.AssertThat(len(user4AdminRealms) == 1, "Wrong number of admin realms")
@@ -120,9 +125,9 @@ func TestCreateRealmsAndUsers(testContext *TestContext) {
 	// User id defaultUserId is authenticated.
 	//
 	
-	// Verify that the authenticated user is NOT an admin user.
+	// Verify that the authenticated user is an admin user.
 	{
-		testContext.AssertThat(! testContext.IsAdmin, "User is flagged as admin")
+		testContext.AssertThat(testContext.IsAdmin, "User is flagged as admin")
 	}
 	
 	// Log back in as realm4admin.
@@ -138,7 +143,7 @@ func TestCreateRealmsAndUsers(testContext *TestContext) {
 	
 	// Test ability to create a realm while logged in.
 	{
-		var realmId string = testContext.TryCreateRealm("my2ndrealm", "A Big Company", "bigshotadmin")
+		testContext.TryCreateRealm("my2ndrealm", "A Big Company", "bigshotadmin")
 	}
 
 	var johnDoeUserObjId string
@@ -147,7 +152,7 @@ func TestCreateRealmsAndUsers(testContext *TestContext) {
 	{
 		var johnDoeAdminRealms []interface{}
 		johnDoeUserObjId, johnDoeAdminRealms = testContext.TryCreateUser("jdoe", "John Doe",
-			"johnd@gmail.com", "weakpswd", realmId)
+			"johnd@gmail.com", "weakpswd", realm4Id)
 		testContext.AssertThat(len(johnDoeAdminRealms) == 0, "Wrong number of admin realms")
 	}
 	
@@ -163,14 +168,15 @@ func TestCreateRealmsAndUsers(testContext *TestContext) {
 	{
 		var realmIds []string = testContext.TryGetAllRealms()
 		// Assumes that server is in debug mode, which creates a test realm.
-		testContext.AssertThat(len(realmIds) == 2, "Wrong number of realms found")
+		testContext.AssertThat(len(realmIds) == 3, "Wrong number of realms found")
 	}
 	
 	// Test ability to retrieve user by user id from realm.
 	{
+		testContext.TryAuthenticate(realm4AdminUserId, realm4AdminPswd, true)
 		var userObjId string
 		var userAdminRealms []interface{}
-		var responseMap = testContext.TryGetUserDesc(userId)
+		var responseMap = testContext.TryGetUserDesc("jdoe")
 		var obj = responseMap["Id"]
 		var isType bool
 		userObjId, isType = obj.(string)
@@ -188,7 +194,7 @@ func TestCreateRealmsAndUsers(testContext *TestContext) {
  * Test ability to create resources within a realm, and retrieve info about them.
  * Creates/uses the following:
  */
-func TestCreateResources(testContext *TestContext) {
+func TestCreateResources(testContext *utils.TestContext) {
 	
 	defer testContext.TryClearAll()
 	
@@ -199,19 +205,28 @@ func TestCreateResources(testContext *TestContext) {
 	//
 	
 	var realm4Id string
-	var user4Id string
+	//var user4Id string
 	var dockerfilePath string
+	var flagImagePath = "Seal.png"
+	var flag2ImagePath = "Seal2.png"
 	
 	{
-		var user4AdminRealms []interface{}
-		realm4Id, user4Id, user4AdminRealms = testContext.TryCreateRealmAnon(
+		realm4Id, _, _ = testContext.TryCreateRealmAnon(
 			"realm4", "realm 4 Org", "realm4admin", "realm 4 Admin Full Name",
 			"realm4admin@gmail.com", "realm4adminpswd")
 		
 		testContext.TryAuthenticate("realm4admin", "realm4adminpswd", true)
 		
-		dockerfilePath = createTempFile("Dockerfile", "FROM centos\nRUN echo moo > oink")
+		var err error
+		dockerfilePath, err = utils.CreateTempFile("Dockerfile", "FROM centos\nRUN echo moo > oink")
+		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfilePath)
+		
+		err = utils.DownloadFile(SealURL, flagImagePath, true)
+		if err != nil { testContext.AbortAllTests(err.Error()) }
+		
+		err = utils.DownloadFile(Seal2URL, flag2ImagePath, true)
+		if err != nil { testContext.AbortAllTests(err.Error()) }
 	}
 	
 	// -------------------------------------
@@ -219,7 +234,7 @@ func TestCreateResources(testContext *TestContext) {
 	//
 	
 	var johnsRepoId string
-	var johnsDockerfileId string
+	//var johnsDockerfileId string
 	
 	// Test ability create a repo.
 	{
@@ -228,7 +243,7 @@ func TestCreateResources(testContext *TestContext) {
 		
 	// Test ability to upload a Dockerfile.
 	{
-		johnsDockerfileId = testContext.TryAddDockerfile(johnsRepoId, dockerfilePath, "A fine dockerfile")
+		testContext.TryAddDockerfile(johnsRepoId, dockerfilePath, "A fine dockerfile")
 	}
 	
 	// Test ability to list the Dockerfiles in a repo.
@@ -239,9 +254,9 @@ func TestCreateResources(testContext *TestContext) {
 	
 	// Test ability create a repo and upload a dockerfile at the same time.
 	{
-		var zippysRepoId string = testContext.TryCreateRepo(realmId, "zippysrepo",
+		var zippysRepoId string = testContext.TryCreateRepo(realm4Id, "zippysrepo",
 			"A super smart repo", "dockerfile")
-		dockerfileNames []string = testContext.TryGetDockerfiles(zippysRepoId)
+		var dockerfileNames []string = testContext.TryGetDockerfiles(zippysRepoId)
 		testContext.AssertThat(len(dockerfileNames) == 1, "Wrong number of dockerfiles")
 	}
 	
@@ -255,7 +270,7 @@ func TestCreateResources(testContext *TestContext) {
 	// Test ability to define a Flag and then retrieve info about it.
 	{
 		var responseMap = testContext.TryDefineFlag(
-			johnsRepoId, "myflag", "A really boss flag", "Seal2.png")
+			johnsRepoId, "myflag", "A really boss flag", flag2ImagePath)
 		if testContext.CurrentTestPassed {
 			var obj interface{} = responseMap["FlagId"]
 			var flagId string
@@ -270,7 +285,7 @@ func TestCreateResources(testContext *TestContext) {
 				testContext.AssertThat(utils.ContainsString(flagIds, flagId),
 					"Flag Id " + flagId + " not returned")
 				
-				var fId string = testContext.TryGetFlagDescByName(repoId, "myflag")
+				var fId string = testContext.TryGetFlagDescByName(johnsRepoId, "myflag")
 				testContext.AssertThat(fId == flagId, "Flag not found by name")
 			}
 		}
@@ -280,9 +295,9 @@ func TestCreateResources(testContext *TestContext) {
 	{
 		testContext.TryGetScanProviders()
 		var config1Id string = testContext.TryDefineScanConfig("My Config 1",
-			"A very find config", repoId, "clair", "", "Seal.png", []string{}, []string{})
+			"A very find config", johnsRepoId, "clair", "", flagImagePath, []string{}, []string{})
 		
-		responseMap = testContext.TryGetScanConfigDesc(config1Id, true)
+		var responseMap = testContext.TryGetScanConfigDesc(config1Id, true)
 		var flag1Id string
 		if testContext.CurrentTestPassed {
 			var obj = responseMap["FlagId"]
@@ -297,14 +312,14 @@ func TestCreateResources(testContext *TestContext) {
 				var size int64 = testContext.TryGetFlagImage(flag1Id, "ShouldBeIdenticalToSeal2.png")
 				var fileInfo os.FileInfo
 				var err error
-				fileInfo, err = os.Stat("Seal.png")
+				fileInfo, err = os.Stat(flagImagePath)
 				if testContext.AssertErrIsNil(err, "") {
 					testContext.AssertThat(fileInfo.Size() == size, "File has wrong size")
 				}
 			}
 		}
 		
-		var configId string = testContext.TryGetScanConfigDescByName(repoId, "My Config 1")
+		var configId string = testContext.TryGetScanConfigDescByName(johnsRepoId, "My Config 1")
 		testContext.AssertThat(configId == config1Id, "Did not find scan config")
 	}
 }
@@ -313,7 +328,7 @@ func TestCreateResources(testContext *TestContext) {
  * Test ability to create groups, and use them.
  * Creates/uses the following:
  */
-func TestCreateGroups(testContext *TestContext) {
+func TestCreateGroups(testContext *utils.TestContext) {
 	
 	defer testContext.TryClearAll()
 	
@@ -324,22 +339,26 @@ func TestCreateGroups(testContext *TestContext) {
 	//
 	
 	var realm4Id string
-	var user4Id string
-	var johnConnorUserId, johnConnorPswd, johnConnorUserObjId string
-	var sarahConnorUserId, sarahConnorPswd, sarahConnorUserObjId string
+	//var user4Id string
+	var johnConnorUserId = "jconnor"
+	var johnConnorPswd = "Cameron loves me"
+	var johnConnorUserObjId string
+	var sarahConnorUserId = "sconnor"
+	var sarahConnorPswd = "pancakes"
+	var sarahConnorUserObjId string
 	
 	{
-		realm4Id, user4Id, _ = testContext.TryCreateRealmAnon(
+		realm4Id, _, _ = testContext.TryCreateRealmAnon(
 			"realm4", "realm 4 Org", "realm4admin", "realm 4 Admin Full Name",
 			"realm4admin@gmail.com", "realm4adminpswd")
 		
 		testContext.TryAuthenticate("realm4admin", "realm4adminpswd", true)
 
-		johnConnorUserObjId, _ = testContext.TryCreateUser("jconnor", "John Connor",
-			"johnc@gmail.com", "johnpswd", realm4Id)
+		johnConnorUserObjId, _ = testContext.TryCreateUser(johnConnorUserId, "John Connor",
+			"johnc@gmail.com", johnConnorPswd, realm4Id)
 
-		sarahConnorUserObjId, _ = testContext.TryCreateUser("sconnor", "Sarah Connor",
-			"sarahc@gmail.com", "sarahpswd", realm4Id)
+		sarahConnorUserObjId, _ = testContext.TryCreateUser(sarahConnorUserId, "Sarah Connor",
+			"sarahc@gmail.com", sarahConnorPswd, realm4Id)
 	}
 	
 	// -------------------------------------
@@ -396,7 +415,7 @@ func TestCreateGroups(testContext *TestContext) {
  * Test the getMy... functions.
  * Creates/uses the following:
  */
-func TestGetMy(testContext *TestContext) {
+func TestGetMy(testContext *utils.TestContext) {
 		
 	defer testContext.TryClearAll()
 	
@@ -416,21 +435,22 @@ func TestGetMy(testContext *TestContext) {
 	var realmXId string
 	var realmXAdminUserId = "realm4admin"
 	var realmXAdminPswd = "Realm4Pswd"
-	var realmXAdminObjId string
+	//var realmXAdminObjId string
 	var realmXJohnUserId = "jconnor"
 	var realmXJohnPswd = "ILoveCameron"
 	var realmXJohnObjId string
 	var realmYId string
 	var realmZId string
-	var realmZRepo1Id string
+	//var realmZRepo1Id string
 	var realmZRepo2Id string
 	var dockerfilePath string
 	var realmZRepo2DockerfileId string
 	var realmZRepo2ScanConfigId string
 	var realmZRepo2FlagId string
+	var flagImagePath = "Seal.png"
 	
 	{
-		realmXId, realmXAdminObjId, _ = testContext.TryCreateRealmAnon(
+		realmXId, _, _ = testContext.TryCreateRealmAnon(
 			"realm4", "realm 4 Org", realmXAdminUserId, "realm 4 Admin Full Name",
 			"realm4admin@gmail.com", realmXAdminPswd)
 		
@@ -439,30 +459,37 @@ func TestGetMy(testContext *TestContext) {
 		realmXJohnObjId, _ = testContext.TryCreateUser(realmXJohnUserId, "John Connor",
 			"johnc@gmail.com", realmXJohnPswd, realmXId)
 		
-		realmYId = testContext.TryCreateRealm("sarahrealm", "Sarah's Realm", "Escape into here")
+		realmYId = testContext.TryCreateRealm("sarahrealm", "Sarahs_Realm", "Escape into here")
 		// Give john access:
 		var permissions = []bool{true, false, false, false, false}
-		var retMask = testContext.TryAddPermission(realmXJohnObjId, realmYId, permissions)
+		testContext.TryAddPermission(realmXJohnObjId, realmYId, permissions)
 		
-		realmZId = testContext.TryCreateRealm("cromardirealm", "Cromardi's Realm", "Beware in here!")
-		realmZRepo1Id = testContext.TryCreateRepo(realmZId, "repo1", "A first repo", "")
+		realmZId = testContext.TryCreateRealm("cromardirealm", "Cromardis_Realm", "Beware in here")
+		testContext.TryCreateRepo(realmZId, "repo1", "A first repo", "")
 		
-		dockerfilePath = createTempFile("Dockerfile", "FROM centos\nRUN echo moo > oink")
+		var err error
+		dockerfilePath, err = utils.CreateTempFile("Dockerfile", "FROM centos\nRUN echo moo > oink")
+		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfilePath)
 		
 		realmZRepo2Id = testContext.TryCreateRepo(realmZId, "repo2", "Repo in realm z", "")
+		testContext.TryAddPermission(realmXJohnObjId, realmZRepo2Id, permissions)
 		
-		realmZRepo2DockerfileId = testContext.TryCreateDockerfile(realmZId, "dockerfile2",
-			"A second dockerfile", dockerfilePath)
-		var retMask = testContext.TryAddPermission(realmXJohnObjId, realmZRepo2DockerfileId, permissions)
+		realmZRepo2DockerfileId = testContext.TryAddDockerfile(realmZRepo2Id, dockerfilePath,
+			"A dockerfile")
+		testContext.TryAddPermission(realmXJohnObjId, realmZRepo2DockerfileId, permissions)
 		
-		realmZRepo2ScanConfigId = testContext.TryCreateScanConfig(realmZId, name string,
-			desc string, dockerfilePath)
-		var retMask = testContext.TryAddPermission(realmXJohnObjId, realmZRepo2ScanConfigId, permissions)
+		realmZRepo2ScanConfigId = testContext.TryDefineScanConfig("Security Scan",
+			"Show that scans passed", realmZRepo2Id, "clair", "", "", nil, nil)
+		testContext.TryAddPermission(realmXJohnObjId, realmZRepo2ScanConfigId, permissions)
 		
-		realmZRepo2FlagId = testContext.TryCreateFlag(realmZId, name string,
-			desc string, dockerfilePath)
-		var retMask = testContext.TryAddPermission(realmXJohnObjId, realmZRepo2FlagId, permissions)
+		err = utils.DownloadFile(SealURL, flagImagePath, true)
+		if err != nil { testContext.AbortAllTests(err.Error()) }
+		
+		var responseMap = testContext.TryDefineFlag(realmZRepo2Id, "SuperSuccessFlag",
+			"Show much better", flagImagePath)
+		realmZRepo2FlagId = responseMap["FlagId"].(string)
+		testContext.TryAddPermission(realmXJohnObjId, realmZRepo2FlagId, permissions)
 	}
 	
 	// -------------------------------------
@@ -475,7 +502,7 @@ func TestGetMy(testContext *TestContext) {
 
 		testContext.TryAuthenticate(realmXAdminUserId, realmXAdminPswd, true)
 		_, myAdminRealms = testContext.TryGetMyDesc(true)
-		testContext.AssertThat(len(myAdminRealms) == 2, "Wrong number of admin realms")
+		testContext.AssertThat(len(myAdminRealms) == 3, "Wrong number of admin realms")
 		
 		testContext.TryAuthenticate(realmXJohnUserId, realmXJohnPswd, true)
 		_, myAdminRealms = testContext.TryGetMyDesc(true)
@@ -516,7 +543,7 @@ func TestGetMy(testContext *TestContext) {
  * Test access control.
  * Creates/uses the following:
  */
-func TestAccessControl(testContext *TestContext) {
+func TestAccessControl(testContext *utils.TestContext) {
 	
 	defer testContext.TryClearAll()
 	
@@ -532,14 +559,16 @@ func TestAccessControl(testContext *TestContext) {
 	var realmXId string
 	var realmXAdminUserId = "realmXadmin"
 	var realmXAdminPswd = "fluffy"
-	var realmXAdminObjId string
-	var realmXJohnUserId, realmXJohnPswd, realmXJohnObjId string
+	//var realmXAdminObjId string
+	var realmXJohnUserId = "jconnor"
+	var realmXJohnPswd = "I am never safe"
+	var realmXJohnObjId string
 	var realmXRepo1Id string
 	var dockerfileId string
 	var dockerfilePath string
 	
 	{
-		realmXId, realmXAdminObjId, _ = testContext.TryCreateRealmAnon(
+		realmXId, _, _ = testContext.TryCreateRealmAnon(
 			"realm4", "realm 4 Org", realmXAdminUserId, "realm 4 Admin Full Name",
 			"realm4admin@gmail.com", realmXAdminPswd)
 		
@@ -550,11 +579,13 @@ func TestAccessControl(testContext *TestContext) {
 		
 		realmXRepo1Id = testContext.TryCreateRepo(realmXId, "repo1", "Repo in realm x", "")
 		
-		dockerfilePath = createTempFile("Dockerfile", "FROM centos\nRUN echo moo > oink")
+		var err error
+		dockerfilePath, err = utils.CreateTempFile("Dockerfile", "FROM centos\nRUN echo moo > oink")
+		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfilePath)
 		
-		dockerfileId = testContext.TryCreateDockerfile(realmXId, "dockerfile1",
-			"A first dockerfile", dockerfilePath)
+		dockerfileId = testContext.TryAddDockerfile(realmXRepo1Id, dockerfilePath,
+			"A first dockerfile")
 	}
 	
 	// -------------------------------------
@@ -562,8 +593,10 @@ func TestAccessControl(testContext *TestContext) {
 	//
 	
 	// Test ability to set permission.
+	
+	var perms1 []bool = []bool{false, true, false, true, true}
+	
 	{
-		var perms1 []bool = []bool{false, true, false, true, true}
 		var retPerms1 []bool = testContext.TrySetPermission(realmXJohnObjId, dockerfileId, perms1)
 		var expectedPerms1 []bool = []bool{false, true, false, true, true}
 		for i, p := range retPerms1 {
@@ -595,7 +628,7 @@ func TestAccessControl(testContext *TestContext) {
 	
 	// Test ability to remove permission.
 	{
-		if testContext.TryRemPermission(user3Id, dockerfileId) {
+		if testContext.TryRemPermission(realmXJohnObjId, dockerfileId) {
 			var retPerms4 []bool = testContext.TryGetPermission(realmXJohnObjId, dockerfileId)
 			var expectedPerms4 []bool = []bool{false, false, false, false, false}
 			for i, p := range retPerms4 {
@@ -610,7 +643,7 @@ func TestAccessControl(testContext *TestContext) {
  * Test update/replace functions.
  * Creates/uses the following:
  */
-func TestUpdateAndReplace(testContext *TestContext) {
+func TestUpdateAndReplace(testContext *utils.TestContext) {
 	
 	defer testContext.TryClearAll()
 	
@@ -622,13 +655,14 @@ func TestUpdateAndReplace(testContext *TestContext) {
 	// 4. Create a non-admin user.
 	// 5.a. Write a dockerfile to a new temp directory.
 	// 5.b. Create a dockerfile within the repo,
+	// 6. Create another realm.
 	//
 	
 	var realmXId string
 	var realmYId string
-	var realmXAdminUserId = "bigboss"
-	var realmXAdminPswd = "fluffy"
-	var realmXAdminObjId string
+	var realmXYAdminUserId = "bigboss"
+	var realmXYAdminPswd = "fluffy"
+	//var realmXYAdminObjId string
 	var realmXJohnUserId = "johnc"
 	var realmXJohnPswd = "Ilovecam"
 	var realmXJohnObjId string
@@ -636,28 +670,41 @@ func TestUpdateAndReplace(testContext *TestContext) {
 	var dockerfilePath string
 	var dockerfileId string
 	var scanConfigId string
-	var flagId string
+	//var flagId string
+	var flagImagePath = "Seal.png"
+	var flag2ImagePath = "Seal2.png"
 	
 	{
-		realmXId, realmXAdminObjId, _ = testContext.TryCreateRealmAnon(
-			"realm4", "realm 4 Org", realmXAdminUserId, "realm 4 Admin Full Name",
-			"realm4admin@gmail.com", realmXAdminPswd)
+		realmXId, _, _ = testContext.TryCreateRealmAnon(
+			"realm4", "realm 4 Org", realmXYAdminUserId, "realm 4 Admin Full Name",
+			"realm4admin@gmail.com", realmXYAdminPswd)
 		
-		testContext.TryAuthenticate(realmXAdminUserId, realmXAdminPswd, true)
+		testContext.TryAuthenticate(realmXYAdminUserId, realmXYAdminPswd, true)
 		
 		realmXRepo1Id = testContext.TryCreateRepo(realmXId, "repo1", "Repo in realm x", "")
 		
 		scanConfigId = testContext.TryDefineScanConfig("My Config 1",
-			"A very find config", realmXRepo1Id, "clair", "", "Seal.png", []string{}, []string{})
+			"A very find config", realmXRepo1Id, "clair", "", flagImagePath, []string{}, []string{})
 
 		realmXJohnObjId, _ = testContext.TryCreateUser(realmXJohnUserId, "John Connor",
 			"johnc@gmail.com", realmXJohnPswd, realmXId)
 		
-		dockerfilePath = createTempFile("Dockerfile", "FROM centos\nRUN echo moo > oink")
+		var err error
+		dockerfilePath, err = utils.CreateTempFile("Dockerfile", "FROM centos\nRUN echo moo > oink")
+		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfilePath)
 		
-		dockerfileId = testContext.TryCreateDockerfile(realmXId, "dockerfile1",
-			"A first dockerfile", dockerfilePath)
+		dockerfileId = testContext.TryAddDockerfile(realmXRepo1Id, dockerfilePath,
+			"A first dockerfile")
+		
+		err = utils.DownloadFile(SealURL, flagImagePath, true)
+		if err != nil { testContext.AbortAllTests(err.Error()) }
+		
+		err = utils.DownloadFile(Seal2URL, flag2ImagePath, true)
+		if err != nil { testContext.AbortAllTests(err.Error()) }
+
+		realmYId = testContext.TryCreateRealm(
+			"realmq", "realm_q_org", "realm Q realm for fluffy things")
 	}
 	
 	// -------------------------------------
@@ -672,10 +719,10 @@ func TestUpdateAndReplace(testContext *TestContext) {
 	
 	// Test ability to substitute a scan config's flag with a different flag.
 	{
-		testContext.TryUpdateScanConfig(config1Id, "", "", "", "", "Seal2.png",
+		testContext.TryUpdateScanConfig(scanConfigId, "", "", "", "", flag2ImagePath,
 			[]string{}, []string{})
 		var scanConfig1Map map[string]interface{}
-		scanConfig1Map = testContext.TryGetScanConfigDesc(config1Id, true)
+		scanConfig1Map = testContext.TryGetScanConfigDesc(scanConfigId, true)
 		if testContext.CurrentTestPassed {
 			// Id string
 			// ProviderName string
@@ -689,22 +736,26 @@ func TestUpdateAndReplace(testContext *TestContext) {
 
 	// Test ability to update one's own password.
 	{
-		if testContext.TryChangePassword(userId, "weakpswd", "password2") {
+		testContext.TryAuthenticate(realmXJohnUserId, realmXJohnPswd, true)
+		if testContext.TryChangePassword(realmXJohnUserId, realmXJohnPswd, "password2") {
 			testContext.TryLogout()
-			testContext.TryAuthenticate(userId, "weakpswd", false)
-			testContext.SessionId, testContext.IsAdmin = testContext.TryAuthenticate(userId, "password2", true)
+			testContext.TryAuthenticate(realmXJohnUserId, realmXJohnPswd, false)
+			testContext.TryAuthenticate(realmXJohnUserId, "password2", true)
 		}
 	}
 	
+	// Note: the password for realmXJohnUserId has now been changed.
+	
 	// Test ability to move a user from one realm to another.
 	{
-		if testContext.TryMoveUserToRealm(sarahConnorUserObjId, realm3Id) {
+		testContext.TryAuthenticate(realmXYAdminUserId, realmXYAdminPswd, true)
+		if testContext.TryMoveUserToRealm(realmXJohnObjId, realmYId) {
 			// Verify that Sarah is no longer in her realm.
-			responseMap = testContext.TryGetUserDesc("sconnor")
+			var responseMap = testContext.TryGetUserDesc(realmXJohnUserId)
 			if testContext.CurrentTestPassed {
 				// Verify that Sarah is in John's realm.
-				testContext.AssertThat(responseMap["RealmId"] == realm3Id,
-					"Error: Sarah Connor does not belong to John's realm")
+				testContext.AssertThat(responseMap["RealmId"] == realmYId,
+					"Error: Realm move failed")
 			}
 		}
 	}
@@ -714,7 +765,7 @@ func TestUpdateAndReplace(testContext *TestContext) {
  * Test deletion, diabling, etc.
  * Creates/uses the following:
  */
-func TestDelete(testContext *TestContext) {
+func TestDelete(testContext *utils.TestContext) {
 
 	defer testContext.TryClearAll()
 	
@@ -728,15 +779,19 @@ func TestDelete(testContext *TestContext) {
 	//
 	
 	var realmXId string
-	var realmXAdminUserId, realmXAdminPswd, realmXAdminObjId string
-	var realmXJohnUserId, realmXJohnPswd, realmXJohnObjId string
+	var realmXAdminUserId = "bigcheese"
+	var realmXAdminPswd = "I am a lumberjack"
+	var realmXJohnUserId = "jconnor"
+	var realmXJohnPswd = "bullets"
+	var realmXJohnObjId string
 	var realmXRepo1Id string
 	var realmXScanConfigId string
 	var realmXGroupId string
 	var realmXFlagId string
+	var flagImagePath = "Seal.png"
 
 	{
-		realmXId, realmXAdminObjId, _ = testContext.TryCreateRealmAnon(
+		realmXId, _, _ = testContext.TryCreateRealmAnon(
 			"realm4", "realm 4 Org", realmXAdminUserId, "realm 4 Admin Full Name",
 			"realm4admin@gmail.com", realmXAdminPswd)
 		
@@ -747,10 +802,14 @@ func TestDelete(testContext *TestContext) {
 		realmXJohnObjId, _ = testContext.TryCreateUser(realmXJohnUserId, "John Connor",
 			"johnc@gmail.com", realmXJohnPswd, realmXId)
 		
-		scanConfigId = testContext.TryDefineScanConfig("My Config 1",
-			"A very find config", realmXRepo1Id, "clair", "", "Seal.png", []string{}, []string{})
+		realmXScanConfigId = testContext.TryDefineScanConfig("My Config 1",
+			"A very fine config", realmXRepo1Id, "clair", "", flagImagePath, []string{}, []string{})
 
-		....
+		realmXGroupId = testContext.TryCreateGroup(realmXId, "mygroup",
+			"For Overthrowning Skynet", false)
+		
+		var err = utils.DownloadFile(SealURL, flagImagePath, true)
+		if err != nil { testContext.AbortAllTests(err.Error()) }
 	}
 	
 	// -------------------------------------
@@ -760,9 +819,9 @@ func TestDelete(testContext *TestContext) {
 	// Test ability to disable a user.
 	{
 		testContext.TryAuthenticate(realmXAdminUserId, realmXAdminPswd, true)
-		if testContext.TryDisableUser(realmXJohnUserId) {
+		if testContext.TryDisableUser(realmXJohnObjId) {
 			// Now see if that user can authenticate - expect no.
-			realmXJohnObjId, _ = testContext.TryAuthenticate(realmXJohnUserId, realmXJohnPswd, false)
+			testContext.TryAuthenticate(realmXJohnUserId, realmXJohnPswd, false)
 			if testContext.TryReenableUser(realmXJohnObjId) {
 				testContext.TryAuthenticate(realmXJohnUserId, realmXJohnPswd, true)
 			}
@@ -771,20 +830,27 @@ func TestDelete(testContext *TestContext) {
 	
 	// Test ability to delete a group.
 	{
-		testContext.TryDeleteGroup(group2Id)
+		testContext.TryAuthenticate(realmXAdminUserId, realmXAdminPswd, true)
+		testContext.TryDeleteGroup(realmXGroupId)
 	}
 	
 	// Test abilty to delete a scan config.
 	{
-		if testContext.TryRemScanConfig(config1Id, true) {
-			testContext.TryGetScanConfigDesc(config1Id, false)
+		var responseMap = testContext.TryGetScanConfigDesc(realmXScanConfigId, true)
+		var obj = responseMap["FlagId"]
+		var isType bool
+		realmXFlagId, isType = obj.(string)
+		if ! isType { testContext.FailTest() } else {
+			if testContext.TryRemScanConfig(realmXScanConfigId, true) {
+				testContext.TryGetScanConfigDesc(realmXScanConfigId, false)
+			}
 		}
 	}
 	
 	// Test ability to delete a flag.
-	{
-		if testContext.TryRemFlag(flag1Id) {
-			testContext.TryGetFlagDesc(flag1Id, false)
+	if realmXFlagId != "" {
+		if testContext.TryRemFlag(realmXFlagId) {
+			testContext.TryGetFlagDesc(realmXFlagId, false)
 		}
 	}
 	
@@ -797,7 +863,7 @@ func TestDelete(testContext *TestContext) {
 	
 	// Test ability to deactivate a realm.
 	{
-		sessionId, IsAdmin = testContext.TryAuthenticate(realmXAdminUserId, realmXAdminPswd, true)
+		testContext.TryAuthenticate(realmXAdminUserId, realmXAdminPswd, true)
 		if testContext.TryDeactivateRealm(realmXId) {
 			testContext.TryGetRealmRepos(realmXId, false)
 		}
@@ -808,7 +874,7 @@ func TestDelete(testContext *TestContext) {
  * Test docker functions.
  * Creates/uses the following:
  */
-func TestDocker(testContext *TestContext) {
+func TestDockerFunctions(testContext *utils.TestContext) {
 
 	defer testContext.TryClearAll()
 	
@@ -816,6 +882,7 @@ func TestDocker(testContext *TestContext) {
 	// Test setup:
 	// Create a realm and an admin user for the realm, and then log in as that user.
 	// Create a repo.
+	// Create a ScanConfig.
 	// Write a dockerfile to a new temp directory.
 	// Create a dockerfile within the repo.
 	// Write another dockerfile to the temp directory.
@@ -824,36 +891,48 @@ func TestDocker(testContext *TestContext) {
 	var realmXId string
 	var realmXAdminUserId, realmXAdminPswd, realmXAdminObjId string
 	var realmXRepo1Id string
+	var dockerImage1ObjId string
+	var scanConfigId string
 	var dockerfilePath string
 	var dockerfileId string
 	var dockerfile2Path string
-	var dockerfile2Id string
-	var flagImagePath string
+	//var dockerfile2Id string
+	var flagImagePath = "Seal.png"
 	
 	{
-		....
+		realmXId, realmXAdminObjId, _ = testContext.TryCreateRealmAnon(
+			"realm4", "realm 4 Org", realmXAdminUserId, "realm 4 Admin Full Name",
+			"realm4admin@gmail.com", realmXAdminPswd)
 		
-		dockerfilePath = createTempFile("Dockerfile", "FROM centos\nRUN echo moo > oink")
+		testContext.TryAuthenticate(realmXAdminUserId, realmXAdminPswd, true)
+		
+		realmXRepo1Id = testContext.TryCreateRepo(realmXId, "repo1", "Repo in realm x", "")
+		
+		scanConfigId = testContext.TryDefineScanConfig("My Config 1",
+			"A very fine config", realmXRepo1Id, "clair", "", flagImagePath, []string{}, []string{})
+
+		var err error
+		dockerfilePath, err = utils.CreateTempFile("Dockerfile", "FROM centos\nRUN echo moo > oink")
+		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfilePath)
 		dockerfileId = testContext.TryAddDockerfile(realmXRepo1Id, dockerfilePath, "A fine dockerfile")
 		
-		dockerfile2Path = createTempFile("Dockerfile2", "FROM centos\nRUN echo boo > ploink")
+		dockerfile2Path, err = utils.CreateTempFile("Dockerfile2", "FROM centos\nRUN echo boo > ploink")
+		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfile2Path)
-		dockerfile2Id = testContext.TryAddDockerfile(realmXRepo1Id, dockerfile2Path, "A finer dockerfile")
+		testContext.TryAddDockerfile(realmXRepo1Id, dockerfile2Path, "A finer dockerfile")
 		
-		flagImagePath = "Seal.png"
+		err = utils.DownloadFile(SealURL, flagImagePath, true)
+		if err != nil { testContext.AbortAllTests(err.Error()) }
 	}
 	
 	// -------------------------------------
 	// Tests
 	//
 	
-	var dockerImage1ObjId string
-	
 	// Test ability to build image from a dockerfile.
 	{
-		var image1Id string
-		dockerImage1ObjId, image1Id = testContext.TryExecDockerfile(realmXRepo1Id, dockerfileId, "myimage")
+		dockerImage1ObjId, _ = testContext.TryExecDockerfile(realmXRepo1Id, dockerfileId, "myimage")
 	}
 	
 	// Test ability to list the images in a repo.
@@ -870,9 +949,7 @@ func TestDocker(testContext *TestContext) {
 	
 	// Test ability to scan a docker image.
 	{
-		var config1Id string = testContext.TryDefineScanConfig("My Config 1",
-			"A very find config", realmXRepo1Id, "clair", "", flagImagePath, []string{}, []string{})
-		testContext.TryScanImage(config1Id, dockerImage1ObjId)
+		testContext.TryScanImage(scanConfigId, dockerImage1ObjId)
 	}
 	
 	// Test ability to upload and exec a dockerfile in one command.
@@ -908,9 +985,9 @@ func TestDocker(testContext *TestContext) {
 		testContext.AssertThat(len(imageIds) == 2, "Wrong number of docker images")
 	}
 
-	// Test ability to get the events for a specified user.
+	// Test ability to get the events for a specified user, including docker build events.
 	{
-		var eventIds []string = testContext.TryGetUserEvents(userId)
+		var eventIds []string = testContext.TryGetUserEvents(realmXAdminObjId)
 		testContext.AssertThat(len(eventIds) == 3, "Wrong number of user events")
 			// Should be one scan event and two dockerfile exec events.
 	}
@@ -927,7 +1004,7 @@ func TestDocker(testContext *TestContext) {
 		var responseMap = testContext.TryGetDockerImageStatus(dockerImage1ObjId)
 		if testContext.CurrentTestPassed {
 			testContext.AssertThat(responseMap["EventId"] != "", "No image status")
-			testContext.AssertThat(responseMap["ScanConfigId"] == config1Id,
+			testContext.AssertThat(responseMap["ScanConfigId"] == scanConfigId,
 				"Wrong scan config Id")
 			testContext.AssertThat(responseMap["ProviderName"] == "clair",
 				"Wrong provider")
