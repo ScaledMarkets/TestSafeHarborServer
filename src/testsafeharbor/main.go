@@ -1,6 +1,5 @@
 /*******************************************************************************
  * Perform independent end-to-end ("behavioral") tests on the SafeHarbor server.
- * It is assumed that the SafeHarbor server is running on localhost:6000.
  */
 
 package main
@@ -44,9 +43,8 @@ func main() {
 	var testContext = utils.NewTestContext(*hostname, *port, utils.SetSessionId,
 		*stopOnFirstError, *doNotPerformDockerTests)
 		
-	fmt.Println("Note: Ensure that the docker daemon is running on the server,",
-		"and that python 2 is installed on the server. To start the docker daemon",
-		"run 'sudo service docker start'")
+	fmt.Println("Note: Ensure that the docker daemon is running on the server.",
+		"To start the docker daemon, run 'sudo service docker start'.")
 	fmt.Println()
 	
 	/*
