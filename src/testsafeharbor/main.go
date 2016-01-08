@@ -10,6 +10,7 @@ import (
 	//"net/http"
 	"os"
 	"flag"
+	//"reflect"
 	
 	// SafeHarbor packages:
 	"testsafeharbor/utils"
@@ -48,6 +49,7 @@ func main() {
 		"run 'sudo service docker start'")
 	fmt.Println()
 	
+	/*
 	TestCreateRealmsAndUsers(testContext)
 	TestCreateResources(testContext)
 	TestCreateGroups(testContext)
@@ -55,6 +57,8 @@ func main() {
 	TestAccessControl(testContext)
 	TestUpdateAndReplace(testContext)
 	TestDelete(testContext)
+	*/
+	
 	if testContext.PerformDockerTests { TestDockerFunctions(testContext) }
 	
 	fmt.Println()
@@ -889,7 +893,9 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 	// Create a dockerfile object for the new file.
 
 	var realmXId string
-	var realmXAdminUserId, realmXAdminPswd, realmXAdminObjId string
+	var realmXAdminUserId = "admin"
+	var realmXAdminPswd = "fluffy"
+	var realmXAdminObjId string
 	var realmXRepo1Id string
 	var dockerImage1ObjId string
 	var scanConfigId string
@@ -957,26 +963,30 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 		var dockerImage2ObjId string
 		dockerImage2ObjId, _ = testContext.TryAddAndExecDockerfile(realmXRepo1Id,
 			"My second image", "myimage2", dockerfile2Path)
+		fmt.Println(dockerImage2ObjId)
 	
-		testContext.TryDownloadImage(dockerImage2ObjId, "MooOinkImage")
+		/*
+		testContext.TryDownloadImage(dockerImage2ObjId, "BooPloinkImage")
 		var responseMap = testContext.TryGetDockerImageDesc(dockerImage2ObjId, true)
 		if testContext.CurrentTestPassed {
 			// Check image signature.
 			var image2Signature []byte
 			var err error
-			image2Signature, err = utils.ComputeFileSignature("MooOinkImage")
+			image2Signature, err = utils.ComputeFileSignature("BooPloinkImage")
 			if testContext.AssertErrIsNil(err, "Unable to compute signature") {
 				var obj interface{} = responseMap["Signature"]
-				var isType bool
-				var sig []byte
-				sig, isType = obj.([]byte)
-				if testContext.AssertThat(isType, "Signature is not an array of byte") {
-					for i, b := range sig {
-						if ! testContext.AssertThat(b == image2Signature[i], "Wrong signature") { break }
+				var sig, isType = obj.([]interface{})
+				if testContext.AssertThat(isType, "Wrong type: " + reflect.TypeOf(sig).String()) {
+					for i, sigi := range sig {
+						var b = uint8(sigi.(float64))
+						if ! testContext.AssertThat(
+							b == image2Signature[i],
+							fmt.Sprintf("Wrong signature: %d != %d", b, image2Signature[i])) { break }
 					}
 				}
 			}
 		}
+		*/
 	}
 	
 	// Test ability of a user to to retrieve the user's docker images.

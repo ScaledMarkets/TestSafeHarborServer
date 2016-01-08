@@ -1459,7 +1459,7 @@ func (testContext *TestContext) TryScanImage(scriptId, imageObjId string) string
 	
 	var retId string = responseMap["Id"].(string)
 	var retWhen string = responseMap["When"].(string)
-	var retUserId string = responseMap["UserId"].(string)
+	var retUserId string = responseMap["UserObjId"].(string)
 	var retScanConfigId string = responseMap["ScanConfigId"].(string)
 	var retScore string = responseMap["Score"].(string)
 	
@@ -1846,7 +1846,7 @@ func (testContext *TestContext) TryGetUserEvents(userId string) []string {
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryGetDockerImageEvents(imageId string) []string {
+func (testContext *TestContext) TryGetDockerImageEvents(imageObjId string) []string {
 	
 	testContext.StartTest("TryGetDockerImageEvents")
 	
@@ -1854,8 +1854,8 @@ func (testContext *TestContext) TryGetDockerImageEvents(imageId string) []string
 	var err error
 	resp, err = testContext.SendPost(testContext.SessionId,
 		"getDockerImageEvents",
-		[]string{"Log", "ImageId"},
-		[]string{testContext.TestDemarcation(), imageId})
+		[]string{"Log", "ImageObjId"},
+		[]string{testContext.TestDemarcation(), imageObjId})
 	
 	defer resp.Body.Close()
 
