@@ -9,7 +9,8 @@ import (
 	//"net/http"
 	"os"
 	"flag"
-	//"reflect"
+	
+	"redis"
 	
 	// SafeHarbor packages:
 	"testsafeharbor/utils"
@@ -47,17 +48,16 @@ func main() {
 		"To start the docker daemon, run 'sudo service docker start'.")
 	fmt.Println()
 	
-	/*
-	TestCreateRealmsAndUsers(testContext)
-	TestCreateResources(testContext)
-	TestCreateGroups(testContext)
-	TestGetMy(testContext)
-	TestAccessControl(testContext)
-	TestUpdateAndReplace(testContext)
-	TestDelete(testContext)
-	*/
+	TestRedis(testContext)
+	//TestCreateRealmsAndUsers(testContext)
+	//TestCreateResources(testContext)
+	//TestCreateGroups(testContext)
+	//TestGetMy(testContext)
+	//TestAccessControl(testContext)
+	//TestUpdateAndReplace(testContext)
+	//TestDelete(testContext)
 	
-	if testContext.PerformDockerTests { TestDockerFunctions(testContext) }
+	//if testContext.PerformDockerTests { TestDockerFunctions(testContext) }
 	
 	fmt.Println()
 	fmt.Println(fmt.Sprintf("%d tests failed out of %d:", testContext.NoOfTestsThatFailed,
@@ -67,6 +67,41 @@ func main() {
 		fmt.Print(testName)
 	}
 	fmt.Println()
+}
+
+/*******************************************************************************
+ * Test the redis API to verify understanding of it.
+ * Redis bindings for go: http://redis.io/clients#go
+ * Chosen binding: https://github.com/alphazero/Go-Redis
+ * Alternative binding: https://github.com/hoisie/redis
+ */
+func TestRedis(testContext *utils.TestContext) {
+
+	// -------------------------------------
+	// Test setup:
+	
+	var client redis.Client
+	
+	{
+		var spec *redis.ConnectionSpec =
+			redis.DefaultSpec().Host("52.26.82.232").Port(6379).Password("ahdal8934k383898&*kdu&^")
+		var err error
+		client, err = redis.NewSynchClientWithSpec(spec);
+		testContext.AssertErrIsNil(err, "failed to create the client")
+		if err != nil { return }
+	}
+	
+	// -------------------------------------
+	// Tests
+	//
+	
+	{
+		testContext.TryRedisPing(client)
+	}
+	
+	{
+		testContext.TryRedisSetGetString(client)
+	}
 }
 
 /*******************************************************************************

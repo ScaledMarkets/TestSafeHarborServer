@@ -14,7 +14,7 @@ import (
  */
 func (testContext *TestContext) TryGetGroupDesc(groupId string) {
 	
-	testContext.StartTest("getGroupDesc")
+	testContext.StartTest("TryGetGroupDesc")
 	var resp *http.Response
 	var err error
 	resp, err = testContext.SendPost(testContext.SessionId,
