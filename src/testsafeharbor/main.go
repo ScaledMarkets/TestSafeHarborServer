@@ -48,7 +48,8 @@ func main() {
 		"To start the docker daemon, run 'sudo service docker start'.")
 	fmt.Println()
 	
-	TestRedis(testContext)
+	TestJSONDeserialization(testContext)
+	//TestRedis(testContext)
 	//TestCreateRealmsAndUsers(testContext)
 	//TestCreateResources(testContext)
 	//TestCreateGroups(testContext)
@@ -101,6 +102,15 @@ func TestRedis(testContext *utils.TestContext) {
 	
 	{
 		testContext.TryRedisSetGetString(client)
+	}
+}
+
+/*******************************************************************************
+ * 
+ */
+func TestJSONDeserialization(testContext *utils.TestContext) {
+	{
+		testContext.TryJsonDeserialization()
 	}
 }
 
