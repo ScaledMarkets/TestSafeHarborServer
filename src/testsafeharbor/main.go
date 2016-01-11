@@ -109,8 +109,13 @@ func TestRedis(testContext *utils.TestContext) {
  * 
  */
 func TestJSONDeserialization(testContext *utils.TestContext) {
+
 	{
-		testContext.TryJsonDeserialization()
+		testContext.TryJsonDeserSimple()
+	}
+	
+	{
+		//testContext.TryJsonDeserNestedType()
 	}
 }
 
