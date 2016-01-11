@@ -226,7 +226,7 @@ func retrieveTypeName(json string) (typeName string, remainder string, err error
 	array_value		::= '['  value  [ comma_value ]  ']'
 	comma_value		::= ','  value  [ comma_value ]
 	simple_value	::= number | string_value | bool_value | time_value
-	string_value	::= '"' (no spaces) <char_seq> (no spaces) '"'
+	string_value	::= '"' (no spaces assumed) <char_seq> (no spaces assumed) '"'
 	bool_value		::= 'true' | 'false'
 	time_value		::= 'time ' '"' <char_seq in time format> '"'
  */
@@ -253,7 +253,8 @@ func parseJSON(json string) (map[string]reflect.Value, error) {
 }
 
 /*******************************************************************************
- * Parse a JSON object, delimited by { and }. If none found due to EOF, return nil.
+ * Parse a JSON object, delimited by { and }. If none found due to EOF, or if
+ * the first token does not match the possible values for an obj_value, return nil.
  * Otherwise, return an array of the field values. If there is a syntax error,
  * return an error.
  */
@@ -262,7 +263,7 @@ func parseJSON_obj_value(json string, pos *int) (map[string]reflect.Value, error
 	var token string = parseJSON_findNextToken(json, pos)
 	if token == "" { return nil, nil }
 	
-	if token != "{" { return nil, parseJSON_syntaxError(pos) }
+	if token != "{" { return nil, nil }
 	
 	var values map[string]reflect.Value = make(map[string]reflect.Value)
 	var int noOfFields = 0
@@ -288,7 +289,7 @@ func parseJSON_field(json string, pos *int) (string, reflect.Value, error) {
 	var token = parseJSON_findNextToken(json, pos)
 	if token == "" { return nil, nil }
 	
-	if token != "\"" { return nil, parseJSON_syntaxError(pos) }
+	if token != "\"" { return nil, nil }
 	
 	var value reflect.Value
 	
@@ -306,6 +307,7 @@ func parseJSON_field(json string, pos *int) (string, reflect.Value, error) {
 	var value reflect.Value
 	value, err = parseJSON_value(json, pos)
 	if err != nil { return fieldName, nil, err }
+	if value == nil return fieldName, nil, parseJSON_syntaxError(*pos)
 	
 	return fieldName, value, nil
 }
@@ -360,7 +362,7 @@ func parseJSON_array_value(json string, pos *int) ([]reflect.Value, error) {
 	token = parseJSON_findNextToken(json, pos)
 	if token != "]" { return value, parseJSON_syntaxError(*pos) }
 	
-	return value, nil
+	return values, nil
 }
 
 func parseJSON_simple_value(json string, pos *int) (reflect.Value, error ) {
@@ -388,22 +390,89 @@ func parseJSON_simple_value(json string, pos *int) (reflect.Value, error ) {
 
 func parseJSON_comma_value(json string, pos *int) ([]reflect.Value, error) {
 	
+	var token = parseJSON_findNextToken(json, pos)
+	if token == "" { return nil, nil }
+	
+	if token != "," { return nil, parseJSON_syntaxError(pos) }
+	
+	var values = make([]reflect.Value, 0)
+	
+	var value reflect.Value
+	var err error
+	value, err = parseJSON_value(json, pos)
+	if err != nil { return value, err }
+	
+	values = append(values, value)
+	
+	var commaValues []reflect.Value
+	commaValues, err = parseJSON_comma_value(json, pos)
+	if commaValues != nil {
+		values = append(values, commaValues...)
+	}
+	
+	return values, nil
 }
 
 func parseJSON_number(json string, pos *int) (reflect.Value, error) {
-
+	
+	var token = parseJSON_findNextToken(json, pos)
+	if token == "" { return nil, nil }
+	
+	var number int
+	_, err := fmt.Sscanf(token, "%d", &number)
+	if err != nil { return nil, parseJSON_syntaxError(pos) }
+	return reflect.ValueOf(number), err
 }
 
 func parseJSON_string_value(json string, pos *int) (reflect.Value, error) {
 	
+	var token = parseJSON_findNextToken(json, pos)
+	if token == "" { return nil, nil }
+	
+	if token != "\"" { return nil, parseJSON_syntaxError(pos) }
+	
+	posOfNextDblQuote = strings.Index(json[*pos:], "\"")
+	if posOfNextDblQuote == -1 { return nil, parseJSON_syntaxError(pos) }
+	
+	var startPos = *pos
+	var strval = json[startPos: posOfNextDblQuote]
+	
+	var value = reflect.ValueOf(strval)
+	*pos = posOfNextDblQuote+1
+	return value, nil
 }
 
 func parseJSON_bool_value(json string, pos *int) (reflect.Value, error) {
-
+	
+	var token = parseJSON_findNextToken(json, pos)
+	if token == "true" { return reflect.ValueOf(true), nil }
+	if token == "false" { return reflect.ValueOf(false), nil }
+	parseJSON_pushTokenBack(token, pos)
+	return nil, nil
 }
 
 func parseJSON_time_value(json string, pos *int) (reflect.Value, error) {
+	
+	var token = parseJSON_findNextToken(json, pos)
+	if token != "time" {
+		parseJSON_pushTokenBack(token, pos)
+		return nil, nil
+	}
+	
+	posOfNextDblQuote = strings.Index(json[*pos:], "\"")
+	if posOfNextDblQuote == -1 { return nil, parseJSON_syntaxError(pos) }
+	
+	var startPos = *pos
+	var strval = json[startPos: *pos]
+	
+	var t time.Time
+	var err error
+	err = t.UnmarshalJSON([]byte(strval)) // scan the time value from strval
+	if err != nil { return nil, parseJSON_syntaxError(pos) }
+	var value = reflect.ValueOf(t)
 
+	*pos = posOfNextDblQuote+1
+	return value, nil
 }
 
 /*******************************************************************************
@@ -412,7 +481,11 @@ func parseJSON_time_value(json string, pos *int) (reflect.Value, error) {
  * there is not more content in the string.
  */
 func parseJSON_findNextToken(json string, pos *int) string {
-	
+	var restOfJson = json[*pos:]
+	var posOfNextWhitespace = strings.IndexAny(restOfJson, " \t\r\n")
+	if posOfNextWhitespace == -1 { return "" }
+	*pos = *pos + posOfNextWhitespace
+	return restOfJson[:posOfNextWhitespace]
 }
 
 func parseJSON_pushTokenBack(token string, pos *int) {
