@@ -227,7 +227,7 @@ func retrieveTypeName(json string) (typeName string, remainder string, err error
 	field			::=	'"' (no spaces) field_name (no spaces) '"'  ':'  value
 	field_name		::= <char_seq>
 	value			::= array_value | simple_value
-	comma_field		::= ','  field
+	comma_field		::= ','  field  [ comma_field ]
 	array_value		::= '['  value  [ comma_value ]  ']'
 	comma_value		::= ','  value  [ comma_value ]
 	simple_value	::= number | string_value | bool_value | time_value
@@ -272,21 +272,28 @@ func parseJSON_obj_value(json string, pos *int) ([]reflect.Value, error) {
 	var token string = parseJSON_findNextToken(json, pos)
 	if token == "" { return nil, nil }
 	
-	if token != "{" { return nil, nil }
+	if token != "{" {
+		parseJSON_pushTokenBack(token, pos)
+		return nil, nil
+	}
 	
+	var err error
+	var fieldName string
 	var values []reflect.Value = make([]reflect.Value, 0)
-	var noOfFields int = 0
-	for {
-		var fieldName string
-		var value reflect.Value
-		var err error
-		fieldName, value, err = parseJSON_field(json, pos)
-		if err != nil { return values, parseJSON_syntaxError(
-			"While looking for object field", json, pos) }
-		if ! value.IsValid() { break } // no more fields
-		noOfFields++
-		values = append(values, value)
-		fmt.Println("Added argument " + fieldName)  // debug
+	var fieldValue reflect.Value
+	fieldName, fieldValue, err = parseJSON_field(json, pos)
+	if err != nil { return values, err }
+	if ! fieldValue.IsValid() { return values, nil } // no fields
+	
+	values = append(values, fieldValue)
+	fmt.Println("Added argument " + fieldName)  // debug
+	
+	// Add additional fields, if any.
+	var addlFieldValues []reflect.Value
+	addlFieldValues, err = parseJSON_comma_field(json, pos)
+	if err != nil { return values, err }
+	if addlFieldValues != nil {
+		values = append(values, addlFieldValues...)
 	}
 	
 	token = parseJSON_findNextToken(json, pos)
@@ -330,6 +337,36 @@ func parseJSON_field(json string, pos *int) (string, reflect.Value, error) {
 		"While looking for object field value", json, pos) }
 	
 	return fieldName, value, nil
+}
+
+func parseJSON_comma_field(json string, pos *int) ([]reflect.Value, error) {
+	
+	fmt.Println("\nEntered parseJSON_comma_field")  // debug
+	defer fmt.Println("Leaving parseJSON_comma_field")  // debug
+	
+	var token = parseJSON_findNextToken(json, pos)
+	if token == "" { return nil, nil }
+	
+	if token != "," {
+		parseJSON_pushTokenBack(token, pos)
+		return nil, nil
+	}
+	
+	var err error
+	var value reflect.Value
+	var values []reflect.Value = make([]reflect.Value, 0)
+	_, value, err = parseJSON_field(json, pos)
+	if err != nil { return nil, err }
+	values = append(values, value)
+	
+	var addlValues []reflect.Value
+	addlValues, err = parseJSON_comma_field(json, pos)
+	if err != nil { return values, err }
+	if addlValues != nil {
+		values = append(values, addlValues...)
+	}
+	
+	return values, nil
 }
 
 func parseJSON_field_name(json string, pos *int) (string, error) {
@@ -382,6 +419,7 @@ func parseJSON_array_value(json string, pos *int) (reflect.Value, error) {
 	var err error
 	value, err = parseJSON_value(json, pos)
 	if err != nil { return value, err }
+	if ! value.IsValid() { return value, nil } // no fields
 	
 	// If there are more elements in the array, they must be of the same underlying
 	// simple type as the above value.
