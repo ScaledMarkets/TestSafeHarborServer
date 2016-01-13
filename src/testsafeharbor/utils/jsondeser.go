@@ -50,15 +50,12 @@ func (testContext *TestContext) TryJsonDeserSimple() {
 	var client Client = &InMemClient{}
 	var abc = &InMemABC{ 123, "this is a string", []string{"alpha", "beta"}, true }
 	var jsonString = abc.toJSON()
-	fmt.Println("jsonString=" + jsonString)  // debug
 
 	var typeName string
 	var remainder string
 	var err error
 	typeName, remainder, err = retrieveTypeName(jsonString)
 	testContext.AssertErrIsNil(err, "when retrieving type name")
-	fmt.Println("typeName=" + typeName)  // debug
-	fmt.Println("remainder=" + remainder)  // debug
 	
 	var methodName = "New" + typeName
 	var method = reflect.ValueOf(client).MethodByName(methodName)
@@ -94,15 +91,12 @@ func (testContext *TestContext) TryJsonDeserNestedType() {
 		xyz: 456,
 	}
 	var jsonString = def.toJSON()
-	fmt.Println("jsonString=" + jsonString)  // debug
 
 	var typeName string
 	var remainder string
 	var err error
 	typeName, remainder, err = retrieveTypeName(jsonString)
 	testContext.AssertErrIsNil(err, "when retrieving type name")
-	fmt.Println("typeName=" + typeName)  // debug
-	fmt.Println("remainder=" + remainder)  // debug
 	
 	var methodName = "New" + typeName
 	var method = reflect.ValueOf(client).MethodByName(methodName)
@@ -151,11 +145,7 @@ type InMemABC struct {
 }
 
 func (client *InMemClient) NewABC(a int, bs string, car []string, db bool) ABC {
-	fmt.Println("Entered NewABC...")  // debug
 	var abc *InMemABC = &InMemABC{a, bs, car, db}
-	fmt.Println("\tconstructed an ABC...")  // debug
-	fmt.Println(fmt.Sprintf("\tabc.a=%d", abc.a))  // debug
-	fmt.Println(fmt.Sprintf("\tabc.getA()=%d", abc.getA()))
 	return abc
 }
 
@@ -271,23 +261,6 @@ func retrieveTypeName(json string) (typeName string, remainder string, err error
  */
 func parseJSON(json string) ([]reflect.Value, error) {
 	
-	/*
-	// For now, just parse an int value.
-	var aval int = 10
-	//fmt.Println("Parsing json: " + json)
-	//fmt.Sscanf(json, "{%d}", &aval)
-	fmt.Println(fmt.Sprintf("Parsed value of %d for aval", aval))  // debug
-	
-	var numArgs = 4  // normally we will obtain this from the number of JSON fields.
-	var valAr []reflect.Value = make([]reflect.Value, numArgs)
-	valAr[0] = reflect.ValueOf(aval)
-	valAr[1] = reflect.ValueOf("")
-	valAr[2] = reflect.ValueOf([]string{})
-	valAr[3] = reflect.ValueOf(false)
-	
-	return valAr
-	*/
-	
 	var pos int = 0
 	return parseJSON_obj_value(json, &pos)
 }
@@ -300,9 +273,6 @@ func parseJSON(json string) ([]reflect.Value, error) {
  */
 func parseJSON_obj_value(json string, pos *int) ([]reflect.Value, error) {
 	
-	fmt.Println("\nEntered parseJSON_obj_value")  // debug
-	defer fmt.Println("Leaving parseJSON_obj_value")  // debug
-	
 	var token string = parseJSON_findNextToken(json, pos)
 	if token == "" { return nil, nil }
 	
@@ -312,15 +282,13 @@ func parseJSON_obj_value(json string, pos *int) ([]reflect.Value, error) {
 	}
 	
 	var err error
-	var fieldName string
 	var values []reflect.Value = make([]reflect.Value, 0)
 	var fieldValue reflect.Value
-	fieldName, fieldValue, err = parseJSON_field(json, pos)
+	_, fieldValue, err = parseJSON_field(json, pos)
 	if err != nil { return values, err }
 	if ! fieldValue.IsValid() { return values, nil } // no fields
 	
 	values = append(values, fieldValue)
-	fmt.Println("Added argument " + fieldName)  // debug
 	
 	// Add additional fields, if any.
 	var addlFieldValues []reflect.Value
@@ -338,9 +306,6 @@ func parseJSON_obj_value(json string, pos *int) ([]reflect.Value, error) {
 }
 
 func parseJSON_field(json string, pos *int) (string, reflect.Value, error) {
-	
-	fmt.Println("\nEntered parseJSON_field")  // debug
-	defer fmt.Println("Leaving parseJSON_field")  // debug
 	
 	var value reflect.Value
 
@@ -377,9 +342,6 @@ func parseJSON_field(json string, pos *int) (string, reflect.Value, error) {
 
 func parseJSON_comma_field(json string, pos *int) ([]reflect.Value, error) {
 	
-	fmt.Println("\nEntered parseJSON_comma_field")  // debug
-	defer fmt.Println("Leaving parseJSON_comma_field")  // debug
-	
 	var token = parseJSON_findNextToken(json, pos)
 	if token == "" { return nil, nil }
 	
@@ -407,11 +369,6 @@ func parseJSON_comma_field(json string, pos *int) ([]reflect.Value, error) {
 
 func parseJSON_field_name(json string, pos *int) (string, error) {
 
-	fmt.Println("\nEntered parseJSON_field_name")  // debug
-	defer fmt.Println("Leaving parseJSON_field_name")  // debug
-	
-	fmt.Println("\tjson[*pos:]=" + json[*pos:])  // debug
-	
 	// Find trailing double-quote.
 	var dblQuotePos = strings.Index(json[*pos:], "\"")
 	if dblQuotePos == -1 { return "", errors.New(
@@ -422,14 +379,10 @@ func parseJSON_field_name(json string, pos *int) (string, error) {
 	var startPos = *pos  // beginning of field name
 	*pos += dblQuotePos  // update json pos to point to the trailing double-quote
 	var fieldName = json[startPos:*pos]
-	fmt.Printf("parseJSON_field_name returning " + fieldName)  // debug
 	return fieldName, nil
 }
 
 func parseJSON_value(json string, pos *int) (reflect.Value, error) {
-	
-	fmt.Println("\nEntered parseJSON_value")  // debug
-	defer fmt.Println("Leaving parseJSON_value")  // debug
 	
 	var value reflect.Value
 	var token = parseJSON_findNextToken(json, pos)
@@ -445,9 +398,6 @@ func parseJSON_value(json string, pos *int) (reflect.Value, error) {
 }
 
 func parseJSON_array_value(json string, pos *int) (reflect.Value, error) {
-	
-	fmt.Println("\nEntered parseJSON_array_value")  // debug
-	defer fmt.Println("Leaving parseJSON_array_value")  // debug
 	
 	var value reflect.Value
 	var token = parseJSON_findNextToken(json, pos)
@@ -487,9 +437,6 @@ func parseJSON_array_value(json string, pos *int) (reflect.Value, error) {
 
 func parseJSON_simple_value(json string, pos *int) (reflect.Value, error ) {
 	
-	fmt.Println("\nEntered parseJSON_simple_value")  // debug
-	defer fmt.Println("Leaving parseJSON_simple_value")  // debug
-	
 	var value reflect.Value
 	var err error
 	value, err = parseJSON_number(json, pos)
@@ -513,9 +460,6 @@ func parseJSON_simple_value(json string, pos *int) (reflect.Value, error ) {
 
 func parseJSON_comma_value(json string, pos *int,
 	elementType reflect.Type) (reflect.Value, error) {
-	
-	fmt.Println("\nEntered parseJSON_comma_value")  // debug
-	defer fmt.Println("Leaving parseJSON_comma_value")  // debug
 	
 	var value reflect.Value
 	var token = parseJSON_findNextToken(json, pos)
@@ -546,9 +490,6 @@ func parseJSON_comma_value(json string, pos *int,
 
 func parseJSON_number(json string, pos *int) (reflect.Value, error) {
 	
-	fmt.Println("\nEntered parseJSON_number")  // debug
-	defer fmt.Println("Leaving parseJSON_number")  // debug
-	
 	var value reflect.Value
 	var token = parseJSON_findNextToken(json, pos)
 	if token == "" { return value, nil }
@@ -563,9 +504,6 @@ func parseJSON_number(json string, pos *int) (reflect.Value, error) {
 }
 
 func parseJSON_string_value(json string, pos *int) (reflect.Value, error) {
-	
-	fmt.Println("\nEntered parseJSON_string_value")  // debug
-	defer fmt.Println("Leaving parseJSON_string_value")  // debug
 	
 	var value reflect.Value
 	var token = parseJSON_findNextToken(json, pos)
@@ -591,9 +529,6 @@ func parseJSON_string_value(json string, pos *int) (reflect.Value, error) {
 
 func parseJSON_bool_value(json string, pos *int) (reflect.Value, error) {
 	
-	fmt.Println("\nEntered parseJSON_bool_value")  // debug
-	defer fmt.Println("Leaving parseJSON_bool_value")  // debug
-	
 	var value reflect.Value
 	var token = parseJSON_findNextToken(json, pos)
 	if token == "true" { return reflect.ValueOf(true), nil }
@@ -603,9 +538,6 @@ func parseJSON_bool_value(json string, pos *int) (reflect.Value, error) {
 }
 
 func parseJSON_time_value(json string, pos *int) (reflect.Value, error) {
-	
-	fmt.Println("\nEntered parseJSON_time_value")  // debug
-	defer fmt.Println("Leaving parseJSON_time_value")  // debug
 	
 	var value reflect.Value
 	var token = parseJSON_findNextToken(json, pos)
@@ -639,19 +571,13 @@ func parseJSON_time_value(json string, pos *int) (reflect.Value, error) {
  */
 func parseJSON_findNextToken(json string, pos *int) (token string) {
 
-	fmt.Println("\nEntered parseJSON_findNextToken; json=" + json)  // debug
-	defer fmt.Println("Leaving parseJSON_findNextToken")  // debug
-	
 	var whitespace = " \t\r\n"
 	var trimmedJson = strings.TrimLeft(json[*pos:], whitespace)
 	if len(trimmedJson) == 0 {
 		*pos = len(json)
-		fmt.Println("\tfound no token")
-		token = ""
+		token = ""  // found no token
 		return
 	}
-	
-	fmt.Println("findNextToken: trimmedJson=" + trimmedJson)
 	
 	*pos += (len(json[*pos:]) - len(trimmedJson))  // advance to start of token
 	
@@ -671,12 +597,10 @@ func parseJSON_findNextToken(json string, pos *int) (token string) {
 	
 	*pos += posAfterToken
 	token = trimmedJson[:posAfterToken]
-	fmt.Println(">>>>>>>>>>>>>findNextToken: returning token " + token)
 	return
 }
 
 func parseJSON_pushTokenBack(token string, pos *int) {
-	fmt.Println("-------pushing back token " + token)
 	*pos = *pos - len(token)
 }
 
