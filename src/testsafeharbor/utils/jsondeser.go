@@ -6,7 +6,40 @@ import (
 	"strings"
 	"errors"
 	"time"
+	"runtime/debug"
 )
+
+/*******************************************************************************
+ * 
+ */
+func (testContext *TestContext) TryJsonDeserTokenizer(json string, expected []string) {
+
+	testContext.StartTest("TryJsonDeserTokenizer")
+
+	var pos int = 0
+	for i, expect := range expected {
+		var token string = parseJSON_findNextToken(json, &pos)
+		if ! testContext.AssertThat(token == expect,
+			fmt.Sprintf("Token #%d, was %s, expected %s", (i+1), token, expect)) { break }
+	}
+	testContext.PassTestIfNoFailures()
+}
+
+/*******************************************************************************
+ * 
+ */
+func (testContext *TestContext) TryJsonDeserString(json, expected string) {
+	
+	testContext.StartTest("TryJsonDeserString")
+
+	var value reflect.Value
+	var err error
+	var pos int = 0
+	value, err = parseJSON_string_value(json, &pos)
+	testContext.AssertErrIsNil(err, "")
+	testContext.AssertThat(value.IsValid(), "Value is not valid")
+	testContext.PassTestIfNoFailures()
+}
 
 /*******************************************************************************
  * 
@@ -149,7 +182,7 @@ func (abc *InMemABC) toJSON() string {
 		if i > 0 { res = res + ", " }
 		res = res + "\"" + s + "\""  // Note - need to replace any quotes in s
 	}
-	res = res + fmt.Sprintf("], %s}", BoolToString(abc.db))
+	res = res + fmt.Sprintf("], \"db\": %s}", BoolToString(abc.db))
 	return res
 }
 
@@ -183,7 +216,8 @@ func (def *InMemDEF) toJSON() string {
 		if i > 0 { res = res + ", " }
 		res = res + "\"" + s + "\""  // Note - need to replace any quotes in s
 	}
-	res = res + fmt.Sprintf("], %s, %d}", BoolToString(def.getDb()), def.xyz)
+	res = res + fmt.Sprintf("], \"db\": %s, \"xyz\": %d}",
+		BoolToString(def.getDb()), def.xyz)
 	return res
 }
 
@@ -297,8 +331,8 @@ func parseJSON_obj_value(json string, pos *int) ([]reflect.Value, error) {
 	}
 	
 	token = parseJSON_findNextToken(json, pos)
-	if token != "}" { return values, parseJSON_syntaxError(
-		"While looking for object terminator", json, pos) }
+	if token != "}" { return values, parseJSON_tokenError(token, pos,
+		"while looking for object terminator") }
 	
 	return values, nil
 }
@@ -322,19 +356,21 @@ func parseJSON_field(json string, pos *int) (string, reflect.Value, error) {
 	var err error
 	fieldName, err = parseJSON_field_name(json, pos)
 	if err != nil { return "", value, err }
+	if fieldName == "" { return "", value, parseJSON_syntaxError(pos,
+		"Did not find field name") }
 	
 	token = parseJSON_findNextToken(json, pos)
-	if token != "\"" { return fieldName, value, parseJSON_syntaxError(
-		"While looking for \" following a field name", json, pos) }
+	if token != "\"" { return fieldName, value, parseJSON_tokenError(
+		token, pos, "while looking for \" following a field name") }
 	
 	token = parseJSON_findNextToken(json, pos)
-	if token != ":" { return fieldName, value, parseJSON_syntaxError(
-		"While looking for colon following a field name", json, pos) }
+	if token != ":" { return fieldName, value, parseJSON_tokenError(
+		token, pos, "while looking for colon following a field name") }
 	
 	value, err = parseJSON_value(json, pos)
 	if err != nil { return fieldName, value, err }
-	if ! value.IsValid() { return fieldName, value, parseJSON_syntaxError(
-		"While looking for object field value", json, pos) }
+	if ! value.IsValid() { return fieldName, value, parseJSON_tokenError(
+		token, pos, "while looking for object field value") }
 	
 	return fieldName, value, nil
 }
@@ -374,15 +410,20 @@ func parseJSON_field_name(json string, pos *int) (string, error) {
 	fmt.Println("\nEntered parseJSON_field_name")  // debug
 	defer fmt.Println("Leaving parseJSON_field_name")  // debug
 	
+	fmt.Println("\tjson[*pos:]=" + json[*pos:])  // debug
+	
+	// Find trailing double-quote.
 	var dblQuotePos = strings.Index(json[*pos:], "\"")
 	if dblQuotePos == -1 { return "", errors.New(
 		fmt.Sprintf("Terminating double quote not found for field name, after pos %d", *pos)) }
+	
 	// ....to do: recognize escapes, etc.
-	var startPos = *pos
-	*pos = dblQuotePos
-	var res = json[startPos:dblQuotePos]
-	fmt.Printf("parseJSON_field_name returning " + res)  // debug
-	return res, nil
+	
+	var startPos = *pos  // beginning of field name
+	*pos += dblQuotePos  // update json pos to point to the trailing double-quote
+	var fieldName = json[startPos:*pos]
+	fmt.Printf("parseJSON_field_name returning " + fieldName)  // debug
+	return fieldName, nil
 }
 
 func parseJSON_value(json string, pos *int) (reflect.Value, error) {
@@ -398,6 +439,7 @@ func parseJSON_value(json string, pos *int) (reflect.Value, error) {
 		parseJSON_pushTokenBack(token, pos)
 		return parseJSON_array_value(json, pos)
 	} else {
+		parseJSON_pushTokenBack(token, pos)
 		return parseJSON_simple_value(json, pos)
 	}
 }
@@ -437,8 +479,8 @@ func parseJSON_array_value(json string, pos *int) (reflect.Value, error) {
 	}
 	
 	token = parseJSON_findNextToken(json, pos)
-	if token != "]" { return slice, parseJSON_syntaxError(
-		"While looking for array value", json, pos) }
+	if token != "]" { return slice, parseJSON_tokenError(token, pos,
+		"while looking for array value") }
 	
 	return slice, nil
 }
@@ -466,7 +508,7 @@ func parseJSON_simple_value(json string, pos *int) (reflect.Value, error ) {
 	if err != nil { return value, err }
 	if value.IsValid() { return value, nil }
 	
-	return value, parseJSON_syntaxError("While looking for simple value", json, pos)
+	return value, parseJSON_syntaxError(pos, "While looking for simple value")
 }
 
 func parseJSON_comma_value(json string, pos *int,
@@ -494,6 +536,7 @@ func parseJSON_comma_value(json string, pos *int,
 	
 	var commaValues reflect.Value
 	commaValues, err = parseJSON_comma_value(json, pos, elementType)
+	if err != nil { return slice, err }
 	if commaValues.IsValid() {
 		slice = reflect.AppendSlice(slice, commaValues)
 	}
@@ -534,14 +577,15 @@ func parseJSON_string_value(json string, pos *int) (reflect.Value, error) {
 	}
 	
 	var posOfNextDblQuote = strings.Index(json[*pos:], "\"")
-	if posOfNextDblQuote == -1 { return value, parseJSON_syntaxError(
-		"While looking for a string value", json, pos) }
+	if posOfNextDblQuote == -1 { return value, parseJSON_syntaxError(pos,
+		"While looking for a string value") }
 	
 	var startPos = *pos
-	var strval = json[startPos: posOfNextDblQuote]
+	*pos += posOfNextDblQuote
+	var strval = json[startPos: *pos]
+	*pos++  // advance one past the trailing double quote
 	
 	value = reflect.ValueOf(strval)
-	*pos = posOfNextDblQuote+1
 	return value, nil
 }
 
@@ -571,8 +615,8 @@ func parseJSON_time_value(json string, pos *int) (reflect.Value, error) {
 	}
 	
 	var posOfNextDblQuote = strings.Index(json[*pos:], "\"")
-	if posOfNextDblQuote == -1 { return value, parseJSON_syntaxError(
-		"While looking for a time value", json, pos) }
+	if posOfNextDblQuote == -1 { return value, parseJSON_syntaxError(pos,
+		"While looking for a time value") }
 	
 	var startPos = *pos
 	var strval = json[startPos: *pos]
@@ -580,8 +624,8 @@ func parseJSON_time_value(json string, pos *int) (reflect.Value, error) {
 	var t time.Time
 	var err error
 	err = t.UnmarshalJSON([]byte(strval)) // scan the time value from strval
-	if err != nil { return value, parseJSON_syntaxError(
-		"While looking for a time value", json, pos) }
+	if err != nil { return value, parseJSON_syntaxError(pos,
+		"While looking for a time value") }
 	value = reflect.ValueOf(t)
 
 	*pos = posOfNextDblQuote+1
@@ -607,32 +651,47 @@ func parseJSON_findNextToken(json string, pos *int) (token string) {
 		return
 	}
 	
-	fmt.Println("trimmedJson=" + trimmedJson)
+	fmt.Println("findNextToken: trimmedJson=" + trimmedJson)
 	
-	*pos += (len(json) - len(trimmedJson))  // advance to start of token
+	*pos += (len(json[*pos:]) - len(trimmedJson))  // advance to start of token
 	
 	var specialJsonChars = "\":'[]{},"
-	var posAfterToken = strings.IndexAny(trimmedJson[1:], whitespace + specialJsonChars)
-	if posAfterToken == -1 {  // token goes through end of line
-		posAfterToken = len(trimmedJson)
+	
+	var posAfterToken int
+	if strings.IndexAny(trimmedJson[:1], specialJsonChars) == 0 { // token is a special char
+		posAfterToken = 1
 	} else {
-		posAfterToken++  // account for fact that we started counting from position 1
+		posAfterToken = strings.IndexAny(trimmedJson[1:], whitespace + specialJsonChars)
+		if posAfterToken == -1 {  // token goes through end of line
+			posAfterToken = len(trimmedJson)
+		} else {
+			posAfterToken++  // account for fact that we started counting from position 1
+		}
 	}
 	
 	*pos += posAfterToken
 	token = trimmedJson[:posAfterToken]
-	fmt.Println("token='" + token + "'")
+	fmt.Println(">>>>>>>>>>>>>findNextToken: returning token " + token)
 	return
 }
 
 func parseJSON_pushTokenBack(token string, pos *int) {
+	fmt.Println("-------pushing back token " + token)
 	*pos = *pos - len(token)
 }
 
-func parseJSON_syntaxError(methodname string, json string, pos *int) error {
-	var tokpos = *pos
-	var err = errors.New(fmt.Sprintf("%s: syntax error at position %d: %s",
-		methodname, *pos, parseJSON_findNextToken(json, &tokpos)))
+func parseJSON_syntaxError(pos *int, msg string) error {
+	var err = errors.New(fmt.Sprintf("%s: at char no. %d", msg, (*pos + 1)))
 	fmt.Println(err.Error())
+	debug.PrintStack()
+	return err
+}
+
+func parseJSON_tokenError(token string, pos *int, msg string) error {
+	parseJSON_pushTokenBack(token, pos)
+	var err = errors.New(fmt.Sprintf("Syntax error at char no. %d: %s %s",
+		(*pos + 1), token, msg))
+	fmt.Println(err.Error())
+	debug.PrintStack()
 	return err
 }

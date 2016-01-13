@@ -111,11 +111,56 @@ func TestRedis(testContext *utils.TestContext) {
 func TestJSONDeserialization(testContext *utils.TestContext) {
 
 	{
+		var json = "{\"abc\": 123, \"bs\": \"this_is_a_string\", " +
+			"\"car\": [\"alpha\", \"beta\"], true}"
+		var expected = []string{
+			"{",
+			"\"",
+			"abc",
+			"\"",
+			":",
+			"123",
+			",",
+			"\"",
+			"bs",
+			"\"",
+			":",
+			"\"",
+			"this_is_a_string",
+			"\"",
+			",",
+			"\"",
+			"car",
+			"\"",
+			":",
+			"[",
+			"\"",
+			"alpha",
+			"\"",
+			",",
+			"\"",
+			"beta",
+			"\"",
+			"]",
+			",",
+			"true",
+			"}",
+		}
+		testContext.TryJsonDeserTokenizer(json, expected)
+	}
+	
+	{
+		var json = "\"this is a string\""
+		var expected = "this is a string"
+		testContext.TryJsonDeserString(json, expected)
+	}
+	
+	{
 		testContext.TryJsonDeserSimple()
 	}
 	
 	{
-		//testContext.TryJsonDeserNestedType()
+		testContext.TryJsonDeserNestedType()
 	}
 }
 
