@@ -48,8 +48,8 @@ func main() {
 		"To start the docker daemon, run 'sudo service docker start'.")
 	fmt.Println()
 	
-	TestJSONDeserialization(testContext)
-	//TestRedis(testContext)
+	//TestJSONDeserialization(testContext)
+	TestRedis(testContext)
 	//TestCreateRealmsAndUsers(testContext)
 	//TestCreateResources(testContext)
 	//TestCreateGroups(testContext)
@@ -85,7 +85,7 @@ func TestRedis(testContext *utils.TestContext) {
 	
 	{
 		var spec *redis.ConnectionSpec =
-			redis.DefaultSpec().Host("52.26.82.232").Port(6379).Password("ahdal8934k383898&*kdu&^")
+			redis.DefaultSpec().Host("52.11.26.209").Port(6379).Password("ahdal8934k383898&*kdu&^")
 		var err error
 		client, err = redis.NewSynchClientWithSpec(spec);
 		testContext.AssertErrIsNil(err, "failed to create the client")
@@ -102,6 +102,10 @@ func TestRedis(testContext *utils.TestContext) {
 	
 	{
 		testContext.TryRedisSetGetString(client)
+	}
+	
+	{
+		testContext.TryRedisGetJSONObject(client)
 	}
 }
 
@@ -1036,7 +1040,7 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 	
 	// Test ability to list the images in a repo.
 	{
-		var imageNames []string = testContext.TryGetImages(realmXRepo1Id)
+		var imageNames []string = testContext.TryGetDockerImages(realmXRepo1Id)
 		testContext.AssertThat(len(imageNames) == 1, "Wrong number of images")
 	}
 	

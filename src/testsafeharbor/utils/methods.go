@@ -576,13 +576,13 @@ func (testContext *TestContext) TryAddAndExecDockerfile(repoId string, desc stri
 /*******************************************************************************
  * Result is an array of the names of the images owned by the specified repo.
  */
-func (testContext *TestContext) TryGetImages(repoId string) []string {
-	testContext.StartTest("TryGetImages")
+func (testContext *TestContext) TryGetDockerImages(repoId string) []string {
+	testContext.StartTest("TryGetDockerImages")
 	
 	var resp *http.Response
 	var err error
 	resp, err = testContext.SendPost(testContext.SessionId,
-		"getImages",
+		"getDockerImages",
 		[]string{"Log", "RepoId"},
 		[]string{testContext.TestDemarcation(), repoId})
 	

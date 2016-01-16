@@ -256,3 +256,19 @@ func EncodeStringForJSON(value string) string {
 	encodedValue = strings.Replace(encodedValue, "\t", "\\t", -1)
 	return encodedValue
 }
+
+/*******************************************************************************
+ * Reverse the encoding that is performed by EncodeStringForJSON.
+ */
+func DecodeStringFromJSON(encodedValue string) string {
+	var decodedValue = encodedValue
+	decodedValue = strings.Replace(decodedValue, "\\t", "\t", -1)
+	decodedValue = strings.Replace(decodedValue, "\\r", "\r", -1)
+	decodedValue = strings.Replace(decodedValue, "\\n", "\n", -1)
+	decodedValue = strings.Replace(decodedValue, "\\f", "\f", -1)
+	decodedValue = strings.Replace(decodedValue, "\\b", "\b", -1)
+	decodedValue = strings.Replace(decodedValue, "\\/", "/", -1)
+	decodedValue = strings.Replace(decodedValue, "\\\\", "\\", -1)
+	decodedValue = strings.Replace(decodedValue, "\\\"", "\"", -1)
+	return decodedValue
+}
