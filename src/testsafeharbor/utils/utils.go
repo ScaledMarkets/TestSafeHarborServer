@@ -39,11 +39,13 @@ type TestContext struct {
 	CurrentTestPassed bool
 	NoOfTests int
 	NoOfTestsThatFailed int
+	RedisPswd string
 }
 
-func NewTestContext(hostname, port string,
+func NewTestContext(hostname string, port int,
 	setSessionId func(req *http.Request, sessionId string),
-	stopOnFirstError, doNotPerformDockerTests bool) *TestContext {
+	stopOnFirstError, doNotPerformDockerTests bool,
+	redisPswd string) *TestContext {
 
 	return &TestContext{
 		RestContext: *rest.CreateRestContext(hostname, port, setSessionId),
@@ -53,8 +55,25 @@ func NewTestContext(hostname, port string,
 		TestStatus:  make(map[string]string),
 		NoOfTests:  0,
 		NoOfTestsThatFailed: 0,
+		RedisPswd: redisPswd,
 	}
 }
+
+func (testContext *TestContext) Print() {
+	testContext.RestContext.Print()
+	fmt.Println("TestContext:")
+	fmt.Println(fmt.Sprintf("\tSessionId: %s", testContext.SessionId))
+	fmt.Println(fmt.Sprintf("\tIsAdmin: %x", testContext.IsAdmin))
+	fmt.Println(fmt.Sprintf("\ttestName: %s", testContext.testName))
+	fmt.Println(fmt.Sprintf("\tStopOnFirstError: %x", testContext.StopOnFirstError))
+	fmt.Println(fmt.Sprintf("\tPerformDockerTests: %x", testContext.PerformDockerTests))
+	fmt.Println(fmt.Sprintf("\tCurrentTestPassed: %x", testContext.CurrentTestPassed))
+	fmt.Println(fmt.Sprintf("\tNoOfTests: %d", testContext.NoOfTests))
+	fmt.Println(fmt.Sprintf("\tNoOfTestsThatFailed: %d", testContext.NoOfTestsThatFailed))
+	fmt.Println(fmt.Sprintf("\tRedisPswd: %s", testContext.RedisPswd))
+}
+
+
 
 /*******************************************************************************
  * 

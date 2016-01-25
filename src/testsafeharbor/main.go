@@ -9,6 +9,7 @@ import (
 	//"net/http"
 	"os"
 	"flag"
+	"time"
 	
 	"redis"
 	
@@ -25,9 +26,10 @@ func main() {
 	
 	var help *bool = flag.Bool("help", false, "Provide help instructions.")
 	var hostname *string = flag.String("h", "localhost", "Internet address of server.")
-	var port *string = flag.String("p", "80", "Port server is on.")
-	var stopOnFirstError *bool = flag.Bool("stop", false, "Provide help instructions.")
+	var port *int = flag.Int("p", 80, "Port server is on.")
+	var stopOnFirstError *bool = flag.Bool("stop", false, "Stop after the first error.")
 	var doNotPerformDockerTests *bool = flag.Bool("n", false, "Do not perform docker tests.")
+	var redisPswd *string = flag.String("redispswd", "ahdal8934k383898&*kdu&^", "Redis password")
 
 	flag.Parse()
 
@@ -42,15 +44,17 @@ func main() {
 	}
 	
 	var testContext = utils.NewTestContext(*hostname, *port, utils.SetSessionId,
-		*stopOnFirstError, *doNotPerformDockerTests)
+		*stopOnFirstError, *doNotPerformDockerTests, *redisPswd)
+	
+	testContext.Print()
 		
 	fmt.Println("Note: Ensure that the docker daemon is running on the server.",
 		"To start the docker daemon, run 'sudo service docker start'.")
 	fmt.Println()
 	
 	//TestJSONDeserialization(testContext)
-	TestRedis(testContext)
-	//TestCreateRealmsAndUsers(testContext)
+	//TestRedis(testContext)
+	TestCreateRealmsAndUsers(testContext)
 	//TestCreateResources(testContext)
 	//TestCreateGroups(testContext)
 	//TestGetMy(testContext)
@@ -85,7 +89,8 @@ func TestRedis(testContext *utils.TestContext) {
 	
 	{
 		var spec *redis.ConnectionSpec =
-			redis.DefaultSpec().Host("52.11.26.209").Port(6379).Password("ahdal8934k383898&*kdu&^")
+			redis.DefaultSpec().Host(testContext.GetHostname()).Port(6379).Password(
+				testContext.RedisPswd)
 		var err error
 		client, err = redis.NewSynchClientWithSpec(spec);
 		testContext.AssertErrIsNil(err, "failed to create the client")
@@ -157,6 +162,25 @@ func TestJSONDeserialization(testContext *utils.TestContext) {
 		var json = "\"this is a string\""
 		var expected = "this is a string"
 		testContext.TryJsonDeserString(json, expected)
+		
+		json = "   \"\""
+		expected = ""
+		testContext.TryJsonDeserString(json, expected)
+		
+		json = "\"1\""
+		expected = "1"
+		testContext.TryJsonDeserString(json, expected)
+	}
+	
+	{
+		var json = "time \"2016-01-18T15:10:03.984179856Z\""
+		var expected time.Time
+		var err = expected.UnmarshalJSON([]byte("\"2016-01-18T15:10:03.984179856Z\""))
+		if err != nil {
+			fmt.Println("test setup error")
+			panic(err)
+		}
+		testContext.TryJsonDeserTime(json, expected)
 	}
 	
 	{
@@ -165,6 +189,40 @@ func TestJSONDeserialization(testContext *utils.TestContext) {
 	
 	{
 		testContext.TryJsonDeserNestedType()
+	}
+	
+	{
+		var json =  "{\"Id\": \"\"}"
+		testContext.TryJsonDeserComplex(json)
+	}
+	
+	{
+		var json =  "{\"Id\": \"\", \"ACLEntryIds\": [], \"Name\": \"testrealm\", " +
+			"\"Description\": \"For Testing\", \"ParentId\": \"\"}"
+		testContext.TryJsonDeserComplex(json)
+	}
+	
+	{
+		var json =  "{\"Id\": \"100000006\", \"ACLEntryIds\": [], \"Name\": \"testrealm\", " +
+			"\"Description\": \"For Testing\", \"ParentId\": \"\"}"
+		testContext.TryJsonDeserComplex(json)
+	}
+	
+	{
+		var json =  "{\"Id\": \"100000006\", \"ACLEntryIds\": [], \"Name\": \"testrealm\", " +
+			"\"Description\": \"For Testing\", \"ParentId\": \"\", " +
+			"\"CreationTime\": time \"2016-01-18T16:16:30.289421913Z\"}"
+		testContext.TryJsonDeserComplex(json)
+	}
+	
+	{
+		var json =  "{\"Id\": \"100000006\", \"ACLEntryIds\": [], \"Name\": \"testrealm\", " +
+			"\"Description\": \"For Testing\", \"ParentId\": \"\", " +
+			"\"CreationTime\": time \"2016-01-18T16:16:30.289421913Z\", " +
+			"\"AdminUserId\": \"testuser1\", \"OrgFullName\": \"Test Org\", " +
+			"\"UserObjIds\": [], \"GroupIds\": [], \"RepoIds\": [], " +
+			"\"FileDirectory\": \"Repositories/100000006\"}"
+		testContext.TryJsonDeserComplex(json)
 	}
 }
 

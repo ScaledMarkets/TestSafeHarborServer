@@ -5,7 +5,7 @@ import (
 	"reflect"
 	//"strings"
 	//"errors"
-	//"time"
+	"time"
 	//"runtime/debug"
 	
 	//"testsafeharbor/rest"
@@ -40,6 +40,30 @@ func (testContext *TestContext) TryJsonDeserString(json, expected string) {
 	value, err = parseJSON_string_value(json, &pos)
 	testContext.AssertErrIsNil(err, "")
 	testContext.AssertThat(value.IsValid(), "Value is not valid")
+	if testContext.AssertThat(value.String() == expected,
+		"value: " + value.String() + ", expected: " + expected) {
+		fmt.Println("Success: value=" + value.String())
+	}
+	testContext.PassTestIfNoFailures()
+}
+
+/*******************************************************************************
+ * 
+ */
+func (testContext *TestContext) TryJsonDeserTime(json string, expected time.Time) {
+	
+	testContext.StartTest("TryJsonDeserTime")
+
+	var value reflect.Value
+	var err error
+	var pos int = 0
+	value, err = parseJSON_time_value(json, &pos)
+	testContext.AssertErrIsNil(err, "")
+	testContext.AssertThat(value.IsValid(), "Value is not valid")
+	if testContext.AssertThat(value.Interface() == expected,
+		"value: " + value.String() + ", expected: " + expected.String()) {
+		fmt.Println("Success: value=" + value.String())
+	}
 	testContext.PassTestIfNoFailures()
 }
 
@@ -79,6 +103,7 @@ func (testContext *TestContext) TryJsonDeserSimple() {
 		//fmt.Println("\tabc2.Car=" + string(abc2.getCar()))
 		//fmt.Println("\tabc2.db=" + string(abc2.getDb()))
 	}
+	testContext.PassTestIfNoFailures()
 }
 
 /*******************************************************************************
@@ -122,4 +147,24 @@ func (testContext *TestContext) TryJsonDeserNestedType() {
 		//fmt.Println("\tabc2.db=" + string(abc2.getDb()))
 		fmt.Println(fmt.Sprintf("\tdef2.xyz=%d", def2.getXyz()))
 	}
+	testContext.PassTestIfNoFailures()
+}
+
+/*******************************************************************************
+ * 
+ */
+func (testContext *TestContext) TryJsonDeserComplex(json string) {
+	testContext.StartTest("TryJsonDeserComplex")
+	
+	
+	var values []reflect.Value
+	var err error
+	values, err = parseJSON(json)
+	testContext.AssertErrIsNil(err, "in parseJSON")
+	if ! testContext.AssertThat(values != nil, "Nil returned for values") { return }
+	if ! testContext.AssertThat(len(values) != 0, "Zero values returned") { return }
+	
+	
+	
+	testContext.PassTestIfNoFailures()
 }

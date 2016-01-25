@@ -15,14 +15,14 @@ import (
 type RestContext struct {
 	httpClient *http.Client
 	hostname string
-	port string
+	port int
 	setSessionId func(request *http.Request, id string)
 }
 
 /*******************************************************************************
  * 
  */
-func CreateRestContext(hostname string, port string, sessionIdSetter func(*http.Request, string)) *RestContext {
+func CreateRestContext(hostname string, port int, sessionIdSetter func(*http.Request, string)) *RestContext {
 	return &RestContext{
 		httpClient: &http.Client{
 			Transport: &http.Transport{
@@ -34,6 +34,16 @@ func CreateRestContext(hostname string, port string, sessionIdSetter func(*http.
 		setSessionId: sessionIdSetter,
 	}
 }
+
+func (restContext *RestContext) Print() {
+	fmt.Println("RestContext:")
+	fmt.Println(fmt.Sprintf("\thostname: %s", restContext.hostname))
+	fmt.Println(fmt.Sprintf("\tport: %d", restContext.port))
+}
+
+func (restContext *RestContext) GetHostname() string { return restContext.hostname }
+
+func (restContext *RestContext) GetPort() int { return restContext.port }
 
 /*******************************************************************************
  * Send a GET request to the SafeHarborServer, at the specified REST endpoint method
@@ -66,7 +76,7 @@ func (restContext *RestContext) sendReq(sessionId string, reqMethod string,
 
 	// Send REST POST request to server.
 	var urlstr string = fmt.Sprintf(
-		"http://%s:%s/%s",
+		"http://%s:%d/%s",
 		restContext.hostname, restContext.port, reqName)
 	
 	var data url.Values = url.Values{}
