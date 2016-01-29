@@ -65,7 +65,7 @@ func (testContext *TestContext) TryRedisGetJSONObject(redisClient redis.Client) 
 	// Reconstitute as object.
 	var typeName string
 	var obj interface{}
-	typeName, obj, err = GetObject(target, stringFromRedis)
+	typeName, obj, err = ReconstituteObject(target, stringFromRedis)
 	if ! testContext.AssertErrIsNil(err, "When reconstituting object") { return }
 	var reconstitutedABC ABC
 	var isType bool
