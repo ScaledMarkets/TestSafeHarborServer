@@ -1462,12 +1462,19 @@ func (testContext *TestContext) TryScanImage(scriptId, imageObjId string) string
 	var retUserId string = responseMap["UserObjId"].(string)
 	var retScanConfigId string = responseMap["ScanConfigId"].(string)
 	var retScore string = responseMap["Score"].(string)
+	var retVulnerabilityDescs = responseMap["VulnerabilityDescs"].([]map[string]interface{})
 	
 	testContext.AssertThat(retId != "", "Returned Id is empty")
 	testContext.AssertThat(retWhen != "", "Returned When is empty")
 	testContext.AssertThat(retUserId != "", "Returned UserId is empty")
 	testContext.AssertThat(retScanConfigId != "", "Returned ScanConfigId is empty")
 	testContext.AssertThat(retScore != "", "Returned Score is empty")
+	if testContext.AssertThat(len(retVulnerabilityDescs) > 0, "No vulnerabilities found") {
+	
+		var vulnDesc = retVulnerabilityDescs[0]
+		testContext.AssertThat(vulnDesc["VCE_ID"] != "",
+			"No VCE_ID value found for vulnerability")
+	}
 	
 	testContext.PassTestIfNoFailures()
 	return retScore

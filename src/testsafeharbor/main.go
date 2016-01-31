@@ -12,6 +12,7 @@ import (
 	"time"
 	
 	"redis"
+	"goredis"
 	
 	// SafeHarbor packages:
 	"testsafeharbor/utils"
@@ -53,6 +54,7 @@ func main() {
 	fmt.Println()
 	
 	//TestJSONDeserialization(testContext)
+	//TestGoRedis(testContext)
 	//TestRedis(testContext)
 	TestCreateRealmsAndUsers(testContext)
 	//TestCreateResources(testContext)
@@ -72,6 +74,48 @@ func main() {
 		fmt.Print(testName)
 	}
 	fmt.Println()
+}
+
+/*******************************************************************************
+ * Test the goredis API to verify understanding of it.
+ */
+func TestGoRedis(testContext *utils.TestContext) {
+
+	// -------------------------------------
+	// Test setup:
+	
+	var redis *goredis.Redis
+	var err error
+	
+	{
+		var network		= "tcp"
+		var host string = testContext.GetHostname()
+		var port int	= 6379
+		var db			= 1
+		var password	= testContext.RedisPswd
+		var timeout		= 5 * time.Second
+		var maxidle		= 1
+		
+		redis, err = goredis.Dial(&goredis.DialConfig{
+			network, (host + ":" + fmt.Sprintf("%d", port)), db, password, timeout, maxidle})
+		testContext.AssertErrIsNil(err, "In test setup, after Dial")
+	}
+	
+	// -------------------------------------
+	// Tests
+	//
+	
+	{
+		testContext.TryGoRedisPing(redis)
+	}
+	
+	{
+		testContext.TryGoRedisSetGetString(redis)
+	}
+	
+	{
+		testContext.TryGoRedisSet(redis)
+	}
 }
 
 /*******************************************************************************
