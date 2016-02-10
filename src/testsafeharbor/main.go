@@ -34,12 +34,8 @@ func main() {
 
 	flag.Parse()
 
-	if flag.NArg() > 0 {
-		utils.Usage()
-		os.Exit(2)
-	}
-	
 	if *help {
+		fmt.Println("Help:")
 		utils.Usage()
 		os.Exit(0)
 	}
@@ -57,12 +53,12 @@ func main() {
 	//TestGoRedis(testContext)
 	//TestRedis(testContext)
 	TestCreateRealmsAndUsers(testContext)
-	//TestCreateResources(testContext)
-	//TestCreateGroups(testContext)
-	//TestGetMy(testContext)
-	//TestAccessControl(testContext)
-	//TestUpdateAndReplace(testContext)
-	//TestDelete(testContext)
+	TestCreateResources(testContext)
+	TestCreateGroups(testContext)
+	TestGetMy(testContext)
+	TestAccessControl(testContext)
+	TestUpdateAndReplace(testContext)
+	TestDelete(testContext)
 	
 	//if testContext.PerformDockerTests { TestDockerFunctions(testContext) }
 	
