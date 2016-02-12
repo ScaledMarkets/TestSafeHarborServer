@@ -393,6 +393,7 @@ func (testContext *TestContext) TryCreateRepo(realmId string, name string,
 			"createRepo",
 			[]string{"Log", "RealmId", "Name", "Description"},
 			[]string{testContext.TestDemarcation(), realmId, name, desc})
+		fmt.Println("HTTP POST completed")
 	} else {
 		fmt.Println("Using SendFilePost")
 		resp, err = testContext.SendFilePost(testContext.SessionId,
@@ -400,8 +401,9 @@ func (testContext *TestContext) TryCreateRepo(realmId string, name string,
 			[]string{"Log", "RealmId", "Name", "Description"},
 			[]string{testContext.TestDemarcation(), realmId, name, desc},
 			optDockerfilePath)
+		fmt.Println("HTTP file post completed")
 	}
-	if err != nil { fmt.Println(err.Error()); return "" }
+	if ! testContext.AssertErrIsNil(err, "") { return "" }
 	
 	defer resp.Body.Close()
 
@@ -437,6 +439,7 @@ func (testContext *TestContext) TryAddDockerfile(repoId string, dockerfilePath s
 		[]string{"Log", "RepoId", "Description"},
 		[]string{testContext.TestDemarcation(), repoId, desc},
 		dockerfilePath)
+	if ! testContext.AssertErrIsNil(err, "") { return "" }
 	
 	defer resp.Body.Close()
 

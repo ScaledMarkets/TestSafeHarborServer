@@ -166,9 +166,9 @@ func (testContext *TestContext) AssertThat(condition bool, msg string) bool {
  */
 func (testContext *TestContext) AssertErrIsNil(err error, msg string) bool {
 	if err == nil { return true }
-	testContext.FailTest()
-	fmt.Println("Message:", msg)
 	fmt.Println("Original error message:", err.Error())
+	fmt.Println("Supplemental message:", msg)
+	testContext.FailTest()
 	return false
 }
 

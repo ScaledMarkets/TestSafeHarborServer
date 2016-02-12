@@ -76,6 +76,8 @@ func main() {
  * Test the goredis API to verify understanding of it.
  */
 func TestGoRedis(testContext *utils.TestContext) {
+	
+	fmt.Println("\nTest suite TestGoRedis------------------\n")
 
 	// -------------------------------------
 	// Test setup:
@@ -122,6 +124,8 @@ func TestGoRedis(testContext *utils.TestContext) {
  */
 func TestRedis(testContext *utils.TestContext) {
 
+	fmt.Println("\nTest suite TestRedis------------------\n")
+
 	// -------------------------------------
 	// Test setup:
 	
@@ -158,6 +162,8 @@ func TestRedis(testContext *utils.TestContext) {
  * 
  */
 func TestJSONDeserialization(testContext *utils.TestContext) {
+
+	fmt.Println("\nTest suite TestJSONDeserialization------------------\n")
 
 	{
 		var json = "{\"abc\": 123, \"bs\": \"this_is_a_string\", " +
@@ -274,6 +280,8 @@ func TestJSONDeserialization(testContext *utils.TestContext) {
  */
 func TestCreateRealmsAndUsers(testContext *utils.TestContext) {
 	
+	fmt.Println("\nTest suite TestCreateRealmsAndUsers------------------\n")
+
 	defer testContext.TryClearAll()
 	
 	// -------------------------------------
@@ -281,8 +289,8 @@ func TestCreateRealmsAndUsers(testContext *utils.TestContext) {
 	
 	var realm4AdminUserId = "realm4admin"
 	var realm4AdminPswd = "RealmPswd"
-	var defaultUserId = "testuser1" // the built-in user that exists in debug mode
-	var defaultUserPswd = "Password1"
+	var joeUserId = "jdoe"
+	var joePswd = "weakpswd"
 	
 	// -------------------------------------
 	// Tests
@@ -315,25 +323,6 @@ func TestCreateRealmsAndUsers(testContext *utils.TestContext) {
 		testContext.AssertThat(testContext.IsAdmin, "User is not flagged as admin")
 	}
 	
-	// Log in as a different user.
-	{
-		testContext.TryAuthenticate(defaultUserId, defaultUserPswd, true)
-	}
-	
-	// -------------------------------------
-	// User id defaultUserId is authenticated.
-	//
-	
-	// Verify that the authenticated user is an admin user.
-	{
-		testContext.AssertThat(testContext.IsAdmin, "User is flagged as admin")
-	}
-	
-	// Log back in as realm4admin.
-	{
-		testContext.TryAuthenticate(realm4AdminUserId, realm4AdminPswd, true)
-	}
-
 	// Check that we can retrieve the users of a realm.
 	{
 		var realmUsers []string = testContext.TryGetRealmUsers(realm4Id)
@@ -350,8 +339,8 @@ func TestCreateRealmsAndUsers(testContext *utils.TestContext) {
 	// Test ability to create a user for a realm.
 	{
 		var johnDoeAdminRealms []interface{}
-		johnDoeUserObjId, johnDoeAdminRealms = testContext.TryCreateUser("jdoe", "John Doe",
-			"johnd@gmail.com", "weakpswd", realm4Id)
+		johnDoeUserObjId, johnDoeAdminRealms = testContext.TryCreateUser(
+			joeUserId, "John Doe", "johnd@gmail.com", joePswd, realm4Id)
 		testContext.AssertThat(len(johnDoeAdminRealms) == 0, "Wrong number of admin realms")
 	}
 	
@@ -364,10 +353,15 @@ func TestCreateRealmsAndUsers(testContext *utils.TestContext) {
 	// User id jdoe is authenticated
 	//
 	
+	// Verify that the authenticated user is not an admin user.
+	{
+		testContext.AssertThat(! testContext.IsAdmin, "User is flagged as admin")
+	}
+	
 	{
 		var realmIds []string = testContext.TryGetAllRealms()
 		// Assumes that server is in debug mode, which creates a test realm.
-		testContext.AssertThat(len(realmIds) == 3, "Wrong number of realms found")
+		testContext.AssertThat(len(realmIds) == 2, "Wrong number of realms found")
 	}
 	
 	// Test ability to retrieve user by user id from realm.
@@ -395,6 +389,8 @@ func TestCreateRealmsAndUsers(testContext *utils.TestContext) {
  */
 func TestCreateResources(testContext *utils.TestContext) {
 	
+	fmt.Println("\nTest suite TestCreateResources------------------\n")
+
 	defer testContext.TryClearAll()
 	
 	// -------------------------------------
@@ -529,6 +525,8 @@ func TestCreateResources(testContext *utils.TestContext) {
  */
 func TestCreateGroups(testContext *utils.TestContext) {
 	
+	fmt.Println("\nTest suite TestCreateGroups------------------\n")
+
 	defer testContext.TryClearAll()
 	
 	// -------------------------------------
@@ -616,6 +614,8 @@ func TestCreateGroups(testContext *utils.TestContext) {
  */
 func TestGetMy(testContext *utils.TestContext) {
 		
+	fmt.Println("\nTest suite TestGetMy------------------\n")
+
 	defer testContext.TryClearAll()
 	
 	// -------------------------------------
@@ -744,6 +744,8 @@ func TestGetMy(testContext *utils.TestContext) {
  */
 func TestAccessControl(testContext *utils.TestContext) {
 	
+	fmt.Println("\nTest suite TestAccessControl------------------\n")
+
 	defer testContext.TryClearAll()
 	
 	// -------------------------------------
@@ -844,6 +846,8 @@ func TestAccessControl(testContext *utils.TestContext) {
  */
 func TestUpdateAndReplace(testContext *utils.TestContext) {
 	
+	fmt.Println("\nTest suite TestUpdateAndReplace------------------\n")
+
 	defer testContext.TryClearAll()
 	
 	// -------------------------------------
@@ -966,6 +970,8 @@ func TestUpdateAndReplace(testContext *utils.TestContext) {
  */
 func TestDelete(testContext *utils.TestContext) {
 
+	fmt.Println("\nTest suite TestDelete------------------\n")
+
 	defer testContext.TryClearAll()
 	
 	// -------------------------------------
@@ -1074,6 +1080,8 @@ func TestDelete(testContext *utils.TestContext) {
  * Creates/uses the following:
  */
 func TestDockerFunctions(testContext *utils.TestContext) {
+
+	fmt.Println("\nTest suite TestDockerFunctions------------------\n")
 
 	defer testContext.TryClearAll()
 	
