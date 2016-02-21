@@ -50,6 +50,38 @@ func (testContext *TestContext) TryJsonDeserString(json, expected string) {
 /*******************************************************************************
  * 
  */
+func (testContext *TestContext) TryJsonDeserByteArray(json string, expected []int64) {
+	
+	testContext.StartTest("TryJsonDeserByteArray")
+
+	var value reflect.Value
+	var err error
+	var pos int = 0
+	value, err = parseJSON_array_value(json, &pos)
+	testContext.AssertErrIsNil(err, "")
+	testContext.AssertThat(value.IsValid(), "Value is not valid")
+	testContext.AssertThat(value.Len() == len(expected),
+		fmt.Sprintf("Length of value is %d, expected %d", value.Len(), len(expected)))
+	for i, e := range expected {
+		var v int64 = value.Index(i).Int()
+		testContext.AssertThat(e == v,
+			fmt.Sprintf("Value[%d] is %d - expected %d", i, v, e))
+	}
+	testContext.PassTestIfNoFailures()
+	if testContext.CurrentTestPassed {
+		fmt.Print("Success: value=\n\t[")
+		var firstTime = true
+		for i, _ := range expected {
+			if firstTime { firstTime = false } else { fmt.Print(", ") }
+			fmt.Print(fmt.Sprintf("%d", value.Index(i).Int()))
+		}
+		fmt.Println("]")
+	}
+}
+
+/*******************************************************************************
+ * 
+ */
 func (testContext *TestContext) TryJsonDeserTime(json string, expected time.Time) {
 	
 	testContext.StartTest("TryJsonDeserTime")

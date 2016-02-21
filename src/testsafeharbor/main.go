@@ -49,18 +49,18 @@ func main() {
 		"To start the docker daemon, run 'sudo service docker start'.")
 	fmt.Println()
 	
-	//TestJSONDeserialization(testContext)
+	TestJSONDeserialization(testContext)
 	//TestGoRedis(testContext)
 	//TestRedis(testContext)
-	TestCreateRealmsAndUsers(testContext)
-	TestCreateResources(testContext)
-	TestCreateGroups(testContext)
-	TestGetMy(testContext)
-	TestAccessControl(testContext)
-	TestUpdateAndReplace(testContext)
-	TestDelete(testContext)
+	//TestCreateRealmsAndUsers(testContext)
+	//TestCreateResources(testContext)
+	//TestCreateGroups(testContext)
+	//TestGetMy(testContext)
+	//TestAccessControl(testContext)
+	//TestUpdateAndReplace(testContext)
+	//TestDelete(testContext)
 	
-	//if testContext.PerformDockerTests { TestDockerFunctions(testContext) }
+	if testContext.PerformDockerTests { TestDockerFunctions(testContext) }
 	
 	fmt.Println()
 	fmt.Println(fmt.Sprintf("%d tests failed out of %d:", testContext.NoOfTestsThatFailed,
@@ -219,6 +219,12 @@ func TestJSONDeserialization(testContext *utils.TestContext) {
 	}
 	
 	{
+		var json = "[244, 26, 234, 221, 169, 129, 22, 245, 25, 151, 124, 137, 22, 44, 202, 205, 84, 206, 21, 99, 170, 55, 200, 12, 100, 137, 211, 73, 140, 41, 63, 10, 244, 166, 51, 24, 160, 2, 53, 171, 231, 244, 254, 58, 56, 140, 54, 4, 253, 195, 221, 75, 172, 173, 175, 10, 12, 11, 107, 0, 64, 64, 207, 187]"
+		var expected []int64 = []int64{244, 26, 234, 221, 169, 129, 22, 245, 25, 151, 124, 137, 22, 44, 202, 205, 84, 206, 21, 99, 170, 55, 200, 12, 100, 137, 211, 73, 140, 41, 63, 10, 244, 166, 51, 24, 160, 2, 53, 171, 231, 244, 254, 58, 56, 140, 54, 4, 253, 195, 221, 75, 172, 173, 175, 10, 12, 11, 107, 0, 64, 64, 207, 187}
+		testContext.TryJsonDeserByteArray(json, expected)
+	}
+	
+	{
 		var json = "time \"2016-01-18T15:10:03.984179856Z\""
 		var expected time.Time
 		var err = expected.UnmarshalJSON([]byte("\"2016-01-18T15:10:03.984179856Z\""))
@@ -238,36 +244,47 @@ func TestJSONDeserialization(testContext *utils.TestContext) {
 	}
 	
 	{
-		var json =  "{\"Id\": \"\"}"
+		var json = "{\"Id\": \"\"}"
 		testContext.TryJsonDeserComplex(json)
 	}
 	
 	{
-		var json =  "{\"Id\": \"\", \"ACLEntryIds\": [], \"Name\": \"testrealm\", " +
+		var json = "{\"Id\": \"\", \"ACLEntryIds\": [], \"Name\": \"testrealm\", " +
 			"\"Description\": \"For Testing\", \"ParentId\": \"\"}"
 		testContext.TryJsonDeserComplex(json)
 	}
 	
 	{
-		var json =  "{\"Id\": \"100000006\", \"ACLEntryIds\": [], \"Name\": \"testrealm\", " +
+		var json = "{\"Id\": \"100000006\", \"ACLEntryIds\": [], \"Name\": \"testrealm\", " +
 			"\"Description\": \"For Testing\", \"ParentId\": \"\"}"
 		testContext.TryJsonDeserComplex(json)
 	}
 	
 	{
-		var json =  "{\"Id\": \"100000006\", \"ACLEntryIds\": [], \"Name\": \"testrealm\", " +
+		var json = "{\"Id\": \"100000006\", \"ACLEntryIds\": [], \"Name\": \"testrealm\", " +
 			"\"Description\": \"For Testing\", \"ParentId\": \"\", " +
 			"\"CreationTime\": time \"2016-01-18T16:16:30.289421913Z\"}"
 		testContext.TryJsonDeserComplex(json)
 	}
 	
 	{
-		var json =  "{\"Id\": \"100000006\", \"ACLEntryIds\": [], \"Name\": \"testrealm\", " +
+		var json = "{\"Id\": \"100000006\", \"ACLEntryIds\": [], \"Name\": \"testrealm\", " +
 			"\"Description\": \"For Testing\", \"ParentId\": \"\", " +
 			"\"CreationTime\": time \"2016-01-18T16:16:30.289421913Z\", " +
 			"\"AdminUserId\": \"testuser1\", \"OrgFullName\": \"Test Org\", " +
 			"\"UserObjIds\": [], \"GroupIds\": [], \"RepoIds\": [], " +
 			"\"FileDirectory\": \"Repositories/100000006\"}"
+		testContext.TryJsonDeserComplex(json)
+	}
+	
+	{
+		var json = "{\"Id\": \"100000007\", \"IsActive\": true, " +
+			"\"Name\": \"realm 4 Admin Full Name\", " +
+			"\"CreationTime\": time \"2016-02-21T18:49:08.576404647Z\", " +
+			"\"RealmId\": \"100000006\", \"ACLEntryIds\": [\"100000008\"], " +
+			"\"UserId\": \"realm4admin\", \"EmailAddress\": \"realm4admin@gmail.com\", " +
+			"\"PasswordHash\": [244, 26, 234, 221, 169, 129, 22, 245, 25, 151, 124, 137, 22, 44, 202, 205, 84, 206, 21, 99, 170, 55, 200, 12, 100, 137, 211, 73, 140, 41, 63, 10, 244, 166, 51, 24, 160, 2, 53, 171, 231, 244, 254, 58, 56, 140, 54, 4, 253, 195, 221, 75, 172, 173, 175, 10, 12, 11, 107, 0, 64, 64, 207, 187], " +
+			"\"GroupIds\": [], \"MostRecentLoginAttempts\": [], \"EventIds\": []}"
 		testContext.TryJsonDeserComplex(json)
 	}
 }
