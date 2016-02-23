@@ -49,10 +49,10 @@ func main() {
 		"To start the docker daemon, run 'sudo service docker start'.")
 	fmt.Println()
 	
-	TestJSONDeserialization(testContext)
+	//TestJSONDeserialization(testContext)
 	//TestGoRedis(testContext)
 	//TestRedis(testContext)
-	//TestCreateRealmsAndUsers(testContext)
+	TestCreateRealmsAndUsers(testContext)
 	//TestCreateResources(testContext)
 	//TestCreateGroups(testContext)
 	//TestGetMy(testContext)
