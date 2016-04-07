@@ -16,6 +16,7 @@ import (
 	
 	// SafeHarbor packages:
 	"testsafeharbor/utils"
+	"testsafeharbor/rest"
 )
 
 const (
@@ -49,10 +50,11 @@ func main() {
 		"To start the docker daemon, run 'sudo service docker start'.")
 	fmt.Println()
 	
+	TestDockerRegistry(testContext)
 	//TestJSONDeserialization(testContext)
 	//TestGoRedis(testContext)
 	//TestRedis(testContext)
-	TestCreateRealmsAndUsers(testContext)
+	//TestCreateRealmsAndUsers(testContext)
 	//TestCreateResources(testContext)
 	//TestCreateGroups(testContext)
 	//TestGetMy(testContext)
@@ -70,6 +72,49 @@ func main() {
 		fmt.Print(testName)
 	}
 	fmt.Println()
+}
+
+/*******************************************************************************
+ * 
+ */
+func TestDockerRegistry(testContext *utils.TestContext) {
+	
+	fmt.Println("\nTest suite TestDockerRegistry------------------\n")
+
+	// Auth:
+	// https://github.com/docker/distribution/blob/master/docs/deploying.md
+	var registryHost = ""
+	var registryPort = ""
+	var registryUserId = ""
+	var registryPassword = ""
+	
+	var registry *DockerRegistry
+	var err error
+	registry, err = utils.OpenDockerRegistryConnection(registryHost, registryPort,
+		registryUserId, registryPassword)
+	testContext.AssertErrIsNil(err, "In opening connection to docker registry")
+	
+	// Test Inspect
+	{
+		var exists bool
+		exists, err = registry.ImageExists(name string, tag string)
+		testContext.AssertErrIsNil(err, "While calling ImageExists")
+		testContext.AssertThat(exists, "Did not find image")
+	}
+	
+	// Test getting image.
+	{
+		registry.GetImage
+		testContext.AssertErrIsNil(err, "While calling GetImage")
+		testContext.AssertThat()
+	}
+	
+	// Test deleting image.
+	{
+		registry.DeleteImage
+		testContext.AssertErrIsNil(err, "DeleteImage")
+		testContext.AssertThat()
+	}
 }
 
 /*******************************************************************************
@@ -316,7 +361,7 @@ func TestCreateRealmsAndUsers(testContext *utils.TestContext) {
 	var realm4Id string
 	//var realm4AdminObjId string
 	//var defaultUserObjId string
-
+	
 	// Verify that we can create a realm without being logged in first.
 	{
 		var user4AdminRealms []interface{}
@@ -350,7 +395,7 @@ func TestCreateRealmsAndUsers(testContext *utils.TestContext) {
 	{
 		testContext.TryCreateRealm("my2ndrealm", "A Big Company", "bigshotadmin")
 	}
-
+	
 	var johnDoeUserObjId string
 	
 	// Test ability to create a user for a realm.
@@ -359,6 +404,7 @@ func TestCreateRealmsAndUsers(testContext *utils.TestContext) {
 		johnDoeUserObjId, johnDoeAdminRealms = testContext.TryCreateUser(
 			joeUserId, "John Doe", "johnd@gmail.com", joePswd, realm4Id)
 		testContext.AssertThat(len(johnDoeAdminRealms) == 0, "Wrong number of admin realms")
+		fmt.Println(johnDoeUserObjId)
 	}
 	
 	// Login as the user that we just created.
@@ -970,12 +1016,15 @@ func TestUpdateAndReplace(testContext *utils.TestContext) {
 	{
 		testContext.TryAuthenticate(realmXYAdminUserId, realmXYAdminPswd, true)
 		if testContext.TryMoveUserToRealm(realmXJohnObjId, realmYId) {
-			// Verify that Sarah is no longer in her realm.
+			// Verify that John is no longer in her realm.
 			var responseMap = testContext.TryGetUserDesc(realmXJohnUserId)
 			if testContext.CurrentTestPassed {
-				// Verify that Sarah is in John's realm.
-				testContext.AssertThat(responseMap["RealmId"] == realmYId,
-					"Error: Realm move failed")
+				// Verify that John is in realm Y.
+				if ! testContext.AssertThat(responseMap["RealmId"] == realmYId,
+					"Error: Realm move failed") {
+					fmt.Println("Reponse map:")
+					rest.PrintMap(responseMap)
+				}
 			}
 		}
 	}

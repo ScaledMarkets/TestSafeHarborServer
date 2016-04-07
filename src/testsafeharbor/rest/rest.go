@@ -14,23 +14,30 @@ import (
 
 type RestContext struct {
 	httpClient *http.Client
+	ssl bool
 	hostname string
 	port int
+	UserId string
+	Password string
 	setSessionId func(request *http.Request, id string)
 }
 
 /*******************************************************************************
- * 
+ * userId and password are optional.
  */
-func CreateRestContext(hostname string, port int, sessionIdSetter func(*http.Request, string)) *RestContext {
+func CreateRestContext(ssl bool, hostname string, port int, userId string, password string,
+	sessionIdSetter func(*http.Request, string)) *RestContext {
 	return &RestContext{
 		httpClient: &http.Client{
 			Transport: &http.Transport{
 				DisableCompression: true,
 			},
 		},
+		ssl: ssl,
 		hostname: hostname,
 		port: port,
+		UserId: userId,
+		Password: password,
 		setSessionId: sessionIdSetter,
 	}
 }
@@ -41,15 +48,66 @@ func (restContext *RestContext) Print() {
 	fmt.Println(fmt.Sprintf("\tport: %d", restContext.port))
 }
 
+func (restContext *RestContext) GetScheme() string {
+	if restContext.ssl { return "https" } else { return "http" }
+}
+
 func (restContext *RestContext) GetHostname() string { return restContext.hostname }
 
 func (restContext *RestContext) GetPort() int { return restContext.port }
 
+func (restContext *RestContext) GetUserId() string { return restContext.UserId }
+
+func (restContext *RestContext) getPassword() string { return restContext.Password }
+
 /*******************************************************************************
  * Send a GET request to the SafeHarborServer, at the specified REST endpoint method
- * (reqName), with the specified query parameters.
+ * (reqName), with the specified query parameters, using basic authentication.
  */
-func (restContext *RestContext) SendGet(sessionId string, reqName string, names []string,
+func (restContext *RestContext) SendBasicGet(reqName string, names []string,
+	values []string) (*http.Response, error) {
+	
+	var urlstr string = restContext.getURL(reqName)
+	var resp *http.Response
+	resp, err = restContext.httpClient.Get(urlstr)
+	if err != nil { return nil, err }
+	return resp, nil
+}
+
+/*******************************************************************************
+ * Send a POST request to the SafeHarborServer, at the specified REST endpoint method
+ * (reqName), with the specified query parameters, using basic authentication.
+ */
+func (restContext *RestContext) SendBasicPost(reqName string, names []string,
+	values []string) (*http.Response, error) {
+	
+	var urlstr string = restContext.getURL(reqName)
+	var data = make(map[string][]string)
+	for i, value := range values { data[names[i]] = make {string[], value } }
+	var resp *http.Response
+	resp, err = restContext.httpClient.PostForm(urlstr, data)
+	if err != nil { return nil, err }
+	return resp, nil
+}
+
+/*******************************************************************************
+ * Send request as a multi-part so that a file can be attached. Use basic authentication.
+ */
+func (restContext *RestContext) SendBasicFilePost(reqName string, names []string,
+	values []string, path string) (*http.Response, error) {
+
+	var urlstr string = restContext.getURL(reqName)
+	var resp *http.Response
+	resp, err = restContext.httpClient.Post(url string, bodyType string, body io.Reader)
+	if err != nil { return nil, err }
+	return resp, nil
+}
+
+/*******************************************************************************
+ * Send a GET request to the SafeHarborServer, at the specified REST endpoint method
+ * (reqName), with the specified query parameters, using the specified session Id.
+ */
+func (restContext *RestContext) SendSessionGet(sessionId string, reqName string, names []string,
 	values []string) (*http.Response, error) {
 
 	return restContext.sendReq(sessionId, "GET", reqName, names, values)
@@ -59,8 +117,9 @@ func (restContext *RestContext) SendGet(sessionId string, reqName string, names 
  * Send an HTTP POST formatted according to what is required by the SafeHarborServer
  * REST API, as defined in the slides "SafeHarbor REST API" of the design,
  * https://drive.google.com/open?id=1r6Xnfg-XwKvmF4YppEZBcxzLbuqXGAA2YCIiPb_9Wfo
+ * Use the specified session Id.
  */
-func (restContext *RestContext) SendPost(sessionId string, reqName string, names []string,
+func (restContext *RestContext) SendSessionPost(sessionId string, reqName string, names []string,
 	values []string) (*http.Response, error) {
 
 	return restContext.sendReq(sessionId, "POST", reqName, names, values)
@@ -71,14 +130,11 @@ func (restContext *RestContext) SendPost(sessionId string, reqName string, names
  * REST API, as defined in the slides "SafeHarbor REST API" of the design,
  * https://drive.google.com/open?id=1r6Xnfg-XwKvmF4YppEZBcxzLbuqXGAA2YCIiPb_9Wfo
  */
-func (restContext *RestContext) sendReq(sessionId string, reqMethod string,
+func (restContext *RestContext) sendSessionReq(sessionId string, reqMethod string,
 	reqName string, names []string, values []string) (*http.Response, error) {
 
 	// Send REST POST request to server.
-	var urlstr string = fmt.Sprintf(
-		"http://%s:%d/%s",
-		restContext.hostname, restContext.port, reqName)
-	
+	var urlstr string = restContext.getURL(reqName)
 	var data url.Values = url.Values{}
 	for index, each := range names {
 		data[each] = []string{values[index]}
@@ -88,9 +144,12 @@ func (restContext *RestContext) sendReq(sessionId string, reqMethod string,
 	var err error
 	request, err = http.NewRequest(reqMethod, urlstr, reader)
 	if err != nil { return nil, err }
-	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	if sessionId != "" { restContext.setSessionId(request, sessionId) }
-	//if sessionId != "" { request.Header.Set("Session-Id", sessionId) }
+	if reqMethod == "POST" {
+		request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	}
+	if sessionId != "" {
+		restContext.setSessionId(request, sessionId)
+	}
 	
 	var resp *http.Response
 	resp, err = restContext.httpClient.Do(request)
@@ -98,16 +157,13 @@ func (restContext *RestContext) sendReq(sessionId string, reqMethod string,
 	return resp, nil
 }
 
-
 /*******************************************************************************
  * Send request as a multi-part so that a file can be attached.
  */
-func (restContext *RestContext) SendFilePost(sessionId string, reqName string, names []string,
+func (restContext *RestContext) SendSessionFilePost(sessionId string, reqName string, names []string,
 	values []string, path string) (*http.Response, error) {
 
-	var urlstr string = fmt.Sprintf(
-		"http://%s:%d/%s",
-		restContext.hostname, restContext.port, reqName)
+	var urlstr string = restContext.getURL(reqName)
 
 	// Prepare a form that you will submit to that URL.
 	var b bytes.Buffer
@@ -243,6 +299,19 @@ func (restContext *RestContext) Verify200Response(resp *http.Response) bool {
 	}
 	fmt.Println("Response code ", resp.StatusCode)
 	return is200
+}
+
+/*******************************************************************************
+ * 
+ */
+func (restContext *RestContext) getURL(reqName string) {
+	var basicAuthCreds = ""
+	if restContext.UserId != "" {
+		basicAuthCreds = fmt.Sprintf("%s:%s@", restContext.UserId, restContext.Password)
+	}
+	return fmt.Sprintf(
+		"%s://%s%s:%d/%s",
+		restContext.GetScheme(), basicAuthCreds, restContext.hostname, restContext.port, reqName)
 }
 
 /*******************************************************************************

@@ -48,7 +48,7 @@ func NewTestContext(hostname string, port int,
 	redisPswd string) *TestContext {
 
 	return &TestContext{
-		RestContext: *rest.CreateRestContext(hostname, port, setSessionId),
+		RestContext: *rest.CreateRestContext(false, hostname, port, "", "", setSessionId),
 		SessionId: "",
 		StopOnFirstError: stopOnFirstError,
 		PerformDockerTests: ! doNotPerformDockerTests,

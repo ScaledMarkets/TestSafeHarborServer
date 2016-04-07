@@ -17,7 +17,7 @@ func (testContext *TestContext) TryGetGroupDesc(groupId string) {
 	testContext.StartTest("TryGetGroupDesc")
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"getGroupDesc",
 		[]string{"Log", "GroupId"},
 		[]string{testContext.TestDemarcation(), groupId})
@@ -52,7 +52,7 @@ func (testContext *TestContext) TryGetRepoDesc(repoId string) {
 	testContext.StartTest("TryGetRepoDesc")
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"getRepoDesc",
 		[]string{"Log", "RepoId"},
 		[]string{testContext.TestDemarcation(), repoId})
@@ -92,7 +92,7 @@ func (testContext *TestContext) TryGetDockerImageDesc(dockerImageId string,
 	testContext.StartTest("getDockerImageDesc")
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"getDockerImageDesc",
 		[]string{"Log", "DockerImageId"},
 		[]string{testContext.TestDemarcation(), dockerImageId})
@@ -143,7 +143,7 @@ func (testContext *TestContext) TryGetDockerfileDesc(dockerfileId string) {
 	testContext.StartTest("getDockerfileDesc")
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"getDockerfileDesc",
 		[]string{"Log", "DockerfileId"},
 		[]string{testContext.TestDemarcation(), dockerfileId})
@@ -177,7 +177,7 @@ func (testContext *TestContext) TryCreateRealm(realmName, orgFullName,
 	testContext.StartTest("TryCreateRealm")
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"createRealm",
 		[]string{"Log", "RealmName", "OrgFullName", "Description"},
 		[]string{testContext.TestDemarcation(), realmName, orgFullName, desc})
@@ -213,7 +213,7 @@ func (testContext *TestContext) TryCreateUser(userId string, userName string,
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"createUser",
 		[]string{"Log", "UserId", "UserName", "EmailAddress", "Password", "RealmId"},
 		[]string{testContext.TestDemarcation(), userId, userName, email, pswd, realmId})
@@ -254,7 +254,7 @@ func (testContext *TestContext) TryAuthenticate(userId string, pswd string,
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"authenticate",
 		[]string{"Log", "UserId", "Password"},
 		[]string{testContext.TestDemarcation(), userId, pswd})
@@ -300,7 +300,7 @@ func (testContext *TestContext) TryDisableUser(userObjId string) bool {
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"disableUser",
 		[]string{"Log", "UserObjId"},
 		[]string{testContext.TestDemarcation(), userObjId})
@@ -328,7 +328,7 @@ func (testContext *TestContext) TryDeleteGroup(groupId string) bool {
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"deleteGroup",
 		[]string{"Log", "GroupId"},
 		[]string{testContext.TestDemarcation(), groupId})
@@ -356,7 +356,7 @@ func (testContext *TestContext) TryLogout() bool {
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"logout",
 		[]string{"Log"},
 		[]string{testContext.TestDemarcation()})
@@ -388,15 +388,15 @@ func (testContext *TestContext) TryCreateRepo(realmId string, name string,
 	var err error
 	
 	if optDockerfilePath == "" {
-		fmt.Println("Using SendPost")
-		resp, err = testContext.SendPost(testContext.SessionId,
+		fmt.Println("Using SendSessionPost")
+		resp, err = testContext.SendSessionPost(testContext.SessionId,
 			"createRepo",
 			[]string{"Log", "RealmId", "Name", "Description"},
 			[]string{testContext.TestDemarcation(), realmId, name, desc})
 		fmt.Println("HTTP POST completed")
 	} else {
-		fmt.Println("Using SendFilePost")
-		resp, err = testContext.SendFilePost(testContext.SessionId,
+		fmt.Println("Using SendSessionFilePost")
+		resp, err = testContext.SendSessionFilePost(testContext.SessionId,
 			"createRepo",
 			[]string{"Log", "RealmId", "Name", "Description"},
 			[]string{testContext.TestDemarcation(), realmId, name, desc},
@@ -434,7 +434,7 @@ func (testContext *TestContext) TryAddDockerfile(repoId string, dockerfilePath s
 	fmt.Println("\t", dockerfilePath)
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendFilePost(testContext.SessionId,
+	resp, err = testContext.SendSessionFilePost(testContext.SessionId,
 		"addDockerfile",
 		[]string{"Log", "RepoId", "Description"},
 		[]string{testContext.TestDemarcation(), repoId, desc},
@@ -468,7 +468,7 @@ func (testContext *TestContext) TryGetDockerfiles(repoId string) []string {
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"getDockerfiles",
 		[]string{"Log", "RepoId"},
 		[]string{testContext.TestDemarcation(), repoId})
@@ -510,7 +510,7 @@ func (testContext *TestContext) TryExecDockerfile(repoId string, dockerfileId st
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"execDockerfile",
 		[]string{"Log", "RepoId", "DockerfileId", "ImageName"},
 		[]string{testContext.TestDemarcation(), repoId, dockerfileId, imageName})
@@ -547,8 +547,8 @@ func (testContext *TestContext) TryAddAndExecDockerfile(repoId string, desc stri
 	
 	var resp *http.Response
 	var err error
-	//resp, err = testContext.SendFilePost(testContext.SessionId,
-	resp, err = testContext.SendFilePost("",
+	//resp, err = testContext.SendSessionFilePost(testContext.SessionId,
+	resp, err = testContext.SendSessionFilePost("",
 		"addAndExecDockerfile",
 		[]string{"Log", "RepoId", "Description", "ImageName", "SessionId"},
 		[]string{testContext.TestDemarcation(), repoId, desc, imageName, testContext.SessionId},
@@ -584,7 +584,7 @@ func (testContext *TestContext) TryGetDockerImages(repoId string) []string {
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"getDockerImages",
 		[]string{"Log", "RepoId"},
 		[]string{testContext.TestDemarcation(), repoId})
@@ -622,7 +622,7 @@ func (testContext *TestContext) TryGetUserDesc(userId string) map[string]interfa
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"getUserDesc",
 		[]string{"Log", "UserId"},
 		[]string{testContext.TestDemarcation(), userId})
@@ -662,7 +662,7 @@ func (testContext *TestContext) TryCreateGroup(realmId, name, description string
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"createGroup",
 		[]string{"Log", "RealmId", "Name", "Description", "AddMe"},
 		[]string{testContext.TestDemarcation(), realmId, name, description, addMeStr})
@@ -702,7 +702,7 @@ func (testContext *TestContext) TryGetGroupUsers(groupId string) []string {
 
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"getGroupUsers",
 		[]string{"Log", "GroupId"},
 		[]string{testContext.TestDemarcation(), groupId})
@@ -743,7 +743,7 @@ func (testContext *TestContext) TryAddGroupUser(groupId, userId string) bool {
 
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"addGroupUser",
 		[]string{"Log", "GroupId", "UserObjId"},
 		[]string{testContext.TestDemarcation(), groupId, userId})
@@ -776,7 +776,7 @@ func (testContext *TestContext) TryMoveUserToRealm(userObjId, realmId string) bo
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"moveUserToRealm",
 		[]string{"Log", "UserObjId", "RealmId"},
 		[]string{testContext.TestDemarcation(), userObjId, realmId})
@@ -805,7 +805,7 @@ func (testContext *TestContext) TryGetRealmGroups(realmId string) []string {
 
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"getRealmGroups",
 		[]string{"Log", "RealmId"},
 		[]string{testContext.TestDemarcation(), realmId})
@@ -849,7 +849,7 @@ func (testContext *TestContext) TryGetRealmRepos(realmId string, expectSuccess b
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"getRealmRepos",
 		[]string{"Log", "RealmId"},
 		[]string{testContext.TestDemarcation(), realmId})
@@ -897,7 +897,7 @@ func (testContext *TestContext) TryGetAllRealms() []string {
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"getAllRealms",
 		[]string{"Log"},
 		[]string{testContext.TestDemarcation()})
@@ -932,7 +932,7 @@ func (testContext *TestContext) TryGetMyDockerfiles() []string {
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"getMyDockerfiles",
 		[]string{"Log"},
 		[]string{testContext.TestDemarcation()})
@@ -967,7 +967,7 @@ func (testContext *TestContext) TryGetMyDockerImages() []string {
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"getMyDockerImages",
 		[]string{"Log"},
 		[]string{testContext.TestDemarcation()})
@@ -1002,7 +1002,7 @@ func (testContext *TestContext) TryGetRealmUsers(realmId string) []string {
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"getRealmUsers",
 		[]string{"Log", "RealmId"},
 		[]string{testContext.TestDemarcation(), realmId})
@@ -1042,7 +1042,7 @@ func (testContext *TestContext) TryCreateRealmAnon(realmName, orgFullName, admin
 	
 	var resp1 *http.Response
 	var err error
-	resp1, err = testContext.SendPost(testContext.SessionId,
+	resp1, err = testContext.SendSessionPost(testContext.SessionId,
 		"createRealmAnon",
 		[]string{"Log", "UserId", "UserName", "EmailAddress", "Password", "RealmName", "OrgFullName"},
 		[]string{testContext.TestDemarcation(), adminUserId, adminUserFullName, adminEmailAddr, adminPassword,
@@ -1078,7 +1078,7 @@ func (testContext *TestContext) TryCreateRealmAnon(realmName, orgFullName, admin
 	
 	// Authenticate as the admin user that was just created.
 	var resp2 *http.Response
-	resp2, err = testContext.SendPost(testContext.SessionId,
+	resp2, err = testContext.SendSessionPost(testContext.SessionId,
 		"authenticate",
 		[]string{"UserId", "Password"},
 		[]string{adminUserId, adminPassword})
@@ -1099,7 +1099,7 @@ func (testContext *TestContext) TryCreateRealmAnon(realmName, orgFullName, admin
 	
 	// Now retrieve the description of the realm that we just created.
 	var resp3 *http.Response
-	resp3, err = testContext.SendPost(testContext.SessionId,
+	resp3, err = testContext.SendSessionPost(testContext.SessionId,
 		"getRealmDesc",
 		[]string{"RealmId"},
 		[]string{retRealmId})
@@ -1140,7 +1140,7 @@ func (testContext *TestContext) TrySetPermission(partyId, resourceId string,
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"setPermission",
 		[]string{"Log", "PartyId", "ResourceId", "CanCreateIn", "CanRead", "CanWrite", "CanExecute", "CanDelete"},
 		[]string{testContext.TestDemarcation(), partyId, resourceId, BoolToString(permissions[0]),
@@ -1183,7 +1183,7 @@ func (testContext *TestContext) TryAddPermission(partyId, resourceId string,
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"addPermission",
 		[]string{"Log", "PartyId", "ResourceId", "CanCreateIn", "CanRead", "CanWrite", "CanExecute", "CanDelete"},
 		[]string{testContext.TestDemarcation(), partyId, resourceId, BoolToString(permissions[0]),
@@ -1225,7 +1225,7 @@ func (testContext *TestContext) TryGetPermission(partyId, resourceId string) []b
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"getPermission",
 		[]string{"Log", "PartyId", "ResourceId"},
 		[]string{testContext.TestDemarcation(), partyId, resourceId})
@@ -1263,7 +1263,7 @@ func (testContext *TestContext) TryGetScanProviders() {
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"getScanProviders",
 		[]string{"Log"},
 		[]string{testContext.TestDemarcation()})
@@ -1309,10 +1309,10 @@ func (testContext *TestContext) TryDefineScanConfig(name, desc, repoId, provider
 	var resp *http.Response
 	var err error
 	if successGraphicFilePath == "" {
-		resp, err = testContext.SendPost(testContext.SessionId,
+		resp, err = testContext.SendSessionPost(testContext.SessionId,
 			"defineScanConfig", paramNames, paramValues)
 	} else {
-		resp, err = testContext.SendFilePost(testContext.SessionId,
+		resp, err = testContext.SendSessionFilePost(testContext.SessionId,
 			"defineScanConfig",
 			paramNames,
 			paramValues,
@@ -1384,7 +1384,7 @@ func (testContext *TestContext) TryUpdateScanConfig(scanConfigId, name, desc, pr
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendFilePost(testContext.SessionId,
+	resp, err = testContext.SendSessionFilePost(testContext.SessionId,
 		"updateScanConfig", paramNames, paramValues, successGraphicFilePath)
 	
 	defer resp.Body.Close()
@@ -1446,7 +1446,7 @@ func (testContext *TestContext) TryScanImage(scriptId, imageObjId string) string
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"scanImage",
 		[]string{"Log", "ScanConfigId", "ImageObjId"},
 		[]string{testContext.TestDemarcation(), scriptId, imageObjId})
@@ -1491,7 +1491,7 @@ func (testContext *TestContext) TryGetMyDesc(expectSuccess bool) (string, []inte
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"getMyDesc",
 		[]string{"Log"},
 		[]string{testContext.TestDemarcation()})
@@ -1537,7 +1537,7 @@ func (testContext *TestContext) TryGetMyGroups() []string {
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"getMyGroups",
 		[]string{"Log"},
 		[]string{testContext.TestDemarcation()})
@@ -1577,7 +1577,7 @@ func (testContext *TestContext) TryGetMyRealms() []string {
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"getMyRealms",
 		[]string{"Log"},
 		[]string{testContext.TestDemarcation()})
@@ -1612,7 +1612,7 @@ func (testContext *TestContext) TryGetMyRepos() []string {
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"getMyRepos",
 		[]string{"Log"},
 		[]string{testContext.TestDemarcation()})
@@ -1651,7 +1651,7 @@ func (testContext *TestContext) TryReplaceDockerfile(dockerfileId, dockerfilePat
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendFilePost(testContext.SessionId,
+	resp, err = testContext.SendSessionFilePost(testContext.SessionId,
 		"replaceDockerfile",
 		[]string{"Log", "DockerfileId", "Description"},
 		[]string{testContext.TestDemarcation(), dockerfileId, desc},
@@ -1682,7 +1682,7 @@ func (testContext *TestContext) TryDownloadImage(imageId, filename string) {
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"downloadImage",
 		[]string{"Log", "ImageObjId"},
 		[]string{testContext.TestDemarcation(), imageId})
@@ -1714,7 +1714,7 @@ func (testContext *TestContext) TryRemGroupUser(groupId, userObjId string) bool 
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"remGroupUser",
 		[]string{"Log", "GroupId", "UserObjId"},
 		[]string{testContext.TestDemarcation(), groupId, userObjId})
@@ -1735,7 +1735,7 @@ func (testContext *TestContext) TryReenableUser(userObjId string) bool {
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"reenableUser",
 		[]string{"Log", "UserObjId"},
 		[]string{testContext.TestDemarcation(), userObjId})
@@ -1756,7 +1756,7 @@ func (testContext *TestContext) TryRemRealmUser(realmId, userObjId string) bool 
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"remRealmUser",
 		[]string{"Log", "RealmId", "UserObjId"},
 		[]string{testContext.TestDemarcation(), realmId, userObjId})
@@ -1777,7 +1777,7 @@ func (testContext *TestContext) TryDeactivateRealm(realmId string) bool {
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"deactivateRealm",
 		[]string{"Log", "RealmId"},
 		[]string{testContext.TestDemarcation(), realmId})
@@ -1807,7 +1807,7 @@ func (testContext *TestContext) TryRemPermission(partyId, resourceId string) boo
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"remPermission",
 		[]string{"Log", "PartyId", "ResourceId"},
 		[]string{testContext.TestDemarcation(), partyId, resourceId})
@@ -1830,7 +1830,7 @@ func (testContext *TestContext) TryGetUserEvents(userId string) []string {
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"getUserEvents",
 		[]string{"Log", "UserId"},
 		[]string{testContext.TestDemarcation(), userId})
@@ -1862,7 +1862,7 @@ func (testContext *TestContext) TryGetDockerImageEvents(imageObjId string) []str
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"getDockerImageEvents",
 		[]string{"Log", "ImageObjId"},
 		[]string{testContext.TestDemarcation(), imageObjId})
@@ -1894,7 +1894,7 @@ func (testContext *TestContext) TryGetDockerImageStatus(imageObjId string) map[s
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"getDockerImageStatus",
 		[]string{"Log", "ImageObjId"},
 		[]string{testContext.TestDemarcation(), imageObjId},
@@ -1929,7 +1929,7 @@ func (testContext *TestContext) TryGetDockerfileEvents(dockerfileId string) []st
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"getDockerfileEvents",
 		[]string{"Log", "DockerfileId"},
 		[]string{testContext.TestDemarcation(), dockerfileId})
@@ -1962,7 +1962,7 @@ func (testContext *TestContext) TryDefineFlag(repoId, flagName, desc,
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendFilePost(testContext.SessionId,
+	resp, err = testContext.SendSessionFilePost(testContext.SessionId,
 		"defineFlag",
 		[]string{"Log", "RepoId", "Name", "Description"},
 		[]string{testContext.TestDemarcation(), repoId, flagName, desc},
@@ -1988,7 +1988,7 @@ func (testContext *TestContext) TryGetScanConfigDesc(scanConfigId string,
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"getScanConfigDesc",
 		[]string{"Log", "ScanConfigId"},
 		[]string{testContext.TestDemarcation(), scanConfigId})
@@ -2030,7 +2030,7 @@ func (testContext *TestContext) TryChangePassword(userId, oldPswd, newPswd strin
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"changePassword",
 		[]string{"Log", "UserId", "OldPassword", "NewPassword"},
 		[]string{testContext.TestDemarcation(), userId, oldPswd, newPswd})
@@ -2055,7 +2055,7 @@ func (testContext *TestContext) TryGetFlagDesc(flagId string, expectToFindIt boo
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"getFlagDesc",
 		[]string{"Log", "FlagId"},
 		[]string{testContext.TestDemarcation(), flagId})
@@ -2096,7 +2096,7 @@ func (testContext *TestContext) TryGetFlagImage(flagId string, filename string) 
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"getFlagImage",
 		[]string{"Log", "FlagId"},
 		[]string{testContext.TestDemarcation(), flagId})
@@ -2127,7 +2127,7 @@ func (testContext *TestContext) TryGetMyScanConfigs() ([]map[string]interface{},
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"getMyScanConfigs",
 		[]string{"Log"},
 		[]string{testContext.TestDemarcation()})
@@ -2162,7 +2162,7 @@ func (testContext *TestContext) TryGetScanConfigDescByName(repoId, scanConfigNam
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"getScanConfigDescByName",
 		[]string{"Log", "RepoId", "ScanConfigName"},
 		[]string{testContext.TestDemarcation(), repoId, scanConfigName})
@@ -2192,7 +2192,7 @@ func (testContext *TestContext) TryRemScanConfig(scanConfigId string,
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"remScanConfig",
 		[]string{"Log", "ScanConfigId"},
 		[]string{testContext.TestDemarcation(), scanConfigId})
@@ -2233,12 +2233,12 @@ func (testContext *TestContext) TryGetMyFlags() []string {
 	fmt.Println("TryGetMyFlags:1")  // debug
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"getMyFlags",
 		[]string{"Log"},
 		[]string{testContext.TestDemarcation()})
 	fmt.Println("TryGetMyFlags:2")  // debug
-	if ! testContext.AssertErrIsNil(err, "while performing SendPost") { return nil }
+	if ! testContext.AssertErrIsNil(err, "while performing SendSessionPost") { return nil }
 	fmt.Println("TryGetMyFlags:3")  // debug
 	
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
@@ -2281,7 +2281,7 @@ func (testContext *TestContext) TryGetFlagDescByName(repoId, flagName string) st
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"getFlagDescByName",
 		[]string{"Log", "RepoId", "FlagName"},
 		[]string{testContext.TestDemarcation(), repoId, flagName})
@@ -2311,7 +2311,7 @@ func (testContext *TestContext) TryRemFlag(flagId string) bool {
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"remFlag",
 		[]string{"Log", "FlagId"},
 		[]string{testContext.TestDemarcation(), flagId})
@@ -2338,7 +2338,7 @@ func (testContext *TestContext) TryRemDockerImage(imageId string) bool {
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendPost(testContext.SessionId,
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"remDockerImage",
 		[]string{"Log", "ImageId"},
 		[]string{testContext.TestDemarcation(), imageId})
@@ -2365,7 +2365,7 @@ func (testContext *TestContext) TryClearAll() {
 	
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendGet("",
+	resp, err = testContext.SendSessionGet("",
 		"clearAll",
 		[]string{"Log"},
 		[]string{testContext.TestDemarcation()})
