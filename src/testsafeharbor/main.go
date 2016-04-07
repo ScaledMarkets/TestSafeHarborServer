@@ -104,9 +104,13 @@ func TestDockerRegistry(testContext *utils.TestContext) {
 	
 	// Test getting image.
 	{
-		registry.GetImage
+		var name = ....
+		var tag = ....
+		var imageFilePath = ....
+		....delete the image file if it exists
+		registry.GetImage(name, tag, imageFilePath)
 		testContext.AssertErrIsNil(err, "While calling GetImage")
-		testContext.AssertThat()
+		testContext.AssertThat(....image file exists)
 	}
 	
 	// Test deleting image.

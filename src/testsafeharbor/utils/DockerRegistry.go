@@ -49,10 +49,8 @@ func (registry *DockerRegistry) Ping() error {
 	var uri = "v2/"
 	var response *http.Response
 	var err error
-	response, err = registry.sendSessionReq("", "GET", uri, make{[]string, 0}, make{[]string, 0})
-	if err != nil {
-		return err
-	}
+	response, err = registry.sendBasicGet(uri)
+	if err != nil { return err }
 	if response.StatusCode != 200 {
 		return errors.New(fmt.Sprintf("Ping returned status: %s", response.Status))
 	}
@@ -70,26 +68,91 @@ func (registry *DockerRegistry) ImageExists(name string, tag string) (bool, erro
 	var uri = "/v2/" + name + "/manifests/" + tag
 	//v0: GET /api/v0/repositories/{namespace}/{reponame}
 	// Make HEAD request to registry.
-	
-	
-	if 200 {
-		Content-Length: <length of manifest>
-		Docker-Content-Digest: <digest>
+	var response *http.Response
+	var err error
+	response, err = registry.sendBasicHead(uri)
+	if err != nil { return err }
+	if response.StatusCode == 200 {
 		return true, nil
-	} else if 404 Not Found {
+	} else if response.StatusCode == 404 { // Not Found
 		return false, nil
 	} else {
-		return false, new error
+		return false, errors.New(fmt.Sprintf("ImageExists returned status: %s", response.Status))
 	}
 }
 
 /*******************************************************************************
  * 
  */
-func (registry *DockerRegistry) GetImage() error {
+func (registry *DockerRegistry) GetImage(name string, tag string, filepath string) error {
 	
-	GET /v2/<name>/manifests/<reference>
-	GET /v2/<name>/blobs/<digest>
+	// GET /v2/<name>/manifests/<reference>
+	// GET /v2/<name>/blobs/<digest>
+	
+	// Retrieve manifest.
+	var uri = "/v2/" + name + "/manifests/" + tag
+	var resp *http.Response
+	var err error
+	resp, err = registry.sendBasicGet(uri)
+	if err != nil { return err }
+	resp.Body.Close()
+	if resp.StatusCode == 200 {
+
+		var responseMap map[string]interface{}
+		responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
+		resp.Body.Close()
+		var layersObj = responseMap["fsLayers"]
+		if layersObj == nil {
+			return errors.New("Did not find fsLayers field in response")
+		}
+		var bool isType
+		var layerAr []map[string]interface{}
+		layerAr, isType = layersObj.([]map[string]interface{})
+		if ! isType { return errors.New(
+			"Type of layer description is " + reflect.TypeOf(layersObj).String())
+		}
+		
+		// Retrieve layers.
+		for _, layerDesc := range layerAr {
+			var layerDigest = layerDesc["blobSum"]
+			if layerDigest == nil {
+				return errors.New("Did not find blobSum field in response for layer")
+			}
+			var digest string
+			digest, isType = layerDigest.(string)
+			if ! isType { return errors.New("blogSum field is not a string - it is a " +
+				reflect.TypeOf(layerDigest)
+			}
+			uri = "/v2/" + name + "/blobs/" + digest
+			response, err = registry.sendBasicGet(uri)
+			
+			
+			
+			....
+			
+		
+			if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+			
+			var reader io.ReadCloser = resp.Body
+			var file *os.File
+			file, err = os.Create(filename)
+			testContext.AssertErrIsNil(err, "")
+			_, err = io.Copy(file, reader)
+			testContext.AssertErrIsNil(err, "")
+			var fileInfo os.FileInfo
+			fileInfo, err = file.Stat()
+			if ! testContext.AssertErrIsNil(err, "") { return }
+			testContext.AssertThat(fileInfo.Size() > 0, "File has zero size")
+			resp.Body.Close()
+		}
+		
+		
+		
+	} else if response.StatusCode == 404 { // Not Found
+		return false, nil
+	} else {
+		return false, errors.New(fmt.Sprintf("ImageExists returned status: %s", response.Status))
+	}
 }
 
 /*******************************************************************************

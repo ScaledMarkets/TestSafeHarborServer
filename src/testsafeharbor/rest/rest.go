@@ -64,12 +64,24 @@ func (restContext *RestContext) getPassword() string { return restContext.Passwo
  * Send a GET request to the SafeHarborServer, at the specified REST endpoint method
  * (reqName), with the specified query parameters, using basic authentication.
  */
-func (restContext *RestContext) SendBasicGet(reqName string, names []string,
-	values []string) (*http.Response, error) {
+func (restContext *RestContext) SendBasicGet(reqName string) (*http.Response, error) {
 	
 	var urlstr string = restContext.getURL(reqName)
 	var resp *http.Response
 	resp, err = restContext.httpClient.Get(urlstr)
+	if err != nil { return nil, err }
+	return resp, nil
+}
+
+/*******************************************************************************
+ * Send a HEAD request to the SafeHarborServer, at the specified REST endpoint method
+ * (reqName), with the specified query parameters, using basic authentication.
+ */
+func (restContext *RestContext) SendBasicHead(reqName string) (*http.Response, error) {
+	
+	var urlstr string = restContext.getURL(reqName)
+	var resp *http.Response
+	resp, err = restContext.httpClient.Head(urlstr)
 	if err != nil { return nil, err }
 	return resp, nil
 }
