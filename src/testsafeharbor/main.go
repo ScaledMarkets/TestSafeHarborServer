@@ -62,7 +62,7 @@ func main() {
 	//TestUpdateAndReplace(testContext)
 	//TestDelete(testContext)
 	
-	if testContext.PerformDockerTests { TestDockerFunctions(testContext) }
+	//if testContext.PerformDockerTests { TestDockerFunctions(testContext) }
 	
 	fmt.Println()
 	fmt.Println(fmt.Sprintf("%d tests failed out of %d:", testContext.NoOfTestsThatFailed,
@@ -83,10 +83,12 @@ func TestDockerRegistry(testContext *utils.TestContext) {
 
 	// Auth:
 	// https://github.com/docker/distribution/blob/master/docs/deploying.md
-	var registryHost = ""
-	var registryPort = ""
-	var registryUserId = ""
-	var registryPassword = ""
+	var registryHost = "localhost"
+	var registryPort = 5000
+	var registryUserId = os.Getenv("registryUser")
+	var registryPassword = os.Getenv("registryPassword")
+	var testImageName = os.Getenv("TestImageName")
+	var testImageTag = os.Getenv("TestImageTag")
 	
 	var registry *DockerRegistry
 	var err error
@@ -104,20 +106,31 @@ func TestDockerRegistry(testContext *utils.TestContext) {
 	
 	// Test getting image.
 	{
-		var name = ....
-		var tag = ....
-		var imageFilePath = ....
-		....delete the image file if it exists
-		registry.GetImage(name, tag, imageFilePath)
+		var name = testImageName
+		var tag = testImageTag
+		var imageFilePath = "DownloadedImage.tar"
+		os.Remove(imageFilePath)
+		var err error
+		err = registry.GetImage(name, tag, imageFilePath)
 		testContext.AssertErrIsNil(err, "While calling GetImage")
-		testContext.AssertThat(....image file exists)
+		var imageFile *os.File
+		imageFile, err = os.OpenFile(layerfilePath, os.O_WRONLY, 0600)
+		if err != nil { return errors.New(fmt.Sprintf(
+			"When opening image file '%s': %s", imageFilePath, err.Error()))
+		}
+		var fileInfo os.FileInfo
+		fileInfo, err = imageFile.Stat()
+		if err != nil { return errors.New(fmt.Sprintf(
+			"When getting status of image file '%s': %s", imageFilePath, err.Error()))
+		}
+		testContext.AssertThat(fileInfo.Size() > 0, "Downloaded file is size 0")
 	}
 	
 	// Test deleting image.
 	{
-		registry.DeleteImage
-		testContext.AssertErrIsNil(err, "DeleteImage")
-		testContext.AssertThat()
+		//registry.DeleteImage
+		//testContext.AssertErrIsNil(err, "DeleteImage")
+		//testContext.AssertThat()
 	}
 }
 

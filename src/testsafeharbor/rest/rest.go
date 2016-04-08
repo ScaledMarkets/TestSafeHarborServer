@@ -87,6 +87,23 @@ func (restContext *RestContext) SendBasicHead(reqName string) (*http.Response, e
 }
 
 /*******************************************************************************
+ * Send a DELETE request to the SafeHarborServer, at the specified REST endpoint method
+ * (reqName), with the specified query parameters, using basic authentication.
+ */
+func (restContext *RestContext) SendBasicDelete(reqName string) (*http.Response, error) {
+	
+	var urlstr string = restContext.getURL(reqName)
+	var resp *http.Response
+	var request *http.Request
+	var err error
+	request, err = http.NewRequest(reqMethod, urlstr)
+	if err != nil { return nil, err }
+	resp, err = restContext.httpClient.Do(request)
+	if err != nil { return nil, err }
+	return resp, nil
+}
+
+/*******************************************************************************
  * Send a POST request to the SafeHarborServer, at the specified REST endpoint method
  * (reqName), with the specified query parameters, using basic authentication.
  */
