@@ -68,6 +68,7 @@ func (restContext *RestContext) SendBasicGet(reqName string) (*http.Response, er
 	
 	var urlstr string = restContext.getURL(reqName)
 	var resp *http.Response
+	var err error
 	resp, err = restContext.httpClient.Get(urlstr)
 	if err != nil { return nil, err }
 	return resp, nil
@@ -81,6 +82,7 @@ func (restContext *RestContext) SendBasicHead(reqName string) (*http.Response, e
 	
 	var urlstr string = restContext.getURL(reqName)
 	var resp *http.Response
+	var err error
 	resp, err = restContext.httpClient.Head(urlstr)
 	if err != nil { return nil, err }
 	return resp, nil
@@ -96,7 +98,7 @@ func (restContext *RestContext) SendBasicDelete(reqName string) (*http.Response,
 	var resp *http.Response
 	var request *http.Request
 	var err error
-	request, err = http.NewRequest(reqMethod, urlstr)
+	request, err = http.NewRequest("DELETE", urlstr, nil)
 	if err != nil { return nil, err }
 	resp, err = restContext.httpClient.Do(request)
 	if err != nil { return nil, err }
@@ -112,8 +114,9 @@ func (restContext *RestContext) SendBasicPost(reqName string, names []string,
 	
 	var urlstr string = restContext.getURL(reqName)
 	var data = make(map[string][]string)
-	for i, value := range values { data[names[i]] = make {string[], value } }
+	for i, value := range values { data[names[i]] = []string{value} }
 	var resp *http.Response
+	var err error
 	resp, err = restContext.httpClient.PostForm(urlstr, data)
 	if err != nil { return nil, err }
 	return resp, nil
@@ -125,11 +128,7 @@ func (restContext *RestContext) SendBasicPost(reqName string, names []string,
 func (restContext *RestContext) SendBasicFilePost(reqName string, names []string,
 	values []string, path string) (*http.Response, error) {
 
-	var urlstr string = restContext.getURL(reqName)
-	var resp *http.Response
-	resp, err = restContext.httpClient.Post(url string, bodyType string, body io.Reader)
-	if err != nil { return nil, err }
-	return resp, nil
+	return restContext.SendFilePost("", reqName, names, values, path)
 }
 
 /*******************************************************************************
@@ -139,7 +138,7 @@ func (restContext *RestContext) SendBasicFilePost(reqName string, names []string
 func (restContext *RestContext) SendSessionGet(sessionId string, reqName string, names []string,
 	values []string) (*http.Response, error) {
 
-	return restContext.sendReq(sessionId, "GET", reqName, names, values)
+	return restContext.sendSessionReq(sessionId, "GET", reqName, names, values)
 }
 
 /*******************************************************************************
@@ -151,7 +150,7 @@ func (restContext *RestContext) SendSessionGet(sessionId string, reqName string,
 func (restContext *RestContext) SendSessionPost(sessionId string, reqName string, names []string,
 	values []string) (*http.Response, error) {
 
-	return restContext.sendReq(sessionId, "POST", reqName, names, values)
+	return restContext.sendSessionReq(sessionId, "POST", reqName, names, values)
 }
 
 /*******************************************************************************
@@ -190,6 +189,16 @@ func (restContext *RestContext) sendSessionReq(sessionId string, reqMethod strin
  * Send request as a multi-part so that a file can be attached.
  */
 func (restContext *RestContext) SendSessionFilePost(sessionId string, reqName string, names []string,
+	values []string, path string) (*http.Response, error) {
+
+	return restContext.SendFilePost(sessionId, reqName, names, values, path)
+}
+
+/*******************************************************************************
+ * Send request as a multi-part so that a file can be attached.
+ */
+func (restContext *RestContext) SendFilePost(sessionId string,
+	reqName string, names []string,
 	values []string, path string) (*http.Response, error) {
 
 	var urlstr string = restContext.getURL(reqName)
@@ -333,7 +342,7 @@ func (restContext *RestContext) Verify200Response(resp *http.Response) bool {
 /*******************************************************************************
  * 
  */
-func (restContext *RestContext) getURL(reqName string) {
+func (restContext *RestContext) getURL(reqName string) string {
 	var basicAuthCreds = ""
 	if restContext.UserId != "" {
 		basicAuthCreds = fmt.Sprintf("%s:%s@", restContext.UserId, restContext.Password)

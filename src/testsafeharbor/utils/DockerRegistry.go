@@ -42,14 +42,18 @@ package utils
 import (
 	"fmt"
 	"io"
+	"os"
+	"io/ioutil"
 	"net/http"
 	"archive/tar"
+	"errors"
+	"reflect"
 	
 	"testsafeharbor/rest"
 )
 
 type DockerRegistry struct {
-	RestContext
+	rest.RestContext
 }
 
 /*******************************************************************************
@@ -59,7 +63,7 @@ func OpenDockerRegistryConnection(host string, port int, userId string,
 	password string) (*DockerRegistry, error) {
 	
 	var registry *DockerRegistry = &DockerRegistry{
-		RestContext: CreateRestContext(false, host, port, userId, password, noop),
+		RestContext: *rest.CreateRestContext(false, host, port, userId, password, noop),
 	}
 	
 	var err error = registry.Ping()
@@ -74,11 +78,6 @@ func OpenDockerRegistryConnection(host string, port int, userId string,
  * 
  */
 func (registry *DockerRegistry) Close() {
-	
-	registry.Host = ""
-	registry.Port = 0
-	registry.UserId = ""
-	registry.Password = ""
 }
 
 /*******************************************************************************
@@ -89,7 +88,7 @@ func (registry *DockerRegistry) Ping() error {
 	var uri = "v2/"
 	var response *http.Response
 	var err error
-	response, err = registry.sendBasicGet(uri)
+	response, err = registry.SendBasicGet(uri)
 	if err != nil { return err }
 	if response.StatusCode != 200 {
 		return errors.New(fmt.Sprintf("Ping returned status: %s", response.Status))
@@ -110,8 +109,8 @@ func (registry *DockerRegistry) ImageExists(name string, tag string) (bool, erro
 	// Make HEAD request to registry.
 	var response *http.Response
 	var err error
-	response, err = registry.sendBasicHead(uri)
-	if err != nil { return err }
+	response, err = registry.SendBasicHead(uri)
+	if err != nil { return false, err }
 	if response.StatusCode == 200 {
 		return true, nil
 	} else if response.StatusCode == 404 { // Not Found
@@ -133,13 +132,13 @@ func (registry *DockerRegistry) GetImage(name string, tag string, filepath strin
 	var uri = "/v2/" + name + "/manifests/" + tag
 	var resp *http.Response
 	var err error
-	resp, err = registry.sendBasicGet(uri)
+	resp, err = registry.SendBasicGet(uri)
 	if err != nil { return err }
 	resp.Body.Close()
-	if response.StatusCode == 404 {
+	if resp.StatusCode == 404 {
 		return errors.New("Not found")
 	} else if resp.StatusCode != 200 {
-		return errors.New(fmt.Sprintf("ImageExists returned status: %s", response.Status))
+		return errors.New(fmt.Sprintf("ImageExists returned status: %s", resp.Status))
 	}
 	
 	// Parse description of each layer.
@@ -154,7 +153,7 @@ func (registry *DockerRegistry) GetImage(name string, tag string, filepath strin
 		"When creating image file '%s': %s", filepath, err.Error()))
 	}
 	var tarWriter = tar.NewWriter(tarFile)
-	var tempDirPath
+	var tempDirPath string
 	tempDirPath, err = ioutil.TempDir("", "")
 	if err != nil { return errors.New(fmt.Sprintf(
 		"When creating temp directory for writing layer files: %s", err.Error()))
@@ -167,45 +166,44 @@ func (registry *DockerRegistry) GetImage(name string, tag string, filepath strin
 			return errors.New("Did not find blobSum field in response for layer")
 		}
 		var digest string
+		var isType bool
 		digest, isType = layerDigest.(string)
 		if ! isType { return errors.New("blogSum field is not a string - it is a " +
-			reflect.TypeOf(layerDigest)
+			reflect.TypeOf(layerDigest).String())
 		}
 		uri = "/v2/" + name + "/blobs/" + digest
-		response, err = registry.sendBasicGet(uri)
+		resp, err = registry.SendBasicGet(uri)
 		if err != nil { return errors.New(fmt.Sprintf(
-			"When requesting uri: '%s' - %s", uri, error.Error()))
+			"When requesting uri: '%s' - %s", uri, err.Error()))
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode != 200 { return errors.New(fmt.Sprintf(
-			"Response code %d, when requesting uri: '%s' - %s", 
-				resp.StatusCode, uri, error.Error()))
+			"Response code %d, when requesting uri: '%s'", resp.StatusCode, uri))
 		}
 
 		// Create temporary file in which to write layer.
-		var layerfilePath *os.File
-		layerfilePath, err = ioutil.TempFile(tempDirPath, digest)
+		var layerFile *os.File
+		layerFile, err = ioutil.TempFile(tempDirPath, digest)
 		if err != nil { return errors.New(fmt.Sprintf(
-			"When creating layer file '%s': %s", layerfilePath, err.Error()))
+			"When creating layer file: %s", err.Error()))
 		}
 		
 		var reader io.ReadCloser = resp.Body
-		var layerFile *os.File
-		layerFile, err = os.OpenFile(layerfilePath, os.O_WRONLY, 0600)
+		layerFile, err = os.OpenFile(layerFile.Name(), os.O_WRONLY, 0600)
 		if err != nil { return errors.New(fmt.Sprintf(
-			"When opening layer file '%s': %s", layerfilePath, err.Error()))
+			"When opening layer file '%s': %s", layerFile.Name(), err.Error()))
 		}
 		_, err = io.Copy(layerFile, reader)
 		if err != nil { return errors.New(fmt.Sprintf(
-			"When writing layer file '%s': %s", layerfilePath, err.Error()))
+			"When writing layer file '%s': %s", layerFile.Name(), err.Error()))
 		}
 		var fileInfo os.FileInfo
 		fileInfo, err = layerFile.Stat()
 		if err != nil { return errors.New(fmt.Sprintf(
-			"When getting status of layer file '%s': %s", layerfilePath, err.Error()))
+			"When getting status of layer file '%s': %s", layerFile.Name(), err.Error()))
 		}
 		if fileInfo.Size() == 0 { return errors.New(fmt.Sprintf(
-			"Layer file that was written, '%s', has zero size", layerfilePath))
+			"Layer file that was written, '%s', has zero size", layerFile.Name()))
 		}
 		
 		// Add file to tar archive.
@@ -219,9 +217,10 @@ func (registry *DockerRegistry) GetImage(name string, tag string, filepath strin
 			"While writing layer header to tar archive: , %s", err.Error()))
 		}
 		
-		layerFile, err = os.Open(layerfilePath)
+		layerFile, err = os.Open(layerFile.Name())
 		if err != nil {	return errors.New(fmt.Sprintf(
-			"While opening layer file '%s': , %s", layerfilePath, err.Error()))
+			"While opening layer file '%s': , %s", layerFile.Name(), err.Error()))
+		}
 		_, err := io.Copy(tarWriter, layerFile)
 		if err != nil {	return errors.New(fmt.Sprintf(
 			"While writing layer content to tar archive: , %s", err.Error()))
@@ -239,7 +238,7 @@ func (registry *DockerRegistry) GetImage(name string, tag string, filepath strin
 /*******************************************************************************
  * 
  */
-func (registry *DockerRegistry) DeleteImage(name string) error {
+func (registry *DockerRegistry) DeleteImage(name, tag string) error {
 	
 	//v2: DELETE /v2/<name>/blobs/<digest>
 	//	DELETE /v2/<name>/manifests/<reference>
@@ -249,13 +248,13 @@ func (registry *DockerRegistry) DeleteImage(name string) error {
 	var uri = "/v2/" + name + "/manifests/" + tag
 	var resp *http.Response
 	var err error
-	resp, err = registry.sendBasicGet(uri)
+	resp, err = registry.SendBasicGet(uri)
 	if err != nil { return err }
 	resp.Body.Close()
-	if response.StatusCode == 404 {
+	if resp.StatusCode == 404 {
 		return errors.New("Not found")
 	} else if resp.StatusCode != 200 {
-		return errors.New(fmt.Sprintf("DeleteImage returned status: %s", response.Status))
+		return errors.New(fmt.Sprintf("DeleteImage returned status: %s", resp.Status))
 	}
 	
 	// Parse description of each layer.
@@ -271,9 +270,10 @@ func (registry *DockerRegistry) DeleteImage(name string) error {
 			return errors.New("Did not find blobSum field in response for layer")
 		}
 		var digest string
+		var isType bool
 		digest, isType = layerDigest.(string)
 		if ! isType { return errors.New("blogSum field is not a string - it is a " +
-			reflect.TypeOf(layerDigest)
+			reflect.TypeOf(layerDigest).String())
 		}
 		
 		uri = fmt.Sprintf("/v2/%s/blobs/%s", name, digest)
@@ -282,17 +282,17 @@ func (registry *DockerRegistry) DeleteImage(name string) error {
 		response, err = registry.SendBasicDelete(uri)
 		if err != nil { return err }
 		if response.StatusCode == 200 {
-			return true, nil
+			return nil
 		} else if response.StatusCode == 404 { // Not Found
-			return false, nil
+			return errors.New(fmt.Sprintf("DeleteImage - image not found: %s", response.Status))
 		} else {
-			return false, errors.New(fmt.Sprintf("DeleteImage returned status: %s", response.Status))
+			return errors.New(fmt.Sprintf("DeleteImage returned status: %s", response.Status))
 		}
 	}
 	
 	// Delete manifest.
 	uri = "/v2/" + name + "/manifests/" + tag
-	response, err = registry.SendBasicDelete(uri)
+	resp, err = registry.SendBasicDelete(uri)
 	if err != nil { return err }
 	
 	return nil
@@ -306,18 +306,19 @@ func parseLayerDescriptions(body io.ReadCloser) ([]map[string]interface{}, error
 	var responseMap map[string]interface{}
 	var err error
 	responseMap, err = rest.ParseResponseBodyToMap(body)
+	if err != nil { return nil, err }
 	body.Close()
 	var layersObj = responseMap["fsLayers"]
 	if layersObj == nil {
-		return errors.New("Did not find fsLayers field in body")
+		return nil, errors.New("Did not find fsLayers field in body")
 	}
-	var bool isType
+	var isType bool
 	var layerAr []map[string]interface{}
 	layerAr, isType = layersObj.([]map[string]interface{})
-	if ! isType { return errors.New(
+	if ! isType { return nil, errors.New(
 		"Type of layer description is " + reflect.TypeOf(layersObj).String())
 	}
-	return layerAr
+	return layerAr, nil
 }
 
 /*******************************************************************************

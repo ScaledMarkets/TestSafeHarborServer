@@ -50,12 +50,12 @@ func main() {
 		"To start the docker daemon, run 'sudo service docker start'.")
 	fmt.Println()
 	
-	TestDockerRegistry(testContext)
+	//TestDockerRegistry(testContext)
 	//TestJSONDeserialization(testContext)
 	//TestGoRedis(testContext)
 	//TestRedis(testContext)
 	//TestCreateRealmsAndUsers(testContext)
-	//TestCreateResources(testContext)
+	TestCreateResources(testContext)
 	//TestCreateGroups(testContext)
 	//TestGetMy(testContext)
 	//TestAccessControl(testContext)
@@ -90,7 +90,7 @@ func TestDockerRegistry(testContext *utils.TestContext) {
 	var testImageName = os.Getenv("TestImageName")
 	var testImageTag = os.Getenv("TestImageTag")
 	
-	var registry *DockerRegistry
+	var registry *utils.DockerRegistry
 	var err error
 	registry, err = utils.OpenDockerRegistryConnection(registryHost, registryPort,
 		registryUserId, registryPassword)
@@ -99,7 +99,7 @@ func TestDockerRegistry(testContext *utils.TestContext) {
 	// Test Inspect
 	{
 		var exists bool
-		exists, err = registry.ImageExists(name string, tag string)
+		exists, err = registry.ImageExists(testImageName, testImageTag)
 		testContext.AssertErrIsNil(err, "While calling ImageExists")
 		testContext.AssertThat(exists, "Did not find image")
 	}
@@ -114,15 +114,13 @@ func TestDockerRegistry(testContext *utils.TestContext) {
 		err = registry.GetImage(name, tag, imageFilePath)
 		testContext.AssertErrIsNil(err, "While calling GetImage")
 		var imageFile *os.File
-		imageFile, err = os.OpenFile(layerfilePath, os.O_WRONLY, 0600)
-		if err != nil { return errors.New(fmt.Sprintf(
+		imageFile, err = os.OpenFile(imageFilePath, os.O_WRONLY, 0600)
+		testContext.AssertErrIsNil(err, fmt.Sprintf(
 			"When opening image file '%s': %s", imageFilePath, err.Error()))
-		}
 		var fileInfo os.FileInfo
 		fileInfo, err = imageFile.Stat()
-		if err != nil { return errors.New(fmt.Sprintf(
+		testContext.AssertErrIsNil(err, fmt.Sprintf(
 			"When getting status of image file '%s': %s", imageFilePath, err.Error()))
-		}
 		testContext.AssertThat(fileInfo.Size() > 0, "Downloaded file is size 0")
 	}
 	
