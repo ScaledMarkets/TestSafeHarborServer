@@ -10,6 +10,7 @@ import (
 	"strings"
 	"bytes"
 	"encoding/json"
+	"errors"
 )
 
 type RestContext struct {
@@ -271,12 +272,36 @@ func ParseResponseBodyToMap(body io.ReadCloser) (map[string]interface{}, error) 
 
 /*******************************************************************************
  * Parse an HTTP JSON response that can be converted to an array of maps.
+ * The response is assumed to consist of a single object with three fields:
+ *	"HTTPStatusCode" - int
+ *	"HTTPReasonPhrase" - string
+ *	"payload" - json array (this is what is converted to a golang array of maps).
  */
 func ParseResponseBodyToMaps(body io.ReadCloser) ([]map[string]interface{}, error) {
 	var value []byte = ReadResponseBody(body)
-	var obj []map[string]interface{}
+	var obj map[string]interface{}
 	err := json.Unmarshal(value, &obj)
 	if err != nil { return nil, err }
+	
+	var isType bool
+	var httpStatusCode int
+	var httpReasonPhrase string
+	var maps []map[string]interface{}
+
+	httpStatusCode, isType = obj["HTTPStatusCode"].(int)
+	if ! isType { return nil, errors.New("HTTPStatusCode is not an int") }
+	if httpStatusCode != 200 {
+		return nil, errors.New(fmt.Sprintf("HTTP status %s returned", httpStatusCode))
+	}
+
+	httpReasonPhrase, isType = obj["HTTPReasonPhrase"].(string)
+	if httpReasonPhrase == "" { return nil, errors.New("No HTTPReasonPhrase") }
+	if ! isType { return nil, errors.New("HTTPReasonPhrase is not a string") }
+
+	maps, isType = obj["payload"].([]map[string]interface{})
+	if maps == nil { return nil, errors.New("No payload") }
+	if ! isType { return nil, errors.New("payload is not a map[string]") }
+	
 	//var isType bool
 	//result, isType = obj.([]map[string]interface{})
 	//if ! isType {
@@ -285,7 +310,7 @@ func ParseResponseBodyToMaps(body io.ReadCloser) ([]map[string]interface{}, erro
 	//}
 	//AssertThat(isType, "Wrong type: obj is not a []map[string]interface{} - it is a " + 
 	//	fmt.Sprintf("%s", reflect.TypeOf(obj)))
-	return obj, nil
+	return maps, nil
 }
 
 /*******************************************************************************
