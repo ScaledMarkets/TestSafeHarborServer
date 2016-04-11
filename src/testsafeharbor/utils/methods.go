@@ -481,6 +481,11 @@ func (testContext *TestContext) TryGetDockerfiles(repoId string) []string {
 	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)
 	if err != nil { fmt.Println(err.Error()); return nil }
 	var result []string = make([]string, 0)
+	
+	fmt.Println(fmt.Sprintf("There are %d results", len(responseMaps)))
+	
+	
+	
 	for _, responseMap := range responseMaps {
 		var dockerfileId string = responseMap["Id"].(string)
 		var repoId string = responseMap["RepoId"].(string)

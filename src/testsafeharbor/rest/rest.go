@@ -11,6 +11,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"reflect"
 )
 
 type RestContext struct {
@@ -286,10 +287,12 @@ func ParseResponseBodyToMaps(body io.ReadCloser) ([]map[string]interface{}, erro
 	var isType bool
 	var httpStatusCode int
 	var httpReasonPhrase string
-	var maps []map[string]interface{}
 
-	httpStatusCode, isType = obj["HTTPStatusCode"].(int)
-	if ! isType { return nil, errors.New("HTTPStatusCode is not an int") }
+	var f64 float64
+	f64, isType = obj["HTTPStatusCode"].(float64)
+	if ! isType { return nil, errors.New("HTTPStatusCode is not an int: it is a " +
+		reflect.TypeOf(obj["HTTPStatusCode"]).String()) }
+	httpStatusCode = int(f64)
 	if httpStatusCode != 200 {
 		return nil, errors.New(fmt.Sprintf("HTTP status %s returned", httpStatusCode))
 	}
@@ -298,9 +301,17 @@ func ParseResponseBodyToMaps(body io.ReadCloser) ([]map[string]interface{}, erro
 	if httpReasonPhrase == "" { return nil, errors.New("No HTTPReasonPhrase") }
 	if ! isType { return nil, errors.New("HTTPReasonPhrase is not a string") }
 
-	maps, isType = obj["payload"].([]map[string]interface{})
-	if maps == nil { return nil, errors.New("No payload") }
-	if ! isType { return nil, errors.New("payload is not a map[string]") }
+	var iar []interface{}
+	iar, isType = obj["payload"].([]interface{})
+	if ! isType { return nil, errors.New("payload is not an array of interface") }
+	
+	var maps = make([]map[string]interface{}, 0)
+	for _, elt := range iar {
+		var m map[string]interface{}
+		m, isType = elt.(map[string]interface{})
+		if ! isType { return nil, errors.New("Element is not a map[string]interface") }
+		maps = append(maps, m)
+	}
 	
 	//var isType bool
 	//result, isType = obj.([]map[string]interface{})
