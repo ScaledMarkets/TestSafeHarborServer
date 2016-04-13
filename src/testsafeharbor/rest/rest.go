@@ -69,6 +69,7 @@ func (restContext *RestContext) getPassword() string { return restContext.Passwo
 func (restContext *RestContext) SendBasicGet(reqName string) (*http.Response, error) {
 	
 	var urlstr string = restContext.getURL(reqName)
+	fmt.Println("URL: " + urlstr) // debug
 	var resp *http.Response
 	var err error
 	resp, err = restContext.httpClient.Get(urlstr)
