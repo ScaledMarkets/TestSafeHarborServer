@@ -87,6 +87,8 @@ runall:
 run:
 	export registryUser=testuser
 	export registryPassword=testpassword
+	export TestImageName=$(TestImageName)
+	export TestImageTag=$(TestImageTag)
 	bin/testsafeharbor -stop \
 		-tests="Registry"
 
