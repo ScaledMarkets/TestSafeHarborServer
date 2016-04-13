@@ -57,8 +57,8 @@ prepregistry:
 startregistry:
 	# Start a docker registry instance.
 	sudo docker run -it -p 5000:5000 --name registry \
-		-v registryauth:/auth \
-		-v registrydata:/var/lib/registry \
+		-v `pwd`/registryauth:/auth \
+		-v `pwd`/registrydata:/var/lib/registry \
 		-e "REGISTRY_AUTH=htpasswd" \
 		-e "REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm" \
 		-e "REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd" \
