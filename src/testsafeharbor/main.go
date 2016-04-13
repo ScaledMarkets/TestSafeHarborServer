@@ -10,6 +10,8 @@ import (
 	"os"
 	"flag"
 	"time"
+	"strings"
+	"reflect"
 	
 	"redis"
 	"goredis"
@@ -26,12 +28,35 @@ const (
 
 func main() {
 	
+	var testSuite = map[string]func(*utils.TestContext) {
+		"Registry": TestDockerRegistry,
+		"json": TestJSONDeserialization,
+		"goredis": TestGoRedis,
+		"redis": TestRedis,
+		"CreateRealmsAndUsers": TestCreateRealmsAndUsers,
+		"CreateResources": TestCreateResources,
+		"CreateGroups": TestCreateGroups,
+		"GetMy": TestGetMy,
+		"AccessControl": TestAccessControl,
+		"UpdateAndReplace": TestUpdateAndReplace,
+		"Delete": TestDelete,
+		"DockerFunctions": TestDockerFunctions,
+	}
+
 	var help *bool = flag.Bool("help", false, "Provide help instructions.")
 	var hostname *string = flag.String("h", "localhost", "Internet address of server.")
 	var port *int = flag.Int("p", 80, "Port server is on.")
 	var stopOnFirstError *bool = flag.Bool("stop", false, "Stop after the first error.")
-	var doNotPerformDockerTests *bool = flag.Bool("n", false, "Do not perform docker tests.")
 	var redisPswd *string = flag.String("redispswd", "ahdal8934k383898&*kdu&^", "Redis password")
+	
+	var keys []reflect.Value = reflect.ValueOf(testSuite).MapKeys()
+	var allTestNames string
+	for i, key := range keys {
+		if i > 0 { allTestNames = allTestNames + "," }
+		allTestNames = allTestNames + key.String()
+	}
+	var tests *string = flag.String("tests", allTestNames,
+		"Perform the tests listed, comma-separated.")
 
 	flag.Parse()
 
@@ -41,29 +66,34 @@ func main() {
 		os.Exit(0)
 	}
 	
-	var testContext = utils.NewTestContext(*hostname, *port, utils.SetSessionId,
-		*stopOnFirstError, *doNotPerformDockerTests, *redisPswd)
+	// Parse the 'tests' option to determine which tests to run.
+	var testsToRun []string = strings.Split(*tests, ",")
+	var testFunctionsToRun = make([]func(*utils.TestContext), 0)
+	for _, testName := range testsToRun {
+		var testFunction = testSuite[testName]
+		if testFunction == nil {
+			fmt.Println("Test '" + testName + "' not recognized")
+			os.Exit(0)
+		}
+		testFunctionsToRun = append(testFunctionsToRun, testFunction)
+	}
 	
+	// Prepare to run tests.
+	var testContext = utils.NewTestContext(*hostname, *port, utils.SetSessionId,
+		*stopOnFirstError, *redisPswd)
 	testContext.Print()
-		
-	fmt.Println("Note: Ensure that the docker daemon is running on the server.",
-		"To start the docker daemon, run 'sudo service docker start'.")
+	if strings.Contains(*tests, "DockerFunctions") {
+		fmt.Println("Note: Ensure that the docker daemon is running on the server.",
+			"To start the docker daemon, run 'sudo service docker start'.")
+	}
 	fmt.Println()
 	
-	//TestDockerRegistry(testContext)
-	//TestJSONDeserialization(testContext)
-	//TestGoRedis(testContext)
-	//TestRedis(testContext)
-	//TestCreateRealmsAndUsers(testContext)
-	TestCreateResources(testContext)
-	//TestCreateGroups(testContext)
-	//TestGetMy(testContext)
-	//TestAccessControl(testContext)
-	//TestUpdateAndReplace(testContext)
-	//TestDelete(testContext)
+	// Run the tests, one by one.
+	for _, testFunctionToRun := range testFunctionsToRun {
+		testFunctionToRun(testContext)
+	}
 	
-	//if testContext.PerformDockerTests { TestDockerFunctions(testContext) }
-	
+	// Print result summary.
 	fmt.Println()
 	fmt.Println(fmt.Sprintf("%d tests failed out of %d:", testContext.NoOfTestsThatFailed,
 		testContext.NoOfTests))
@@ -81,6 +111,9 @@ func TestDockerRegistry(testContext *utils.TestContext) {
 	
 	fmt.Println("\nTest suite TestDockerRegistry------------------\n")
 
+	// -------------------------------------
+	// Test setup:
+	
 	// Auth:
 	// https://github.com/docker/distribution/blob/master/docs/deploying.md
 	var registryHost = "localhost"
@@ -89,46 +122,62 @@ func TestDockerRegistry(testContext *utils.TestContext) {
 	var registryPassword = os.Getenv("registryPassword")
 	var testImageName = os.Getenv("TestImageName")
 	var testImageTag = os.Getenv("TestImageTag")
+	var downloadedImageFilePath = "DownloadedImage.tar"
 	
 	var registry *utils.DockerRegistry
 	var err error
-	registry, err = utils.OpenDockerRegistryConnection(registryHost, registryPort,
-		registryUserId, registryPassword)
-	testContext.AssertErrIsNil(err, "In opening connection to docker registry")
 	
-	// Test Inspect
+	// Test connecting to Registry.
 	{
+		testContext.StartTest("Open Registry connection")
+		registry, err = utils.OpenDockerRegistryConnection(registryHost, registryPort,
+			registryUserId, registryPassword)
+		testContext.AssertErrIsNil(err, "In opening connection to docker registry")
+		testContext.PassTestIfNoFailures()
+	}
+	
+	// Test Inspect.
+	{
+		testContext.StartTest("Test Inspect")
 		var exists bool
 		exists, err = registry.ImageExists(testImageName, testImageTag)
 		testContext.AssertErrIsNil(err, "While calling ImageExists")
 		testContext.AssertThat(exists, "Did not find image")
+		testContext.PassTestIfNoFailures()
 	}
 	
 	// Test getting image.
 	{
-		var name = testImageName
-		var tag = testImageTag
-		var imageFilePath = "DownloadedImage.tar"
-		os.Remove(imageFilePath)
+		testContext.StartTest("Test Getting Image")
+		
+		os.Remove(downloadedImageFilePath)
 		var err error
-		err = registry.GetImage(name, tag, imageFilePath)
+		
+		// Contact Registry to get image.
+		err = registry.GetImage(testImageName, testImageTag, downloadedImageFilePath)
+		
+		// Verify that the image was retrieved properly.
 		testContext.AssertErrIsNil(err, "While calling GetImage")
-		var imageFile *os.File
-		imageFile, err = os.OpenFile(imageFilePath, os.O_WRONLY, 0600)
+		var downloadedImageFile *os.File
+		downloadedImageFile, err = os.OpenFile(downloadedImageFilePath, os.O_WRONLY, 0600)
 		testContext.AssertErrIsNil(err, fmt.Sprintf(
-			"When opening image file '%s': %s", imageFilePath, err.Error()))
+			"When opening image file '%s': %s", downloadedImageFilePath, err.Error()))
 		var fileInfo os.FileInfo
-		fileInfo, err = imageFile.Stat()
+		fileInfo, err = downloadedImageFile.Stat()
 		testContext.AssertErrIsNil(err, fmt.Sprintf(
-			"When getting status of image file '%s': %s", imageFilePath, err.Error()))
+			"When getting status of image file '%s': %s", downloadedImageFilePath, err.Error()))
 		testContext.AssertThat(fileInfo.Size() > 0, "Downloaded file is size 0")
+		
+		testContext.PassTestIfNoFailures()
 	}
 	
 	// Test deleting image.
 	{
+		//testContext.StartTest("Test Deleting Image")
 		//registry.DeleteImage
 		//testContext.AssertErrIsNil(err, "DeleteImage")
 		//testContext.AssertThat()
+		//testContext.PassTestIfNoFailures()
 	}
 }
 
