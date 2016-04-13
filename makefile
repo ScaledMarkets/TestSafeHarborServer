@@ -85,6 +85,8 @@ runall:
 		-tests="Registry,json,goredis,redis,CreateRealmsAndUsers,CreateResources,CreateGroups,GetMy,AccessControl,UpdateAndReplace,Delete,DockerFunctions"
 
 run:
+	export registryUser=testuser
+	export registryPassword=testpassword
 	bin/testsafeharbor \
 		-tests="Registry"
 
