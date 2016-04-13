@@ -56,13 +56,13 @@ prepregistry:
 # This target can only be run on a Linux system that has docker-engine installed.
 startregistry:
 	# Start a docker registry instance.
-	sudo docker run -d -p 5000:5000 --name registry \
+	sudo docker run -it -p 5000:5000 --name registry \
 		-v registryauth:/auth \
 		-v registrydata:/var/lib/registry \
 		-e "REGISTRY_AUTH=htpasswd" \
 		-e "REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm" \
 		-e "REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd" \
-		docker.io/registry:2
+		docker.io/registry:2 /bin/bash
 		
 stopregistry:
 	sudo docker stop registry
