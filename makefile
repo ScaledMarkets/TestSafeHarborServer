@@ -56,6 +56,7 @@ prepregistry:
 # This target can only be run on a Linux system that has docker-engine installed.
 startregistry:
 	# Start a docker registry instance.
+	sudo docker rm -f registry
 	sudo docker run -it -p 5000:5000 --name registry \
 		-v `pwd`/registryauth:/auth \
 		-v `pwd`/registrydata:/var/lib/registry \
