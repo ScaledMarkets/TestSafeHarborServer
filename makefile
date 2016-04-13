@@ -58,7 +58,7 @@ startregistry:
 		-v registrydata:/var/lib/registry \
 		-e "REGISTRY_AUTH=htpasswd" \
 		-e "REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm" \
-		-e REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd \
+		-e "REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd" \
 		docker.io/registry:2
 		
 stopregistry:
