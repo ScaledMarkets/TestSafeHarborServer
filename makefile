@@ -74,7 +74,7 @@ getatomicapp:
 	sudo docker pull docker.io/projectatomic/$(TestImageName)
 	sudo docker tag docker.io/projectatomic/$(TestImageName) localhost:5000/$(TestImageName)
 	# Push atomic to our registry.
-	sudo docker login -u=$(registryUser) -p=$(registryPassword) localhost:5000
+	sudo docker login -u=$(registryUser) -p=$(registryPassword) -e="" localhost:5000
 	sudo docker push localhost:5000/$(TestImageName)
 
 runall:
