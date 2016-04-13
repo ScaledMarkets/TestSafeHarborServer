@@ -45,13 +45,16 @@ $(build_dir)/$(PACKAGENAME): src/..
 	@GOPATH=$(CURDIR) go install $(PACKAGENAME)
 
 # This target can only be run on a Linux system that has docker-engine installed.
-startregistry:
+prepregistry:
 	# Create directories needed by the docker registry.
 	mkdir -p registryauth
 	mkdir -p registrydata
 	# Create htpassword file containing a user and password.
 	sudo docker run --entrypoint htpasswd docker.io/registry:2 \
 		-Bbn $(registryUser) $(registryPassword) > registryauth/htpasswd
+
+# This target can only be run on a Linux system that has docker-engine installed.
+startregistry:
 	# Start a docker registry instance.
 	sudo docker run -d -p 5000:5000 --name registry \
 		-v registryauth:/auth \
