@@ -129,7 +129,8 @@ func TestDockerRegistry(testContext *utils.TestContext) {
 	
 	// Test connecting to Registry.
 	{
-		testContext.StartTest("Open Registry connection")
+		testContext.StartTest(fmt.Sprintf(
+			"Open Registry connection, using %s:%s...", registryUserId, registryPassword))
 		registry, err = utils.OpenDockerRegistryConnection(registryHost, registryPort,
 			registryUserId, registryPassword)
 		testContext.AssertErrIsNil(err, "In opening connection to docker registry")
