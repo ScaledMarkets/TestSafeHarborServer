@@ -53,7 +53,7 @@ startregistry:
 	sudo docker run --entrypoint htpasswd docker.io/registry:2 \
 		-Bbn $(registryUser) $(registryPassword) > registryauth/htpasswd
 	# Start a docker registry instance.
-	sudo docker run --net=host -d -p 5000:5000 --name registry \
+	sudo docker run -d -p 5000:5000 --name registry \
 		-v registryauth:/auth \
 		-v registrydata:/var/lib/registry \
 		-e "REGISTRY_AUTH=htpasswd" \
@@ -81,9 +81,6 @@ runall:
 
 run:
 	bin/testsafeharbor \
-		h=$(SAFEHARBOR_HOST) \
-		p=$(SAFEHARBOR_PORT) \
-		-redispswd=ahdal8934k383898&*kdu&^ \
 		-tests="Registry"
 
 clean:
