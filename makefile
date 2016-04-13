@@ -87,7 +87,7 @@ runall:
 run:
 	export registryUser=testuser
 	export registryPassword=testpassword
-	bin/testsafeharbor \
+	bin/testsafeharbor -stop \
 		-tests="Registry"
 
 clean:
