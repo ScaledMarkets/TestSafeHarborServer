@@ -162,11 +162,11 @@ func TestDockerRegistry(testContext *utils.TestContext) {
 		var downloadedImageFile *os.File
 		downloadedImageFile, err = os.OpenFile(downloadedImageFilePath, os.O_WRONLY, 0600)
 		testContext.AssertErrIsNil(err, fmt.Sprintf(
-			"When opening image file '%s': %s", downloadedImageFilePath, err.Error()))
+			"When opening image file '%s'", downloadedImageFilePath))
 		var fileInfo os.FileInfo
 		fileInfo, err = downloadedImageFile.Stat()
 		testContext.AssertErrIsNil(err, fmt.Sprintf(
-			"When getting status of image file '%s': %s", downloadedImageFilePath, err.Error()))
+			"When getting status of image file '%s'", downloadedImageFilePath))
 		testContext.AssertThat(fileInfo.Size() > 0, "Downloaded file is size 0")
 		
 		testContext.PassTestIfNoFailures()
