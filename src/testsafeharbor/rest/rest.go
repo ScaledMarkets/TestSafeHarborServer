@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/url"
 	"io"
+	"io/ioutil"
 	"os"
 	"strings"
 	"bytes"
@@ -255,9 +256,13 @@ func (restContext *RestContext) SendFilePost(sessionId string,
  * Parse an HTTP JSON response that can be converted to a map.
  */
 func ParseResponseBodyToMap(body io.ReadCloser) (map[string]interface{}, error) {
-	var value []byte = ReadResponseBody(body)
+	var value []byte
+	var err error
+	value, err = ioutil.ReadAll(body)
+	if err != nil { return nil, err }
+	//var value []byte = ReadResponseBody(body)
 	var obj map[string]interface{}
-	err := json.Unmarshal(value, &obj)
+	err = json.Unmarshal(value, &obj)
 	//var dec *json.Decoder = json.NewDecoder(body)
 	//err := dec.Decode(&obj)
 	if err != nil { return nil, err }
@@ -280,9 +285,12 @@ func ParseResponseBodyToMap(body io.ReadCloser) (map[string]interface{}, error) 
  *	"payload" - json array (this is what is converted to a golang array of maps).
  */
 func ParseResponseBodyToMaps(body io.ReadCloser) ([]map[string]interface{}, error) {
-	var value []byte = ReadResponseBody(body)
+	var value []byte
+	var err error
+	value, err = ioutil.ReadAll(body)
+	if err != nil { return nil, err }
 	var obj map[string]interface{}
-	err := json.Unmarshal(value, &obj)
+	err = json.Unmarshal(value, &obj)
 	if err != nil { return nil, err }
 	
 	var isType bool
@@ -326,8 +334,8 @@ func ParseResponseBodyToMaps(body io.ReadCloser) ([]map[string]interface{}, erro
 }
 
 /*******************************************************************************
- * Parse an arbitrary HTTP JSON response.
- */
+ * Parse an arbitrary HTTP JSON response. Not used anymore.
+ *
 func ReadResponseBody(body io.ReadCloser) []byte {
 	
 	var value []byte = make([]byte, 0)
@@ -346,7 +354,7 @@ func ReadResponseBody(body io.ReadCloser) []byte {
 	fmt.Println()
 	
 	return value
-}
+}*/
 
 /*******************************************************************************
  * Write the specified map to stdout.
