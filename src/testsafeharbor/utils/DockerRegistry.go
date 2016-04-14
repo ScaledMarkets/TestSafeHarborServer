@@ -336,11 +336,23 @@ func parseLayerDescriptions(body io.ReadCloser) ([]map[string]interface{}, error
 		return nil, errors.New("Did not find fsLayers field in body")
 	}
 	var isType bool
-	var layerAr []map[string]interface{}
-	layerAr, isType = layersObj.([]map[string]interface{})
+	var layerArObj []interface{}
+	layerArObj, isType = layersObj.([]interface{})
+	//layerAr, isType = layersObj.([]map[string]interface{})
 	if ! isType { return nil, errors.New(
 		"Type of layer description is " + reflect.TypeOf(layersObj).String())
+		// Type of layer description is []interface {}
 	}
+	var layerAr = make([]map[string]interface{}, 0)
+	for _, obj := range layerArObj {
+		var m map[string]interface{}
+		m, isType = obj.(map[string]interface{})
+		if ! isType { return nil, errors.New(
+			"Type of layer object is " + reflect.TypeOf(obj).String())
+		}
+		layerAr = append(layerAr, m)
+	}
+	
 	return layerAr, nil
 }
 
