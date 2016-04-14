@@ -147,6 +147,7 @@ func (registry *DockerRegistry) GetImage(name string, tag string, filepath strin
 	layerAr, err = parseLayerDescriptions(resp.Body)
 	fmt.Println("GetImage:B")  // debug
 	if err != nil { return err }
+	fmt.Println("GetImage:BA")  // debug
 	
 	// Retrieve layers, and add each to a tar archive.
 	var tarFile *os.File
