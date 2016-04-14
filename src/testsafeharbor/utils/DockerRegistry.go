@@ -134,7 +134,6 @@ func (registry *DockerRegistry) GetImage(name string, tag string, filepath strin
 	var err error
 	resp, err = registry.SendBasicGet(uri)
 	if err != nil { return err }
-	resp.Body.Close()
 	if resp.StatusCode == 404 {
 		return errors.New("Not found")
 	} else if resp.StatusCode != 200 {
@@ -145,6 +144,7 @@ func (registry *DockerRegistry) GetImage(name string, tag string, filepath strin
 	// Parse description of each layer.
 	var layerAr []map[string]interface{}
 	layerAr, err = parseLayerDescriptions(resp.Body)
+	resp.Body.Close()
 	fmt.Println("GetImage:B")  // debug
 	if err != nil { return err }
 	fmt.Println("GetImage:BA")  // debug
