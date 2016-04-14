@@ -336,7 +336,7 @@ func ReadResponseBody(body io.ReadCloser) []byte {
 		var buf []byte = make([]byte, 100)
 		n, err := body.Read(buf)
 		if n > 0 { value = append(value, buf[0:n]...) }
-		//fmt.Println("Read", string(buf))
+		fmt.Println("Read", string(buf))
 		if err != nil { break }
 		if n < len(buf) { break }
 	}
