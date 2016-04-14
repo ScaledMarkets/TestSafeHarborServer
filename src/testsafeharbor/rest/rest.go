@@ -333,29 +333,6 @@ func ParseResponseBodyToMaps(body io.ReadCloser) ([]map[string]interface{}, erro
 }
 
 /*******************************************************************************
- * Parse an arbitrary HTTP JSON response. Not used anymore.
- *
-func ReadResponseBody(body io.ReadCloser) []byte {
-	
-	var value []byte = make([]byte, 0)
-	//var s string = ""
-	for {
-		var buf []byte = make([]byte, 100)
-		n, err := body.Read(buf)
-		if n > 0 { value = append(value, buf[0:n]...) }
-		fmt.Println("Read", string(buf))
-		if err != nil { break }
-		if n < len(buf) { break }
-	}
-	fmt.Println("Read this:")
-	fmt.Println(string(value))
-	fmt.Println("--")
-	fmt.Println()
-	
-	return value
-}*/
-
-/*******************************************************************************
  * Write the specified map to stdout.
  */
 func PrintMap(m map[string]interface{}) {
