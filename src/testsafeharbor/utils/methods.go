@@ -2235,44 +2235,33 @@ func (testContext *TestContext) TryRemScanConfig(scanConfigId string,
 func (testContext *TestContext) TryGetMyFlags() []string {
 	testContext.StartTest("TryGetMyFlags")
 	
-	fmt.Println("TryGetMyFlags:1")  // debug
 	var resp *http.Response
 	var err error
 	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"getMyFlags",
 		[]string{"Log"},
 		[]string{testContext.TestDemarcation()})
-	fmt.Println("TryGetMyFlags:2")  // debug
 	if ! testContext.AssertErrIsNil(err, "while performing SendSessionPost") { return nil }
-	fmt.Println("TryGetMyFlags:3")  // debug
 	
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
-	
-	fmt.Println("TryGetMyFlags:A")  // debug
 	
 	var responseMaps []map[string]interface{}
 	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)
 	if err != nil { fmt.Println(err.Error()); return nil }
-	fmt.Println("TryGetMyFlags:B")  // debug
 	var retFlagIds []string = make([]string, 0)
 	for _, responseMap := range responseMaps {
-		fmt.Println("TryGetMyFlags:C")  // debug
 		rest.PrintMap(responseMap)
 		
-		fmt.Println("TryGetMyFlags:D")  // debug
 		if retFlagId, isType := responseMap["FlagId"].(string); (! isType) || (retFlagId == "") {
 			testContext.FailTest()
 		} else {
 			retFlagIds = append(retFlagIds, retFlagId)
 		}
-		fmt.Println("TryGetMyFlags:E")  // debug
 		if retRepoId, isType := responseMap["RepoId"].(string); (! isType) || (retRepoId == "") { testContext.FailTest() }
 		if retName, isType := responseMap["Name"].(string); (! isType) || (retName == "") { testContext.FailTest() }
 		if retImageURL, isType := responseMap["ImageURL"].(string); (! isType) || (retImageURL == "") { testContext.FailTest() }
-		fmt.Println("TryGetMyFlags:F")  // debug
 	}
 
-	fmt.Println("TryGetMyFlags:G")  // debug
 	fmt.Println(fmt.Sprintf("Returning %d flag ids", len(retFlagIds)))
 	testContext.PassTestIfNoFailures()
 	return retFlagIds
