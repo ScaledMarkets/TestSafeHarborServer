@@ -140,39 +140,49 @@ func (registry *DockerRegistry) GetImage(name string, tag string, filepath strin
 	} else if resp.StatusCode != 200 {
 		return errors.New(fmt.Sprintf("ImageExists returned status: %s", resp.Status))
 	}
+	fmt.Println("GetImage:A")  // debug
 	
 	// Parse description of each layer.
 	var layerAr []map[string]interface{}
 	layerAr, err = parseLayerDescriptions(resp.Body)
+	fmt.Println("GetImage:B")  // debug
 	if err != nil { return err }
 	
 	// Retrieve layers, and add each to a tar archive.
 	var tarFile *os.File
 	tarFile, err = os.Create(filepath)
+	fmt.Println("GetImage:C")  // debug
 	if err != nil { return errors.New(fmt.Sprintf(
 		"When creating image file '%s': %s", filepath, err.Error()))
 	}
 	var tarWriter = tar.NewWriter(tarFile)
 	var tempDirPath string
 	tempDirPath, err = ioutil.TempDir("", "")
+	fmt.Println("GetImage:D")  // debug
 	if err != nil { return errors.New(fmt.Sprintf(
 		"When creating temp directory for writing layer files: %s", err.Error()))
 	}
 	defer os.RemoveAll(tempDirPath)
+	fmt.Println("GetImage:E")  // debug
 	for _, layerDesc := range layerAr {
 		
+		fmt.Println("GetImage:F")  // debug
 		var layerDigest = layerDesc["blobSum"]
+		fmt.Println("GetImage:G")  // debug
 		if layerDigest == nil {
 			return errors.New("Did not find blobSum field in response for layer")
 		}
 		var digest string
 		var isType bool
+		fmt.Println("GetImage:H")  // debug
 		digest, isType = layerDigest.(string)
 		if ! isType { return errors.New("blogSum field is not a string - it is a " +
 			reflect.TypeOf(layerDigest).String())
 		}
+		fmt.Println("GetImage:I")  // debug
 		uri = "/v2/" + name + "/blobs/" + digest
 		resp, err = registry.SendBasicGet(uri)
+		fmt.Println("GetImage:J")  // debug
 		if err != nil { return errors.New(fmt.Sprintf(
 			"When requesting uri: '%s' - %s", uri, err.Error()))
 		}
@@ -180,28 +190,34 @@ func (registry *DockerRegistry) GetImage(name string, tag string, filepath strin
 		if resp.StatusCode != 200 { return errors.New(fmt.Sprintf(
 			"Response code %d, when requesting uri: '%s'", resp.StatusCode, uri))
 		}
+		fmt.Println("GetImage:K")  // debug
 
 		// Create temporary file in which to write layer.
 		var layerFile *os.File
 		layerFile, err = ioutil.TempFile(tempDirPath, digest)
+		fmt.Println("GetImage:L")  // debug
 		if err != nil { return errors.New(fmt.Sprintf(
 			"When creating layer file: %s", err.Error()))
 		}
 		
 		var reader io.ReadCloser = resp.Body
 		layerFile, err = os.OpenFile(layerFile.Name(), os.O_WRONLY, 0600)
+		fmt.Println("GetImage:M")  // debug
 		if err != nil { return errors.New(fmt.Sprintf(
 			"When opening layer file '%s': %s", layerFile.Name(), err.Error()))
 		}
 		_, err = io.Copy(layerFile, reader)
+		fmt.Println("GetImage:N")  // debug
 		if err != nil { return errors.New(fmt.Sprintf(
 			"When writing layer file '%s': %s", layerFile.Name(), err.Error()))
 		}
 		var fileInfo os.FileInfo
 		fileInfo, err = layerFile.Stat()
+		fmt.Println("GetImage:O")  // debug
 		if err != nil { return errors.New(fmt.Sprintf(
 			"When getting status of layer file '%s': %s", layerFile.Name(), err.Error()))
 		}
+		fmt.Println("GetImage:P")  // debug
 		if fileInfo.Size() == 0 { return errors.New(fmt.Sprintf(
 			"Layer file that was written, '%s', has zero size", layerFile.Name()))
 		}
@@ -213,24 +229,30 @@ func (registry *DockerRegistry) GetImage(name string, tag string, filepath strin
 			Size: int64(fileInfo.Size()),
 		}
 		err = tarWriter.WriteHeader(tarHeader)
+		fmt.Println("GetImage:Q")  // debug
 		if err != nil {	return errors.New(fmt.Sprintf(
 			"While writing layer header to tar archive: , %s", err.Error()))
 		}
 		
 		layerFile, err = os.Open(layerFile.Name())
+		fmt.Println("GetImage:R")  // debug
 		if err != nil {	return errors.New(fmt.Sprintf(
 			"While opening layer file '%s': , %s", layerFile.Name(), err.Error()))
 		}
 		_, err := io.Copy(tarWriter, layerFile)
+		fmt.Println("GetImage:S")  // debug
 		if err != nil {	return errors.New(fmt.Sprintf(
 			"While writing layer content to tar archive: , %s", err.Error()))
 		}
 	}
 	
+	fmt.Println("GetImage:T")  // debug
 	err = tarWriter.Close()
+	fmt.Println("GetImage:U")  // debug
 	if err != nil {	return errors.New(fmt.Sprintf(
 		"While closing tar archive: , %s", err.Error()))
 	}
+	fmt.Println("GetImage:V")  // debug
 	
 	return nil
 }
