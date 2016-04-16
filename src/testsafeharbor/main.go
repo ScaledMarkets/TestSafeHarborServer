@@ -30,6 +30,7 @@ func main() {
 	
 	var testSuite = map[string]func(*utils.TestContext) {
 		"Registry": TestDockerRegistry,
+		"Engine": TestDockerEngine,
 		"json": TestJSONDeserialization,
 		"goredis": TestGoRedis,
 		"redis": TestRedis,
@@ -102,6 +103,36 @@ func main() {
 		fmt.Print(testName)
 	}
 	fmt.Println()
+}
+
+/*******************************************************************************
+ * 
+ */
+func TestDockerEngine(testContext *utils.TestContext) {
+	
+	fmt.Println("\nTest suite TestDockerEngine------------------\n")
+
+	// -------------------------------------
+	// Test setup:
+	
+	var engine *utils.DockerEngine
+	var err error
+	
+	// Test connecting to Engine.
+	{
+		testContext.StartTest("Open Engine connection...")
+		engine, err = utils.OpenDockerEngineConnection()
+		testContext.AssertErrIsNil(err, "In opening connection to docker engine")
+		testContext.PassTestIfNoFailures()
+	}
+	
+	// Test BuildImage.
+	{
+		testContext.StartTest("Test BuildImage")
+		err = engine.BuildImage(....buildDirPath, ....imageFullName)
+		testContext.AssertErrIsNil(err, "In building image")
+		testContext.PassTestIfNoFailures()
+	}
 }
 
 /*******************************************************************************

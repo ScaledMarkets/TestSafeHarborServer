@@ -84,13 +84,22 @@ runall:
 		-redispswd=ahdal8934k383898&*kdu&^ \
 		-tests="Registry,json,goredis,redis,CreateRealmsAndUsers,CreateResources,CreateGroups,GetMy,AccessControl,UpdateAndReplace,Delete,DockerFunctions"
 
-run:
+regtests:
 	export registryUser=testuser
 	export registryPassword=testpassword
 	export TestImageName=$(TestImageName)
 	export TestImageTag=$(TestImageTag)
 	bin/testsafeharbor -stop \
 		-tests="Registry"
+
+engtests:
+	bin/testsafeharbor -stop \
+		-tests="Engine"
+
+dockertests:
+	bin/testsafeharbor -stop \
+		-h=52.39.38.5 -p=6000 \
+		-tests="DockerFunctions"
 
 clean:
 	rm -r -f $(build_dir)/$(PACKAGENAME)

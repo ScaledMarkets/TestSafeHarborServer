@@ -112,7 +112,7 @@ func (restContext *RestContext) SendBasicDelete(reqName string) (*http.Response,
  * Send a POST request to the SafeHarborServer, at the specified REST endpoint method
  * (reqName), with the specified query parameters, using basic authentication.
  */
-func (restContext *RestContext) SendBasicPost(reqName string, names []string,
+func (restContext *RestContext) SendBasicFormPost(reqName string, names []string,
 	values []string) (*http.Response, error) {
 	
 	var urlstr string = restContext.getURL(reqName)
@@ -132,6 +132,27 @@ func (restContext *RestContext) SendBasicFilePost(reqName string, names []string
 	values []string, path string) (*http.Response, error) {
 
 	return restContext.SendFilePost("", reqName, names, values, path)
+}
+
+/*******************************************************************************
+ * Send a POST request with a body of an arbitrary content type.
+ */
+func (restContext *RestContext) SendBasicStreamPost(reqName string, contentType string,
+	content io.Reader) (*http.Response, error) {
+	
+	var request *http.Request
+	var err error
+	request, err = http.NewRequest("POST", restContext.getURL(reqName), content)
+	if err != nil { return nil, err }
+	
+	request.Header.Set("Content-Type", contentType)
+
+	// Submit the request
+	var response *http.Response
+	response, err := restContext.httpClient.Do(request)
+	if err != nil { return nil, err }
+
+	return response, nil
 }
 
 /*******************************************************************************
@@ -167,8 +188,10 @@ func (restContext *RestContext) sendSessionReq(sessionId string, reqMethod strin
 	// Send REST POST request to server.
 	var urlstr string = restContext.getURL(reqName)
 	var data url.Values = url.Values{}
-	for index, each := range names {
-		data[each] = []string{values[index]}
+	if names != nil {
+		for index, each := range names {
+			data[each] = []string{values[index]}
+		}
 	}
 	var reader io.Reader = strings.NewReader(data.Encode())
 	var request *http.Request
@@ -368,9 +391,11 @@ func (restContext *RestContext) getURL(reqName string) string {
 	if restContext.UserId != "" {
 		basicAuthCreds = fmt.Sprintf("%s:%s@", restContext.UserId, restContext.Password)
 	}
+	var portspec = ""
+	if restContext.port != 0 { portspec = fmt.Sprintf(":%d", restContext.port) }
 	return fmt.Sprintf(
-		"%s://%s%s:%d/%s",
-		restContext.GetScheme(), basicAuthCreds, restContext.hostname, restContext.port, reqName)
+		"%s://%s%s%s/%s",
+		restContext.GetScheme(), basicAuthCreds, restContext.hostname, portspec, reqName)
 }
 
 /*******************************************************************************
