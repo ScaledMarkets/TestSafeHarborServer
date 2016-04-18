@@ -136,7 +136,8 @@ func (engine *DockerEngine) BuildImage(buildDirPath, imageFullName string) (stri
 	defer tarReader.Close()
 	if err != nil { return "", err }
 	var response *http.Response
-	response, err = engine.SendBasicStreamPost("build", "application/tar", tarReader)
+	response, err = engine.SendBasicStreamPost(
+		fmt.Sprintf("build?t=%s", imageFullName), "application/tar", tarReader)
 	if err != nil { return "", err }
 	if response.StatusCode != 200 { return "", errors.New(response.Status) }
 	
