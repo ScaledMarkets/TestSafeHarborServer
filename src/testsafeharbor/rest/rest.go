@@ -414,10 +414,14 @@ func (restContext *RestContext) getURL(reqName string) string {
 	var portspec = ""
 	if restContext.port != 0 { portspec = fmt.Sprintf(":%d", restContext.port) }
 	var httpScheme = restContext.GetScheme()
-	if restContext.GetScheme() == "unix" { httpScheme = "http" }  // override
+	var hostname = restContext.hostname
+	if restContext.GetScheme() == "unix" {
+		httpScheme = "http"  // override
+		hostname = "fakehost"
+	}
 	return fmt.Sprintf(
 		"%s://%s%s%s/%s",
-		httpScheme, basicAuthCreds, restContext.hostname, portspec, reqName)
+		httpScheme, basicAuthCreds, hostname, portspec, reqName)
 }
 
 /*******************************************************************************
