@@ -30,6 +30,7 @@ type RestContext struct {
  */
 func CreateRestContext(scheme, hostname string, port int, userId string, password string,
 	sessionIdSetter func(*http.Request, string)) *RestContext {
+
 	return &RestContext{
 		httpClient: &http.Client{
 			Transport: &http.Transport{

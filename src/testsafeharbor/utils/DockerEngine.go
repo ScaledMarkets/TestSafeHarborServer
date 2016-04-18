@@ -31,6 +31,7 @@ func OpenDockerEngineConnection() (*DockerEngine, error) {
 			"/var/run/docker.sock", 0, "", "", func (req *http.Request, s string) {}),
 	}
 	
+	fmt.Println("Attempting to ping the engine...")
 	var err error = engine.Ping()
 	if err != nil {
 		return nil, err
