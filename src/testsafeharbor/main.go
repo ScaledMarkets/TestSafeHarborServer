@@ -128,7 +128,7 @@ func TestDockerEngine(testContext *utils.TestContext) {
 		
 		// Create a dockerfile.
 		_, err = utils.CreateTempFile(buildDirPath,
-			"Dockerfile", "FROM centos\nRUN echo hi > there")
+			"Dockerfile", "FROM centos\nRUN touch newfile")
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 	}
 	
@@ -143,8 +143,11 @@ func TestDockerEngine(testContext *utils.TestContext) {
 	// Test BuildImage.
 	{
 		testContext.StartTest("Test BuildImage")
-		err = engine.BuildImage(buildDirPath, imageFullName)
+		var responseStr string
+		responseStr, err = engine.BuildImage(buildDirPath, imageFullName)
 		testContext.AssertErrIsNil(err, "In building image")
+		fmt.Println("Response:")
+		fmt.Println(responseStr)
 		testContext.PassTestIfNoFailures()
 	}
 }

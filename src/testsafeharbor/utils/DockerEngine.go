@@ -68,9 +68,11 @@ func (registry *DockerEngine) Ping() error {
 
 
 /*******************************************************************************
- * 
+ * Invoke the docker engine to build the image defined by the specified contents
+ * of the build directory, which presumably contains a dockerfile. The textual
+ * response from the docker engine is returned.
  */
-func (engine *DockerEngine) BuildImage(buildDirPath, imageFullName string) error {
+func (engine *DockerEngine) BuildImage(buildDirPath, imageFullName string) (string, error) {
 
 	// https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/#build-image-from-a-dockerfile
 	// POST /build HTTP/1.1
@@ -83,10 +85,10 @@ func (engine *DockerEngine) BuildImage(buildDirPath, imageFullName string) error
 	var err error
 	var tempDirPath string
 	tempDirPath, err = ioutil.TempDir("", "")
-	if err != nil { return err }
+	if err != nil { return "", err }
 	defer os.RemoveAll(tempDirPath)
 	tarFile, err = ioutil.TempFile(tempDirPath, "")
-	if err != nil { return errors.New(fmt.Sprintf(
+	if err != nil { return "", errors.New(fmt.Sprintf(
 		"When creating temp file '%s': %s", tarFile.Name(), err.Error()))
 	}
 	fmt.Println("BuildImage: B - tar: " + tarFile.Name())  // debug
@@ -124,7 +126,7 @@ func (engine *DockerEngine) BuildImage(buildDirPath, imageFullName string) error
 		})
 	
 	fmt.Println("BuildImage: F")  // debug
-	if err != nil { return err }
+	if err != nil { return "", err }
 	tarWriter.Close()
 	
 	// Send the request to the docker engine, with the tar file as the body content.
@@ -132,14 +134,12 @@ func (engine *DockerEngine) BuildImage(buildDirPath, imageFullName string) error
 	var tarReader io.ReadCloser
 	tarReader, err = os.Open(tarFile.Name())
 	defer tarReader.Close()
-	if err != nil { return err }
+	if err != nil { return "", err }
 	var response *http.Response
 	response, err = engine.SendBasicStreamPost("build", "application/tar", tarReader)
-	if err != nil { return err }
-	if response.StatusCode != 200 { return errors.New(response.Status) }
+	if err != nil { return "", err }
+	if response.StatusCode != 200 { return "", errors.New(response.Status) }
 	
-	// debug
-	fmt.Println("Response:")
 	var n int
 	var buf []byte = make([]byte, 100)
 	var bytes []byte = make([]byte, 0)
@@ -149,10 +149,9 @@ func (engine *DockerEngine) BuildImage(buildDirPath, imageFullName string) error
 		bytes = append(bytes, buf[0:n]...)
 		if n < len(buf) { break }
 	}
-	fmt.Println(string(bytes))
-	// end debug
+	var responseStr = string(bytes)
 	
 	
 	fmt.Println("BuildImage: H")  // debug
-	return nil
+	return responseStr, nil
 }
