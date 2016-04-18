@@ -89,7 +89,7 @@ func (engine *DockerEngine) BuildImage(buildDirPath, imageFullName string) error
 	if err != nil { return errors.New(fmt.Sprintf(
 		"When creating temp file '%s': %s", tarFile.Name(), err.Error()))
 	}
-	fmt.Println("BuildImage: B")  // debug
+	fmt.Println("BuildImage: B - tar: " + tarFile.Name())  // debug
 	
 	// Walk the build directory and add each file to the tar.
 	var tarWriter = tar.NewWriter(tarFile)
