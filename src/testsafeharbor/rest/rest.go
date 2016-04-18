@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"mime/multipart"
 	"fmt"
+	"net"
 	"net/url"
 	"io"
 	"io/ioutil"
@@ -31,11 +32,20 @@ type RestContext struct {
 func CreateRestContext(scheme, hostname string, port int, userId string, password string,
 	sessionIdSetter func(*http.Request, string)) *RestContext {
 
+	var transport http.RoundTripper
+	
+	if scheme == "unix" {
+		transport = &http.Transport{
+			Dial: unixDial,
+		}
+	} else {
+		transport = &http.Transport{
+		}
+	}
+
 	return &RestContext{
 		httpClient: &http.Client{
-			Transport: &http.Transport{
-				DisableCompression: true,
-			},
+			Transport: transport,
 		},
 		scheme: scheme,
 		hostname: hostname,
@@ -44,6 +54,13 @@ func CreateRestContext(scheme, hostname string, port int, userId string, passwor
 		Password: password,
 		setSessionId: sessionIdSetter,
 	}
+}
+
+/*******************************************************************************
+ * For creating unix domain sockets.
+ */
+func unixDial(network, addr string) (conn net.Conn, err error) {
+	return net.Dial("unix", addr)
 }
 
 func (restContext *RestContext) Print() {
@@ -396,9 +413,11 @@ func (restContext *RestContext) getURL(reqName string) string {
 	}
 	var portspec = ""
 	if restContext.port != 0 { portspec = fmt.Sprintf(":%d", restContext.port) }
+	var httpScheme = restContext.GetScheme()
+	if restContext.GetScheme() == "unix" { httpScheme = "http" }  // override
 	return fmt.Sprintf(
 		"%s://%s%s%s/%s",
-		restContext.GetScheme(), basicAuthCreds, restContext.hostname, portspec, reqName)
+		httpScheme, basicAuthCreds, restContext.hostname, portspec, reqName)
 }
 
 /*******************************************************************************
