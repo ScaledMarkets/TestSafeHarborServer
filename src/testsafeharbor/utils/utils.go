@@ -226,13 +226,26 @@ func ComputeFileSignature(filepath string) ([]byte, error) {
 }
 
 /*******************************************************************************
- * Create a temporary file, with the given name, write the given content to it,
- * and return the path to the file.
+ * Create a temporary directory.
  */
-func CreateTempFile(name string, content string) (string, error) {
+func CreateTempDir() (string, error) {
+	var path string
+	var err error
+	path, err = ioutil.TempDir("", "")
+	if err != nil { return "", err }
+	fmt.Println("Creating test directory " + path)
+	return path, err
+}
+
+/*******************************************************************************
+ * Create a temporary file in the specified directory, with the given name,
+ * write the given content to it, and return the path to the file.
+ */
+func CreateTempFile(dir, name string, content string) (string, error) {
 	var file *os.File
 	var err error
-	file, err = ioutil.TempFile("", "test")
+	file, err = os.Create(dir + "/" + name)
+	if err != nil { return "", err }
 	var bytes []byte = []byte(content)
 	var mode os.FileMode = os.ModeTemporary | os.ModePerm
 	err = ioutil.WriteFile(file.Name(), bytes, mode)

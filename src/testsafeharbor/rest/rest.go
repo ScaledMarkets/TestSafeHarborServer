@@ -149,7 +149,7 @@ func (restContext *RestContext) SendBasicStreamPost(reqName string, contentType 
 
 	// Submit the request
 	var response *http.Response
-	response, err := restContext.httpClient.Do(request)
+	response, err = restContext.httpClient.Do(request)
 	if err != nil { return nil, err }
 
 	return response, nil

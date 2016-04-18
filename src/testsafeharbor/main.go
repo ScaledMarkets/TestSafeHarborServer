@@ -117,6 +117,19 @@ func TestDockerEngine(testContext *utils.TestContext) {
 	
 	var engine *utils.DockerEngine
 	var err error
+	var buildDirPath string
+	var imageFullName string = "testimage"
+	
+	{
+		// Create a build directory.
+		buildDirPath, err = utils.CreateTempDir()
+		if err != nil { testContext.AbortAllTests(err.Error()) }
+		
+		// Create a dockerfile.
+		_, err = utils.CreateTempFile(buildDirPath,
+			"Dockerfile", "FROM centos\nRUN echo hi > there")
+		if err != nil { testContext.AbortAllTests(err.Error()) }
+	}
 	
 	// Test connecting to Engine.
 	{
@@ -129,7 +142,7 @@ func TestDockerEngine(testContext *utils.TestContext) {
 	// Test BuildImage.
 	{
 		testContext.StartTest("Test BuildImage")
-		err = engine.BuildImage(....buildDirPath, ....imageFullName)
+		err = engine.BuildImage(buildDirPath, imageFullName)
 		testContext.AssertErrIsNil(err, "In building image")
 		testContext.PassTestIfNoFailures()
 	}
@@ -563,16 +576,20 @@ func TestCreateResources(testContext *utils.TestContext) {
 	var dockerfilePath string
 	var flagImagePath = "Seal.png"
 	var flag2ImagePath = "Seal2.png"
+	var tempdir string
 	
 	{
+		var err error
+		tempdir, err = utils.CreateTempDir()
+		if err != nil { testContext.AbortAllTests(err.Error()) }
+		
 		realm4Id, _, _ = testContext.TryCreateRealmAnon(
 			"realm4", "realm 4 Org", "realm4admin", "realm 4 Admin Full Name",
 			"realm4admin@gmail.com", "realm4adminpswd")
 		
 		testContext.TryAuthenticate("realm4admin", "realm4adminpswd", true)
 		
-		var err error
-		dockerfilePath, err = utils.CreateTempFile("Dockerfile", "FROM centos\nRUN echo moo > oink")
+		dockerfilePath, err = utils.CreateTempFile(tempdir, "Dockerfile", "FROM centos\nRUN echo moo > oink")
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfilePath)
 		
@@ -806,8 +823,12 @@ func TestGetMy(testContext *utils.TestContext) {
 	var realmZRepo2ScanConfigId string
 	var realmZRepo2FlagId string
 	var flagImagePath = "Seal.png"
-	
+	var tempdir string
 	{
+		var err error
+		tempdir, err = utils.CreateTempDir()
+		if err != nil { testContext.AbortAllTests(err.Error()) }
+		
 		realmXId, _, _ = testContext.TryCreateRealmAnon(
 			"realm4", "realm 4 Org", realmXAdminUserId, "realm 4 Admin Full Name",
 			"realm4admin@gmail.com", realmXAdminPswd)
@@ -825,8 +846,7 @@ func TestGetMy(testContext *utils.TestContext) {
 		realmZId = testContext.TryCreateRealm("cromardirealm", "Cromardis_Realm", "Beware in here")
 		testContext.TryCreateRepo(realmZId, "repo1", "A first repo", "")
 		
-		var err error
-		dockerfilePath, err = utils.CreateTempFile("Dockerfile", "FROM centos\nRUN echo moo > oink")
+		dockerfilePath, err = utils.CreateTempFile(tempdir, "Dockerfile", "FROM centos\nRUN echo moo > oink")
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfilePath)
 		
@@ -926,8 +946,13 @@ func TestAccessControl(testContext *utils.TestContext) {
 	var realmXRepo1Id string
 	var dockerfileId string
 	var dockerfilePath string
+	var tempdir string
 	
 	{
+		var err error
+		tempdir, err = utils.CreateTempDir()
+		if err != nil { testContext.AbortAllTests(err.Error()) }
+		
 		realmXId, _, _ = testContext.TryCreateRealmAnon(
 			"realm4", "realm 4 Org", realmXAdminUserId, "realm 4 Admin Full Name",
 			"realm4admin@gmail.com", realmXAdminPswd)
@@ -939,8 +964,7 @@ func TestAccessControl(testContext *utils.TestContext) {
 		
 		realmXRepo1Id = testContext.TryCreateRepo(realmXId, "repo1", "Repo in realm x", "")
 		
-		var err error
-		dockerfilePath, err = utils.CreateTempFile("Dockerfile", "FROM centos\nRUN echo moo > oink")
+		dockerfilePath, err = utils.CreateTempFile(tempdir, "Dockerfile", "FROM centos\nRUN echo moo > oink")
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfilePath)
 		
@@ -1035,8 +1059,13 @@ func TestUpdateAndReplace(testContext *utils.TestContext) {
 	//var flagId string
 	var flagImagePath = "Seal.png"
 	var flag2ImagePath = "Seal2.png"
+	var tempdir string
 	
 	{
+		var err error
+		tempdir, err = utils.CreateTempDir()
+		if err != nil { testContext.AbortAllTests(err.Error()) }
+		
 		realmXId, _, _ = testContext.TryCreateRealmAnon(
 			"realm4", "realm 4 Org", realmXYAdminUserId, "realm 4 Admin Full Name",
 			"realm4admin@gmail.com", realmXYAdminPswd)
@@ -1051,8 +1080,7 @@ func TestUpdateAndReplace(testContext *utils.TestContext) {
 		realmXJohnObjId, _ = testContext.TryCreateUser(realmXJohnUserId, "John Connor",
 			"johnc@gmail.com", realmXJohnPswd, realmXId)
 		
-		var err error
-		dockerfilePath, err = utils.CreateTempFile("Dockerfile", "FROM centos\nRUN echo moo > oink")
+		dockerfilePath, err = utils.CreateTempFile(tempdir, "Dockerfile", "FROM centos\nRUN echo moo > oink")
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfilePath)
 		
@@ -1257,6 +1285,7 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 	// Write another dockerfile to the temp directory.
 	// Create a dockerfile object for the new file.
 
+	var err error
 	var realmXId string
 	var realmXAdminUserId = "admin"
 	var realmXAdminPswd = "fluffy"
@@ -1269,8 +1298,12 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 	var dockerfile2Path string
 	//var dockerfile2Id string
 	var flagImagePath = "Seal.png"
+	var tempdir string
 	
 	{
+		tempdir, err = utils.CreateTempDir()
+		if err != nil { testContext.AbortAllTests(err.Error()) }
+		
 		realmXId, realmXAdminObjId, _ = testContext.TryCreateRealmAnon(
 			"realm4", "realm 4 Org", realmXAdminUserId, "realm 4 Admin Full Name",
 			"realm4admin@gmail.com", realmXAdminPswd)
@@ -1282,13 +1315,12 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 		scanConfigId = testContext.TryDefineScanConfig("My Config 1",
 			"A very fine config", realmXRepo1Id, "clair", "", flagImagePath, []string{}, []string{})
 
-		var err error
-		dockerfilePath, err = utils.CreateTempFile("Dockerfile", "FROM centos\nRUN echo moo > oink")
+		dockerfilePath, err = utils.CreateTempFile(tempdir, "Dockerfile", "FROM centos\nRUN echo moo > oink")
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfilePath)
 		dockerfileId = testContext.TryAddDockerfile(realmXRepo1Id, dockerfilePath, "A fine dockerfile")
 		
-		dockerfile2Path, err = utils.CreateTempFile("Dockerfile2", "FROM centos\nRUN echo boo > ploink")
+		dockerfile2Path, err = utils.CreateTempFile(tempdir, "Dockerfile2", "FROM centos\nRUN echo boo > ploink")
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfile2Path)
 		testContext.TryAddDockerfile(realmXRepo1Id, dockerfile2Path, "A finer dockerfile")
