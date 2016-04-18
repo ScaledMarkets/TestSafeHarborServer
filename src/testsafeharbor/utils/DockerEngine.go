@@ -84,7 +84,7 @@ func (engine *DockerEngine) BuildImage(buildDirPath, imageFullName string) error
 	var tempDirPath string
 	tempDirPath, err = ioutil.TempDir("", "")
 	if err != nil { return err }
-	//defer os.RemoveAll(tempDirPath)
+	defer os.RemoveAll(tempDirPath)
 	tarFile, err = ioutil.TempFile(tempDirPath, "")
 	if err != nil { return errors.New(fmt.Sprintf(
 		"When creating temp file '%s': %s", tarFile.Name(), err.Error()))
@@ -137,6 +137,21 @@ func (engine *DockerEngine) BuildImage(buildDirPath, imageFullName string) error
 	response, err = engine.SendBasicStreamPost("build", "application/tar", tarReader)
 	if err != nil { return err }
 	if response.StatusCode != 200 { return errors.New(response.Status) }
+	
+	// debug
+	fmt.Println("Response:")
+	var n int
+	var buf []byte = make([]byte, 100)
+	for {
+		n, err = response.Body.Read(buf)
+		if err != nil { break }
+		fmt.Print(buf[0:n])
+		if n < len(buf) { break }
+	}
+	fmt.Println()
+	// end debug
+	
+	
 	fmt.Println("BuildImage: H")  // debug
 	return nil
 }
