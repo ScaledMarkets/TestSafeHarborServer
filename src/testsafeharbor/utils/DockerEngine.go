@@ -130,7 +130,7 @@ func (engine *DockerEngine) BuildImage(buildDirPath, imageFullName string) (stri
 	tarWriter.Close()
 	
 	// Send the request to the docker engine, with the tar file as the body content.
-	fmt.Println("BuildImage: G")  // debug
+	fmt.Println("BuildImage: G - imageFullName: " + imageFullName)  // debug
 	var tarReader io.ReadCloser
 	tarReader, err = os.Open(tarFile.Name())
 	defer tarReader.Close()
