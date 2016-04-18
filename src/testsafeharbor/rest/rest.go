@@ -71,7 +71,9 @@ func (restContext *RestContext) SendBasicGet(reqName string) (*http.Response, er
 	var urlstr string = restContext.getURL(reqName)
 	var resp *http.Response
 	var err error
+	fmt.Println("Sending GET...")  // debug
 	resp, err = restContext.httpClient.Get(urlstr)
+	fmt.Println("...response received.")  // debug
 	if err != nil { return nil, err }
 	return resp, nil
 }
