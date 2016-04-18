@@ -96,8 +96,8 @@ func (engine *DockerEngine) BuildImage(buildDirPath, imageFullName string) error
 	err = filepath.Walk(buildDirPath,
 		func(path string, info os.FileInfo, err error) error {
 		
-			fmt.Println("BuildImage: C")  // debug
 			// Open the file to be written to the tar.
+			fmt.Println("BuildImage: C - path: " + path)  // debug
 			if info.Mode().IsDir() { return nil }
 			var new_path = path[len(buildDirPath):]
 			if len(new_path) == 0 { return nil }
@@ -106,8 +106,8 @@ func (engine *DockerEngine) BuildImage(buildDirPath, imageFullName string) error
 			if err != nil { return err }
 			defer file.Close()
 			
-			fmt.Println("BuildImage: D")  // debug
 			// Write tar header for the file.
+			fmt.Println("BuildImage: D")  // debug
 			var header *tar.Header
 			header, err = tar.FileInfoHeader(info, new_path)
 			if err != nil { return err }
@@ -115,8 +115,8 @@ func (engine *DockerEngine) BuildImage(buildDirPath, imageFullName string) error
 			err = tarWriter.WriteHeader(header)
 			if err != nil { return err }
 			
-			fmt.Println("BuildImage: E")  // debug
 			// Write the file contents to the tar.
+			fmt.Println("BuildImage: E")  // debug
 			_, err = io.Copy(tarWriter, file)
 			if err != nil { return err }
 			
