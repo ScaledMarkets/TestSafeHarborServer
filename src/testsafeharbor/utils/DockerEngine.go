@@ -142,13 +142,14 @@ func (engine *DockerEngine) BuildImage(buildDirPath, imageFullName string) error
 	fmt.Println("Response:")
 	var n int
 	var buf []byte = make([]byte, 100)
+	var bytes []byte = make([]byte, 0)
 	for {
 		n, err = response.Body.Read(buf)
 		if err != nil { break }
-		fmt.Print(buf[0:n])
+		bytes = append(bytes, buf[0:n]...)
 		if n < len(buf) { break }
 	}
-	fmt.Println()
+	fmt.Println(string(bytes))
 	// end debug
 	
 	
