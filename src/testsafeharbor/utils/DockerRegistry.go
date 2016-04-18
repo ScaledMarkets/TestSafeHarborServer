@@ -63,7 +63,7 @@ func OpenDockerRegistryConnection(host string, port int, userId string,
 	password string) (*DockerRegistry, error) {
 	
 	var registry *DockerRegistry = &DockerRegistry{
-		RestContext: *rest.CreateRestContext("http", host, port, userId, password, noop),
+		RestContext: *rest.CreateTCPRestContext("http", host, port, userId, password, noop),
 	}
 	
 	var err error = registry.Ping()

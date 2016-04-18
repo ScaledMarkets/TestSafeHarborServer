@@ -46,7 +46,7 @@ func NewTestContext(scheme, hostname string, port int,
 	stopOnFirstError bool, redisPswd string) *TestContext {
 
 	return &TestContext{
-		RestContext: *rest.CreateRestContext(scheme, hostname, port, "", "", setSessionId),
+		RestContext: *rest.CreateTCPRestContext(scheme, hostname, port, "", "", setSessionId),
 		SessionId: "",
 		StopOnFirstError: stopOnFirstError,
 		TestStatus:  make(map[string]string),

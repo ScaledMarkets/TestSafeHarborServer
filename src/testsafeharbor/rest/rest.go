@@ -27,25 +27,14 @@ type RestContext struct {
 }
 
 /*******************************************************************************
- * userId and password are optional.
+ * For TCP/IP. userId and password are optional.
  */
-func CreateRestContext(scheme, hostname string, port int, userId string, password string,
+func CreateTCPRestContext(scheme, hostname string, port int, userId string, password string,
 	sessionIdSetter func(*http.Request, string)) *RestContext {
-
-	var transport http.RoundTripper
-	
-	if scheme == "unix" {
-		transport = &http.Transport{
-			Dial: unixDial,
-		}
-	} else {
-		transport = &http.Transport{
-		}
-	}
 
 	return &RestContext{
 		httpClient: &http.Client{
-			Transport: transport,
+			Transport: &http.Transport{},
 		},
 		scheme: scheme,
 		hostname: hostname,
@@ -57,10 +46,26 @@ func CreateRestContext(scheme, hostname string, port int, userId string, passwor
 }
 
 /*******************************************************************************
- * For creating unix domain sockets.
+ * For Unix domain sockets. userId and password are optional.
  */
-func unixDial(network, addr string) (conn net.Conn, err error) {
-	return net.Dial("unix", addr)
+func CreateUnixRestContext(
+	dialer func(network, addr string) (net.Conn, error),
+	userId string, password string,
+	sessionIdSetter func(*http.Request, string)) *RestContext {
+
+	return &RestContext{
+		httpClient: &http.Client{
+			Transport: &http.Transport{
+				Dial: dialer,
+			},
+		},
+		scheme: "unix",
+		hostname: "",
+		port: 0,
+		UserId: userId,
+		Password: password,
+		setSessionId: sessionIdSetter,
+	}
 }
 
 func (restContext *RestContext) Print() {
@@ -417,7 +422,6 @@ func (restContext *RestContext) getURL(reqName string) string {
 	var hostname = restContext.hostname
 	if restContext.GetScheme() == "unix" {
 		httpScheme = "http"  // override
-		hostname = "fakehost.fak/" + hostname
 	}
 	return fmt.Sprintf(
 		"%s://%s%s%s/%s",

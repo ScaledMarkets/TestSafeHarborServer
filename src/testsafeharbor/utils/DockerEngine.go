@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"archive/tar"
 	"errors"
@@ -27,8 +28,10 @@ func OpenDockerEngineConnection() (*DockerEngine, error) {
 		// Note: When the SafeHarborServer container is run, it must mount the
 		// /var/run/docker.sock unix socket in the container:
 		//		-v /var/run/docker.sock:/var/run/docker.sock
-		RestContext: *rest.CreateRestContext("unix",
-			"var/run/docker.sock", 0, "", "", func (req *http.Request, s string) {}),
+		RestContext: *rest.CreateUnixRestContext(
+			unixDial,
+			"", "",
+			func (req *http.Request, s string) {}),
 	}
 	
 	fmt.Println("Attempting to ping the engine...")
@@ -38,6 +41,13 @@ func OpenDockerEngineConnection() (*DockerEngine, error) {
 	}
 	
 	return engine, nil
+}
+
+/*******************************************************************************
+ * For connecting to docker''s unix domain socket.
+ */
+func unixDial(network, addr string) (conn net.Conn, err error) {
+	return net.Dial("unix", "/var/run/docker.sock")
 }
 
 /*******************************************************************************
