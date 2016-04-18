@@ -417,7 +417,7 @@ func (restContext *RestContext) getURL(reqName string) string {
 	var hostname = restContext.hostname
 	if restContext.GetScheme() == "unix" {
 		httpScheme = "http"  // override
-		hostname = "fakehost"
+		hostname = "fakehost/" + hostname
 	}
 	return fmt.Sprintf(
 		"%s://%s%s%s/%s",
