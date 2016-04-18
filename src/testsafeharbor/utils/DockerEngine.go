@@ -107,7 +107,7 @@ func (engine *DockerEngine) BuildImage(buildDirPath, imageFullName string) error
 			defer file.Close()
 			
 			// Write tar header for the file.
-			fmt.Println("BuildImage: D")  // debug
+			fmt.Println("BuildImage: D - path: " + path)  // debug
 			var header *tar.Header
 			header, err = tar.FileInfoHeader(info, new_path)
 			if err != nil { return err }
@@ -116,7 +116,7 @@ func (engine *DockerEngine) BuildImage(buildDirPath, imageFullName string) error
 			if err != nil { return err }
 			
 			// Write the file contents to the tar.
-			fmt.Println("BuildImage: E")  // debug
+			fmt.Println("BuildImage: E - path: " + path)  // debug
 			_, err = io.Copy(tarWriter, file)
 			if err != nil { return err }
 			
