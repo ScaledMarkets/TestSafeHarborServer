@@ -28,7 +28,7 @@ func OpenDockerEngineConnection() (*DockerEngine, error) {
 		// /var/run/docker.sock unix socket in the container:
 		//		-v /var/run/docker.sock:/var/run/docker.sock
 		RestContext: *rest.CreateRestContext("unix",
-			"/var/run/docker.sock", 0, "", "", func (req *http.Request, s string) {}),
+			"var/run/docker.sock", 0, "", "", func (req *http.Request, s string) {}),
 	}
 	
 	fmt.Println("Attempting to ping the engine...")
