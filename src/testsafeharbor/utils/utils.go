@@ -41,12 +41,12 @@ type TestContext struct {
 	RedisPswd string
 }
 
-func NewTestContext(hostname string, port int,
+func NewTestContext(scheme, hostname string, port int,
 	setSessionId func(req *http.Request, sessionId string),
 	stopOnFirstError bool, redisPswd string) *TestContext {
 
 	return &TestContext{
-		RestContext: *rest.CreateRestContext(false, hostname, port, "", "", setSessionId),
+		RestContext: *rest.CreateRestContext(scheme, hostname, port, "", "", setSessionId),
 		SessionId: "",
 		StopOnFirstError: stopOnFirstError,
 		TestStatus:  make(map[string]string),

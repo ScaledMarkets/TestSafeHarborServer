@@ -27,8 +27,8 @@ func OpenDockerEngineConnection() (*DockerEngine, error) {
 		// Note: When the SafeHarborServer container is run, it must mount the
 		// /var/run/docker.sock unix socket in the container:
 		//		-v /var/run/docker.sock:/var/run/docker.sock
-		RestContext: *rest.CreateRestContext(false,
-			"unix:///var/run/docker.sock", 0, "", "", func (req *http.Request, s string) {}),
+		RestContext: *rest.CreateRestContext("unix",
+			"/var/run/docker.sock", 0, "", "", func (req *http.Request, s string) {}),
 	}
 	
 	var err error = engine.Ping()

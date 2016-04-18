@@ -45,6 +45,7 @@ func main() {
 	}
 
 	var help *bool = flag.Bool("help", false, "Provide help instructions.")
+	var scheme *string = flag.String("s", "http", "Protocol scheme (one of http, https, unix)")
 	var hostname *string = flag.String("h", "localhost", "Internet address of server.")
 	var port *int = flag.Int("p", 80, "Port server is on.")
 	var stopOnFirstError *bool = flag.Bool("stop", false, "Stop after the first error.")
@@ -80,7 +81,7 @@ func main() {
 	}
 	
 	// Prepare to run tests.
-	var testContext = utils.NewTestContext(*hostname, *port, utils.SetSessionId,
+	var testContext = utils.NewTestContext(*scheme, *hostname, *port, utils.SetSessionId,
 		*stopOnFirstError, *redisPswd)
 	testContext.Print()
 	if strings.Contains(*tests, "DockerFunctions") {

@@ -17,7 +17,7 @@ import (
 
 type RestContext struct {
 	httpClient *http.Client
-	ssl bool
+	scheme string
 	hostname string
 	port int
 	UserId string
@@ -28,7 +28,7 @@ type RestContext struct {
 /*******************************************************************************
  * userId and password are optional.
  */
-func CreateRestContext(ssl bool, hostname string, port int, userId string, password string,
+func CreateRestContext(scheme, hostname string, port int, userId string, password string,
 	sessionIdSetter func(*http.Request, string)) *RestContext {
 	return &RestContext{
 		httpClient: &http.Client{
@@ -36,7 +36,7 @@ func CreateRestContext(ssl bool, hostname string, port int, userId string, passw
 				DisableCompression: true,
 			},
 		},
-		ssl: ssl,
+		scheme: scheme,
 		hostname: hostname,
 		port: port,
 		UserId: userId,
@@ -51,9 +51,7 @@ func (restContext *RestContext) Print() {
 	fmt.Println(fmt.Sprintf("\tport: %d", restContext.port))
 }
 
-func (restContext *RestContext) GetScheme() string {
-	if restContext.ssl { return "https" } else { return "http" }
-}
+func (restContext *RestContext) GetScheme() string { return restContext.scheme }
 
 func (restContext *RestContext) GetHostname() string { return restContext.hostname }
 
