@@ -78,6 +78,7 @@ func (engine *DockerEngine) BuildImage(buildDirPath, imageFullName string) error
 	// {{ TAR STREAM }} (this is the contents of the "build context")
 	
 	// Create a temporary tar file of the build directory contents.
+	fmt.Println("BuildImage: A")  // debug
 	var tarFile *os.File
 	var err error
 	var tempDirPath string
@@ -88,12 +89,14 @@ func (engine *DockerEngine) BuildImage(buildDirPath, imageFullName string) error
 	if err != nil { return errors.New(fmt.Sprintf(
 		"When creating temp file '%s': %s", tarFile.Name(), err.Error()))
 	}
+	fmt.Println("BuildImage: B")  // debug
 	
 	// Walk the build directory and add each file to the tar.
 	var tarWriter = tar.NewWriter(tarFile)
 	err = filepath.Walk(buildDirPath,
 		func(path string, info os.FileInfo, err error) error {
 		
+			fmt.Println("BuildImage: C")  // debug
 			// Open the file to be written to the tar.
 			if info.Mode().IsDir() { return nil }
 			var new_path = path[len(buildDirPath):]
@@ -103,6 +106,7 @@ func (engine *DockerEngine) BuildImage(buildDirPath, imageFullName string) error
 			if err != nil { return err }
 			defer file.Close()
 			
+			fmt.Println("BuildImage: D")  // debug
 			// Write tar header for the file.
 			var header *tar.Header
 			header, err = tar.FileInfoHeader(info, new_path)
@@ -111,6 +115,7 @@ func (engine *DockerEngine) BuildImage(buildDirPath, imageFullName string) error
 			err = tarWriter.WriteHeader(header)
 			if err != nil { return err }
 			
+			fmt.Println("BuildImage: E")  // debug
 			// Write the file contents to the tar.
 			_, err = io.Copy(tarWriter, file)
 			if err != nil { return err }
@@ -118,10 +123,12 @@ func (engine *DockerEngine) BuildImage(buildDirPath, imageFullName string) error
 			return nil  // success - file was written to tar.
 		})
 	
+	fmt.Println("BuildImage: F")  // debug
 	if err != nil { return err }
 	tarWriter.Close()
 	
 	// Send the request to the docker engine, with the tar file as the body content.
+	fmt.Println("BuildImage: G")  // debug
 	var tarReader io.ReadCloser
 	tarReader, err = os.Open(tarFile.Name())
 	defer tarReader.Close()
@@ -130,5 +137,6 @@ func (engine *DockerEngine) BuildImage(buildDirPath, imageFullName string) error
 	response, err = engine.SendBasicStreamPost("build", "application/tar", tarReader)
 	if err != nil { return err }
 	if response.StatusCode != 200 { return errors.New(response.Status) }
+	fmt.Println("BuildImage: H")  // debug
 	return nil
 }
