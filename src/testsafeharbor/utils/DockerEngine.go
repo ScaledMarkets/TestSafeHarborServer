@@ -84,7 +84,7 @@ func (engine *DockerEngine) BuildImage(buildDirPath, imageFullName string) error
 	var tempDirPath string
 	tempDirPath, err = ioutil.TempDir("", "")
 	if err != nil { return err }
-	defer os.RemoveAll(tempDirPath)
+	//defer os.RemoveAll(tempDirPath)
 	tarFile, err = ioutil.TempFile(tempDirPath, "")
 	if err != nil { return errors.New(fmt.Sprintf(
 		"When creating temp file '%s': %s", tarFile.Name(), err.Error()))
