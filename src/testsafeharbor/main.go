@@ -142,15 +142,17 @@ func TestDockerEngine(testContext *utils.TestContext) {
 	
 	// Test GetImages().
 	{
+		testContext.StartTest("Test GetImages")
 		var imageMaps []map[string]interface{}
 		imageMaps, err = engine.GetImages()
 		testContext.AssertErrIsNil(err, "In getting images")
-		testContext.PassTestIfNoFailures()
 
 		// debug
 		fmt.Println("Images:")  
 		for _, imageMap := range imageMaps { fmt.Println(imageMap) }
 		// end debug
+		
+		testContext.PassTestIfNoFailures()
 	}
 	
 	// Test BuildImage.
