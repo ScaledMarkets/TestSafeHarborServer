@@ -313,14 +313,7 @@ func ParseResponseBodyToMap(body io.ReadCloser) (map[string]interface{}, error) 
 	//var dec *json.Decoder = json.NewDecoder(body)
 	//err := dec.Decode(&obj)
 	if err != nil { return nil, err }
-	//AssertErrIsNil(err, "When unmarshalling obj")
 	
-	
-	//var result map[string]interface{}
-	//var isType bool
-	
-	//result, _ = obj.(map[string]interface{})
-	//AssertThat(isType, "Wrong type: obj is not a map[string]interface{}")
 	return obj, nil
 }
 
@@ -402,14 +395,6 @@ func ParseResponseBodyToPayloadMaps(body io.ReadCloser) ([]map[string]interface{
 		maps = append(maps, m)
 	}
 	
-	//var isType bool
-	//result, isType = obj.([]map[string]interface{})
-	//if ! isType {
-	//	fmt.Println("This is what was returned:")
-	//	fmt.Println(result)
-	//}
-	//AssertThat(isType, "Wrong type: obj is not a []map[string]interface{} - it is a " + 
-	//	fmt.Sprintf("%s", reflect.TypeOf(obj)))
 	return maps, nil
 }
 

@@ -149,7 +149,7 @@ func TestDockerEngine(testContext *utils.TestContext) {
 
 		// debug
 		fmt.Println("Images:")  
-		for _, imageMap := range imageMaps { fmt.Println(imageMap) }
+		for _, imageMap := range imageMaps { rest.PrintMap(imageMap) }
 		// end debug
 		
 		testContext.PassTestIfNoFailures()
