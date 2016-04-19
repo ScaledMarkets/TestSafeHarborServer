@@ -158,11 +158,11 @@ func TestDockerEngine(testContext *utils.TestContext) {
 	// Test BuildImage.
 	{
 		testContext.StartTest("Test BuildImage")
-		var responseStr string
-		responseStr, err = engine.BuildImage(buildDirPath, imageFullName)
+		//var responseStr string
+		_, err = engine.BuildImage(buildDirPath, imageFullName)
 		testContext.AssertErrIsNil(err, "In building image")
-		fmt.Println("Response:")
-		fmt.Println(responseStr)
+		//fmt.Println("Response:")
+		//fmt.Println(responseStr)
 		
 		// Check that the image was actually created.
 		fmt.Println("Images:")  // debug
