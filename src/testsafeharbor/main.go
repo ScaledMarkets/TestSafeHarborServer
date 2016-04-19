@@ -170,7 +170,7 @@ func TestDockerEngine(testContext *utils.TestContext) {
 		imageMaps, err = engine.GetImages()
 		var found bool = false
 		for _, imageMap := range imageMaps {
-			fmt.Println(imageMap)  // debug
+			rest.PrintMap(imageMap)  // debug
 			var obj interface{} = imageMap["RepoTags"]
 			var isType bool
 			var tags []interface{}
