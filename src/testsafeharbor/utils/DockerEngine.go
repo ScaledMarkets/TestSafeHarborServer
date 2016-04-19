@@ -78,15 +78,18 @@ func (engine *DockerEngine) Ping() error {
 func (engine *DockerEngine) GetImages() ([]map[string]interface{}, error) {
 	
 	var uri = "/images/json?all=1"
+	fmt.Println("GetImages: A")  // debug
 	var response *http.Response
 	var err error
 	response, err = engine.SendBasicGet(uri)
+	fmt.Println("GetImages: B")  // debug
 	if err != nil { return nil, err }
 	if response.StatusCode != 200 {
 		return nil, errors.New(fmt.Sprintf("GetImages returned status: %s", response.Status))
 	}
 	var imageMaps []map[string]interface{}
 	imageMaps, err = rest.ParseResponseBodyToMaps(response.Body)
+	fmt.Println("GetImages: C")  // debug
 	if err != nil { return nil, err }
 	return imageMaps, nil
 }
