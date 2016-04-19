@@ -140,6 +140,19 @@ func TestDockerEngine(testContext *utils.TestContext) {
 		testContext.PassTestIfNoFailures()
 	}
 	
+	// Test GetImages().
+	{
+		var imageMaps []map[string]interface{}
+		imageMaps, err = engine.GetImages()
+		testContext.AssertErrIsNil(err, "In getting images")
+		testContext.PassTestIfNoFailures()
+
+		// debug
+		fmt.Println("Images:")  
+		for _, imageMap := range imageMaps { fmt.Println(imageMap) }
+		// end debug
+	}
+	
 	// Test BuildImage.
 	{
 		testContext.StartTest("Test BuildImage")
@@ -148,6 +161,34 @@ func TestDockerEngine(testContext *utils.TestContext) {
 		testContext.AssertErrIsNil(err, "In building image")
 		fmt.Println("Response:")
 		fmt.Println(responseStr)
+		
+		// Check that the image was actually created.
+		fmt.Println("Images:")  // debug
+		var imageMaps []map[string]interface{}
+		imageMaps, err = engine.GetImages()
+		var found bool = false
+		for _, imageMap := range imageMaps {
+			fmt.Println(imageMap)  // debug
+			var obj interface{} = imageMap["RepoTags"]
+			var isType bool
+			var tags []interface{}
+			tags, isType = obj.([]interface{})
+			if ! testContext.AssertThat(isType, "RepoTags is not an interface array") { break }
+			if ! testContext.AssertThat(tags != nil, "No RepoTags found") { break }
+			for _, tagi := range tags {
+				var tag string
+				tag, isType = tagi.(string)
+				if ! testContext.AssertThat(isType, "tag is not a string") { break }
+				if tag == imageFullName {
+					found = true
+					break
+				}
+			}
+			if testContext.TestHasFailed() { break }
+			if found { break }
+		}
+		testContext.AssertThat(found, "Image not found")
+		
 		testContext.PassTestIfNoFailures()
 	}
 }

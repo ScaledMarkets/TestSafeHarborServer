@@ -141,6 +141,13 @@ func (testContext *TestContext) FailTest() {
 /*******************************************************************************
  * 
  */
+func (testContext *TestContext) TestHasFailed() bool {
+	return (testContext.TestStatus[testContext.testName] == "Fail")
+}
+
+/*******************************************************************************
+ * 
+ */
 func (testContext *TestContext) AbortAllTests(msg string) {
 	fmt.Println("Aborting tests: " + msg)
 	os.Exit(1)

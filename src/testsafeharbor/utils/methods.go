@@ -478,7 +478,7 @@ func (testContext *TestContext) TryGetDockerfiles(repoId string) []string {
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMaps []map[string]interface{}
-	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)
+	responseMaps, err = rest.ParseResponseBodyToPayloadMaps(resp.Body)
 	if err != nil { fmt.Println(err.Error()); return nil }
 	var result []string = make([]string, 0)
 	
@@ -599,7 +599,7 @@ func (testContext *TestContext) TryGetDockerImages(repoId string) []string {
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMaps []map[string]interface{}
-	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)
+	responseMaps, err = rest.ParseResponseBodyToPayloadMaps(resp.Body)
 	if err != nil { fmt.Println(err.Error()); return nil }
 	var result []string = make([]string, 0)
 	for _, responseMap := range responseMaps {
@@ -717,7 +717,7 @@ func (testContext *TestContext) TryGetGroupUsers(groupId string) []string {
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMaps []map[string]interface{}
-	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)  // returns [UserDesc]
+	responseMaps, err = rest.ParseResponseBodyToPayloadMaps(resp.Body)  // returns [UserDesc]
 	if err != nil { fmt.Println(err.Error()); return nil }
 	var result []string = make([]string, 0)
 	for _, responseMap := range responseMaps {
@@ -820,7 +820,7 @@ func (testContext *TestContext) TryGetRealmGroups(realmId string) []string {
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMaps []map[string]interface{}
-	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)  // returns [GroupDesc]
+	responseMaps, err = rest.ParseResponseBodyToPayloadMaps(resp.Body)  // returns [GroupDesc]
 	if err != nil { fmt.Println(err.Error()); return nil }
 	// Id
 	// Name
@@ -875,7 +875,7 @@ func (testContext *TestContext) TryGetRealmRepos(realmId string, expectSuccess b
 	defer resp.Body.Close()
 	
 	var responseMaps []map[string]interface{}
-	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)
+	responseMaps, err = rest.ParseResponseBodyToPayloadMaps(resp.Body)
 	if err != nil { fmt.Println(err.Error()); return nil }
 	var result []string = make([]string, 0)
 	for _, responseMap := range responseMaps {
@@ -912,7 +912,7 @@ func (testContext *TestContext) TryGetAllRealms() []string {
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMaps []map[string]interface{}
-	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)
+	responseMaps, err = rest.ParseResponseBodyToPayloadMaps(resp.Body)
 	if err != nil { fmt.Println(err.Error()); return nil }
 	var result []string = make([]string, 0)
 	for _, responseMap := range responseMaps {
@@ -947,7 +947,7 @@ func (testContext *TestContext) TryGetMyDockerfiles() []string {
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMaps []map[string]interface{}
-	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)
+	responseMaps, err = rest.ParseResponseBodyToPayloadMaps(resp.Body)
 	if err != nil { fmt.Println(err.Error()); return nil }
 	var result []string = make([]string, 0)
 	for _, responseMap := range responseMaps {
@@ -982,7 +982,7 @@ func (testContext *TestContext) TryGetMyDockerImages() []string {
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMaps []map[string]interface{}
-	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)
+	responseMaps, err = rest.ParseResponseBodyToPayloadMaps(resp.Body)
 	if err != nil { fmt.Println(err.Error()); return nil }
 	var result []string = make([]string, 0)
 	for _, responseMap := range responseMaps {
@@ -1017,7 +1017,7 @@ func (testContext *TestContext) TryGetRealmUsers(realmId string) []string {
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMaps []map[string]interface{}
-	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)
+	responseMaps, err = rest.ParseResponseBodyToPayloadMaps(resp.Body)
 	if err != nil { fmt.Println(err.Error()); return nil }
 	var result []string = make([]string, 0)
 	for _, responseMap := range responseMaps {
@@ -1278,7 +1278,7 @@ func (testContext *TestContext) TryGetScanProviders() {
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMaps []map[string]interface{}
-	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)
+	responseMaps, err = rest.ParseResponseBodyToPayloadMaps(resp.Body)
 	if err != nil { fmt.Println(err.Error()); return }
 	var result []string = make([]string, 0)
 	for _, responseMap := range responseMaps {
@@ -1552,7 +1552,7 @@ func (testContext *TestContext) TryGetMyGroups() []string {
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMaps []map[string]interface{}
-	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)
+	responseMaps, err = rest.ParseResponseBodyToPayloadMaps(resp.Body)
 	if err != nil { fmt.Println(err.Error()); return nil }
 	var result []string = make([]string, 0)
 	for _, responseMap := range responseMaps {
@@ -1592,7 +1592,7 @@ func (testContext *TestContext) TryGetMyRealms() []string {
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMaps []map[string]interface{}
-	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)
+	responseMaps, err = rest.ParseResponseBodyToPayloadMaps(resp.Body)
 	if err != nil { fmt.Println(err.Error()); return nil }
 	var result []string = make([]string, 0)
 	for _, responseMap := range responseMaps {
@@ -1627,7 +1627,7 @@ func (testContext *TestContext) TryGetMyRepos() []string {
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMaps []map[string]interface{}
-	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)
+	responseMaps, err = rest.ParseResponseBodyToPayloadMaps(resp.Body)
 	if err != nil { fmt.Println(err.Error()); return nil }
 	var result []string = make([]string, 0)
 	for _, responseMap := range responseMaps {
@@ -1845,7 +1845,7 @@ func (testContext *TestContext) TryGetUserEvents(userId string) []string {
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMaps []map[string]interface{}
-	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)
+	responseMaps, err = rest.ParseResponseBodyToPayloadMaps(resp.Body)
 	if err != nil { fmt.Println(err.Error()); return nil }
 	var result []string = make([]string, 0)
 	for _, responseMap := range responseMaps {
@@ -1877,7 +1877,7 @@ func (testContext *TestContext) TryGetDockerImageEvents(imageObjId string) []str
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMaps []map[string]interface{}
-	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)
+	responseMaps, err = rest.ParseResponseBodyToPayloadMaps(resp.Body)
 	if err != nil { fmt.Println(err.Error()); return nil }
 	var result []string = make([]string, 0)
 	for _, responseMap := range responseMaps {
@@ -1944,7 +1944,7 @@ func (testContext *TestContext) TryGetDockerfileEvents(dockerfileId string) []st
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMaps []map[string]interface{}
-	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)
+	responseMaps, err = rest.ParseResponseBodyToPayloadMaps(resp.Body)
 	if err != nil { fmt.Println(err.Error()); return nil }
 	var result []string = make([]string, 0)
 	for _, responseMap := range responseMaps {
@@ -2141,7 +2141,7 @@ func (testContext *TestContext) TryGetMyScanConfigs() ([]map[string]interface{},
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMaps []map[string]interface{}
-	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)
+	responseMaps, err = rest.ParseResponseBodyToPayloadMaps(resp.Body)
 	if err != nil { fmt.Println(err.Error()); return nil, nil }
 	var retConfigIds []string = make([]string, 0)
 	for _, responseMap := range responseMaps {
@@ -2246,7 +2246,7 @@ func (testContext *TestContext) TryGetMyFlags() []string {
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMaps []map[string]interface{}
-	responseMaps, err = rest.ParseResponseBodyToMaps(resp.Body)
+	responseMaps, err = rest.ParseResponseBodyToPayloadMaps(resp.Body)
 	if err != nil { fmt.Println(err.Error()); return nil }
 	var retFlagIds []string = make([]string, 0)
 	for _, responseMap := range responseMaps {

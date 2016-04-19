@@ -1,3 +1,9 @@
+/*******************************************************************************
+ * Interface for accessing a docker engine via its REST API.
+ * Engine API:
+ * https://github.com/docker/docker/blob/master/docs/reference/api/docker_remote_api.md
+ */
+
 package utils
 
 import (
@@ -53,12 +59,12 @@ func unixDial(network, addr string) (conn net.Conn, err error) {
 /*******************************************************************************
  * 
  */
-func (registry *DockerEngine) Ping() error {
+func (engine *DockerEngine) Ping() error {
 	
 	var uri = "_ping"
 	var response *http.Response
 	var err error
-	response, err = registry.SendBasicGet(uri)
+	response, err = engine.SendBasicGet(uri)
 	if err != nil { return err }
 	if response.StatusCode != 200 {
 		return errors.New(fmt.Sprintf("Ping returned status: %s", response.Status))
@@ -66,6 +72,24 @@ func (registry *DockerEngine) Ping() error {
 	return nil
 }
 
+/*******************************************************************************
+ * Retrieve a list of the images that the docker engine has.
+ */
+func (engine *DockerEngine) GetImages() ([]map[string]interface{}, error) {
+	
+	var uri = "/images/json?all=1"
+	var response *http.Response
+	var err error
+	response, err = engine.SendBasicGet(uri)
+	if err != nil { return nil, err }
+	if response.StatusCode != 200 {
+		return nil, errors.New(fmt.Sprintf("GetImages returned status: %s", response.Status))
+	}
+	var imageMaps []map[string]interface{}
+	imageMaps, err = rest.ParseResponseBodyToMaps(response.Body)
+	if err != nil { return nil, err }
+	return imageMaps, nil
+}
 
 /*******************************************************************************
  * Invoke the docker engine to build the image defined by the specified contents

@@ -326,12 +326,34 @@ func ParseResponseBodyToMap(body io.ReadCloser) (map[string]interface{}, error) 
 
 /*******************************************************************************
  * Parse an HTTP JSON response that can be converted to an array of maps.
+ */
+func ParseResponseBodyToMaps(body io.ReadCloser) ([]map[string]interface{}, error) {
+	var value []byte
+	var err error
+	value, err = ioutil.ReadAll(body)
+	if err != nil { return nil, err }
+	var obj interface{}
+	err = json.Unmarshal(value, &obj)
+	if err != nil { return nil, err }
+	
+	var maps []map[string]interface{}
+	var isType bool
+	maps, isType = obj.([]map[string]interface{})
+	if ! isType { return nil, errors.New(
+		"Wrong type: obj is not a []map[string]interface{} - it is a " + 
+		fmt.Sprintf("%s", reflect.TypeOf(obj)))
+	}
+	return maps, nil
+}
+
+/*******************************************************************************
+ * Parse an HTTP JSON response that can be converted to an array of maps.
  * The response is assumed to consist of a single object with three fields:
  *	"HTTPStatusCode" - int
  *	"HTTPReasonPhrase" - string
  *	"payload" - json array (this is what is converted to a golang array of maps).
  */
-func ParseResponseBodyToMaps(body io.ReadCloser) ([]map[string]interface{}, error) {
+func ParseResponseBodyToPayloadMaps(body io.ReadCloser) ([]map[string]interface{}, error) {
 	var value []byte
 	var err error
 	value, err = ioutil.ReadAll(body)
