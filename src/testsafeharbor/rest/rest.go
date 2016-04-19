@@ -336,13 +336,24 @@ func ParseResponseBodyToMaps(body io.ReadCloser) ([]map[string]interface{}, erro
 	err = json.Unmarshal(value, &obj)
 	if err != nil { return nil, err }
 	
-	var maps []map[string]interface{}
+	var ar []interface{}
 	var isType bool
-	maps, isType = obj.([]map[string]interface{})
+	ar, isType = obj.([]interface{})
 	if ! isType { return nil, errors.New(
-		"Wrong type: obj is not a []map[string]interface{} - it is a " + 
-		fmt.Sprintf("%s", reflect.TypeOf(obj)))
+		"Wrong type: obj is not a []interface{} - it is a " + 
+			fmt.Sprintf("%s", reflect.TypeOf(obj)))
 	}
+	var maps = make([]map[string]interface{}, 0)
+	for _, elt := range ar {
+		var m map[string]interface{}
+		m, isType = elt.(map[string]interface{})
+		if ! isType { return nil, errors.New(
+			"Wrong type: obj is not a []map[string]interface{} - it is a " + 
+			fmt.Sprintf("%s", reflect.TypeOf(obj)))
+		}
+		maps = append(maps, m)
+	}
+	
 	return maps, nil
 }
 
