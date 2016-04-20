@@ -120,6 +120,7 @@ func TestDockerEngine(testContext *utils.TestContext) {
 	var err error
 	var buildDirPath string
 	var imageFullName string = "testimage"
+	var dockerfileContent = "FROM centos\nRUN touch newfile"
 	
 	{
 		// Create a build directory.
@@ -127,8 +128,7 @@ func TestDockerEngine(testContext *utils.TestContext) {
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		
 		// Create a dockerfile.
-		_, err = utils.CreateTempFile(buildDirPath,
-			"Dockerfile", "FROM centos\nRUN touch newfile")
+		_, err = utils.CreateTempFile(buildDirPath, "Dockerfile", dockerfileContent)
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 	}
 	
@@ -158,11 +158,13 @@ func TestDockerEngine(testContext *utils.TestContext) {
 	// Test BuildImage.
 	{
 		testContext.StartTest("Test BuildImage")
-		//var responseStr string
-		_, err = engine.BuildImage(buildDirPath, imageFullName)
+		fmt.Println("Building image '" + imageFullName + "' in directory '" + buildDirPath + "'")
+		var responseStr string
+		responseStr, err = engine.BuildImage(buildDirPath, imageFullName)
 		testContext.AssertErrIsNil(err, "In building image")
-		//fmt.Println("Response:")
-		//fmt.Println(responseStr)
+		fmt.Println("Response from BuildImage:")
+		fmt.Println(responseStr)
+		fmt.Println()
 		
 		// Check that the image was actually created.
 		fmt.Println("Images:")  // debug

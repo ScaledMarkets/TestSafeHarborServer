@@ -16,6 +16,7 @@ import (
 	"archive/tar"
 	"errors"
 	"path/filepath"
+	"encoding/base64"
 	
 	"testsafeharbor/rest"
 )
@@ -103,6 +104,9 @@ func (engine *DockerEngine) BuildImage(buildDirPath, imageFullName string) (stri
 	//
 	// {{ TAR STREAM }} (this is the contents of the "build context")
 	
+	// See also the docker command line code, in docker/vendor/src/github.com/docker/engine-api/client/image_build.go:
+	// https://github.com/docker/docker/blob/7fd53f7c711474791ce4292326e0b1dc7d4d6b0f/vendor/src/github.com/docker/engine-api/client/image_build.go
+	
 	// Create a temporary tar file of the build directory contents.
 	fmt.Println("BuildImage: A")  // debug
 	var tarFile *os.File
@@ -159,9 +163,12 @@ func (engine *DockerEngine) BuildImage(buildDirPath, imageFullName string) (stri
 	tarReader, err = os.Open(tarFile.Name())
 	defer tarReader.Close()
 	if err != nil { return "", err }
+	var headers map[string]string
+	headers["Content-Type"] = "application/tar"
+	headers["X-Registry-Config"] = base64.URLEncoding.EncodeToString([]byte("{}"))
 	var response *http.Response
 	response, err = engine.SendBasicStreamPost(
-		fmt.Sprintf("build?t=%s", imageFullName), "application/tar", tarReader)
+		fmt.Sprintf("build?t=%s", imageFullName), headers, tarReader)
 	if err != nil { return "", err }
 	if response.StatusCode != 200 { return "", errors.New(response.Status) }
 	
