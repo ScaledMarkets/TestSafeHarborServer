@@ -119,7 +119,7 @@ func TestDockerEngine(testContext *utils.TestContext) {
 	var engine *utils.DockerEngine
 	var err error
 	var buildDirPath string
-	var imageFullName string = "testimage"
+	var imageFullName = "testimage:5"
 	var dockerfileContent = "FROM centos\nRUN touch newfile"
 	
 	{
