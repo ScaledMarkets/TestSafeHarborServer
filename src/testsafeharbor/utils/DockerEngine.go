@@ -163,7 +163,7 @@ func (engine *DockerEngine) BuildImage(buildDirPath, imageFullName string) (stri
 	tarReader, err = os.Open(tarFile.Name())
 	defer tarReader.Close()
 	if err != nil { return "", err }
-	var headers map[string]string
+	var headers = make(map[string]string)
 	headers["Content-Type"] = "application/tar"
 	headers["X-Registry-Config"] = base64.URLEncoding.EncodeToString([]byte("{}"))
 	var response *http.Response
