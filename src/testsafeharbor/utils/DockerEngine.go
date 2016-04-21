@@ -182,7 +182,7 @@ func (engine *DockerEngine) BuildImage(buildDirPath, imageFullName string) (stri
 		if n < len(buf) { break }
 	}
 	var responseStr = string(bytes)
-	
+	fmt.Println(responseStr)
 	
 	fmt.Println("BuildImage: H")  // debug
 	return responseStr, nil
