@@ -98,7 +98,7 @@ engtests:
 
 dockertests:
 	bin/testsafeharbor -stop \
-		-h=52.38.232.142 -p=6000 \
+		-h=52.11.245.84 -p=6000 \
 		-tests="DockerFunctions"
 
 clean:
