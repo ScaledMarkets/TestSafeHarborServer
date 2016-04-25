@@ -215,7 +215,7 @@ func (engine *DockerEngine) TagImage(imageName, hostAndRepoName, tag string) err
 	fmt.Println("tag=" + tag)  // debug
 	response, err = engine.SendBasicFormPost(uri, names, values)
 	if err != nil { return err }
-	if response.StatusCode != 200 {
+	if response.StatusCode != 201 {
 		return utils.ConstructError(response.Status)
 	}
 	return nil
