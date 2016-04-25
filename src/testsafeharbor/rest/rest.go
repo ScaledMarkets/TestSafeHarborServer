@@ -141,8 +141,18 @@ func (restContext *RestContext) SendBasicFormPost(reqName string, names []string
 	for i, value := range values { data[names[i]] = []string{value} }
 	var resp *http.Response
 	var err error
-	resp, err = restContext.httpClient.PostForm(urlstr, data)
-	if err != nil { return nil, err }
+	for {
+		resp, err = restContext.httpClient.PostForm(urlstr, data)
+		if err != nil { return nil, err }
+		switch resp.StatusCode {
+		case 200: break
+		case 301,302,303,307,308: 
+			var newLocation = resp.Header["Location"][0]
+			if newLocation == "" { return nil, errors.New("Empty location on redirect") }
+			urlstr = newLocation
+		default: return nil, errors.New(resp.Status)
+		}
+	}
 	return resp, nil
 }
 
