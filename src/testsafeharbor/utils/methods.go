@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"io"
+	"reflect"
 	
 	"testsafeharbor/rest"
 )
@@ -1470,7 +1471,8 @@ func (testContext *TestContext) TryScanImage(scriptId, imageObjId string) string
 	var retUserId string = responseMap["UserObjId"].(string)
 	var retScanConfigId string = responseMap["ScanConfigId"].(string)
 	var retScore string = responseMap["Score"].(string)
-	var retVulnerabilityDescs = responseMap["VulnerabilityDescs"].([]map[string]interface{})
+	var retVulnerabilityDescs = responseMap["VulnerabilityDescs"].([]interface{})
+	//var retVulnerabilityDescs = responseMap["VulnerabilityDescs"].([]map[string]interface{})
 	
 	testContext.AssertThat(retId != "", "Returned Id is empty")
 	testContext.AssertThat(retWhen != "", "Returned When is empty")
@@ -1479,9 +1481,15 @@ func (testContext *TestContext) TryScanImage(scriptId, imageObjId string) string
 	testContext.AssertThat(retScore != "", "Returned Score is empty")
 	if testContext.AssertThat(len(retVulnerabilityDescs) > 0, "No vulnerabilities found") {
 	
-		var vulnDesc = retVulnerabilityDescs[0]
-		testContext.AssertThat(vulnDesc["VCE_ID"] != "",
-			"No VCE_ID value found for vulnerability")
+		var obj = retVulnerabilityDescs[0]
+		var isType bool
+		var vulnDesc map[string]interface{}
+		vulnDesc, isType = obj.(map[string]interface{})
+		if testContext.AssertThat(isType,
+			"Vulnerability description is an unexpected type: " + reflect.TypeOf(obj).String()) {
+			testContext.AssertThat(vulnDesc["VCE_ID"] != "",
+				"No VCE_ID value found for vulnerability")
+		}
 	}
 	
 	testContext.PassTestIfNoFailures()

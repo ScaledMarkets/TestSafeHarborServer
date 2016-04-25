@@ -93,12 +93,8 @@ func (restContext *RestContext) SendBasicGet(reqName string) (*http.Response, er
 	var urlstr string = restContext.getURL(reqName)
 	var resp *http.Response
 	var err error
-	fmt.Println("Sending GET...")  // debug
 	resp, err = restContext.httpClient.Get(urlstr)
-	fmt.Println("...response received.")  // debug
 	if err != nil { return nil, err }
-	fmt.Println("Returning normal response...")  // debug
-
 	return resp, nil
 }
 
@@ -151,6 +147,47 @@ func (restContext *RestContext) SendBasicFormPost(reqName string, names []string
 }
 
 /*******************************************************************************
+ * Same as SendBasicFormPost, but called may specify custom request headers.
+ */
+func (restContext *RestContext) SendBasicFormPostWithHeaders(reqName string, names []string,
+	values []string, headers map[string]string) (*http.Response, error) {
+	
+	if len(names) != len(values) { return nil, errors.New(
+		"Number of names != number of values")
+	}
+	
+	// Encode form name/values as an HTTP content stream.
+	var data url.Values = make(map[string][]string)
+	for i, name := range names {
+		if len(name) == 0 { return nil, errors.New(
+			"Zero length form parameter name")
+		}
+		data.Add(name, values[i])
+	}
+	var content io.Reader = strings.NewReader(data.Encode())
+
+	// Define the HTTP request object.
+	var urlstr string = restContext.getURL(reqName)
+	var request *http.Request
+	var err error
+	request, err = http.NewRequest("POST", urlstr, content)
+	
+	// Set HTTP headers on the request.
+	if headers != nil {
+		for name, value := range headers {
+			request.Header.Set(name, value)
+		}
+	}
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	
+	// Perform the request.
+	var response *http.Response
+	response, err = restContext.httpClient.Do(request)
+	if err != nil { return nil, err }
+	return response, nil
+}
+
+/*******************************************************************************
  * Send request as a multi-part so that a file can be attached. Use basic authentication.
  */
 func (restContext *RestContext) SendBasicFilePost(reqName string, names []string,
@@ -166,9 +203,10 @@ func (restContext *RestContext) SendBasicFilePost(reqName string, names []string
 func (restContext *RestContext) SendBasicStreamPost(reqName string, 
 	headers map[string]string, content io.Reader) (*http.Response, error) {
 	
+	var url string = restContext.getURL(reqName)
 	var request *http.Request
 	var err error
-	request, err = http.NewRequest("POST", restContext.getURL(reqName), content)
+	request, err = http.NewRequest("POST", url, content)
 	if err != nil { return nil, err }
 	
 	if headers != nil {
@@ -179,7 +217,9 @@ func (restContext *RestContext) SendBasicStreamPost(reqName string,
 	
 	// Submit the request
 	var response *http.Response
+	fmt.Println("SendBasicStreamPost: url='" + url + "'")
 	response, err = restContext.httpClient.Do(request)
+	fmt.Println("SendBasicStreamPost: response Status='" + response.Status + "'")
 	if err != nil { return nil, err }
 
 	return response, nil

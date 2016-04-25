@@ -17,6 +17,7 @@ import (
 	"goredis"
 	
 	// SafeHarbor packages:
+	"testsafeharbor/docker"
 	"testsafeharbor/utils"
 	"testsafeharbor/rest"
 )
@@ -116,11 +117,19 @@ func TestDockerEngine(testContext *utils.TestContext) {
 	// -------------------------------------
 	// Test setup:
 	
-	var engine *utils.DockerEngine
+	var engine *docker.DockerEngine
 	var err error
 	var buildDirPath string
 	var imageFullName = "testimage:5"
 	var dockerfileContent = "FROM centos\nRUN touch newfile"
+
+	var registryHost = "localhost"
+	var registryPort = 5000
+	var registryRepo = "myimage"
+	var registryUserId = os.Getenv("registryUser")
+	var registryPassword = os.Getenv("registryPassword")
+
+	var tag = "alpha"
 	
 	{
 		// Create a build directory.
@@ -135,7 +144,7 @@ func TestDockerEngine(testContext *utils.TestContext) {
 	// Test connecting to Engine.
 	{
 		testContext.StartTest("Open Engine connection...")
-		engine, err = utils.OpenDockerEngineConnection()
+		engine, err = docker.OpenDockerEngineConnection()
 		testContext.AssertErrIsNil(err, "In opening connection to docker engine")
 		testContext.PassTestIfNoFailures()
 	}
@@ -160,7 +169,7 @@ func TestDockerEngine(testContext *utils.TestContext) {
 		testContext.StartTest("Test BuildImage")
 		fmt.Println("Building image '" + imageFullName + "' in directory '" + buildDirPath + "'")
 		var responseStr string
-		responseStr, err = engine.BuildImage(buildDirPath, imageFullName)
+		responseStr, err = engine.BuildImage(buildDirPath, imageFullName, "Dockerfile")
 		testContext.AssertErrIsNil(err, "In building image")
 		fmt.Println("Response from BuildImage:")
 		fmt.Println(responseStr)
@@ -195,6 +204,43 @@ func TestDockerEngine(testContext *utils.TestContext) {
 		
 		testContext.PassTestIfNoFailures()
 	}
+	
+	// Test TagImage.
+	{
+		testContext.StartTest("Test TagImage")
+		
+		var regHostAndRepoName = fmt.Sprintf("%s:%d/%s", registryHost, registryPort, registryRepo)
+		err = engine.TagImage(imageFullName, regHostAndRepoName, tag)
+		testContext.AssertErrIsNil(err, "In tagging image")
+		
+		// Verify that the engine now contains an image with the host/repo:tag name.
+		_, err = engine.GetImage(regHostAndRepoName + ":" + tag)
+		testContext.AssertErrIsNil(err, "In getting image")
+		
+		testContext.PassTestIfNoFailures()
+	}
+	
+	// Test PushImage.
+	{
+		testContext.StartTest("Test PushImage")
+		
+		var regHostAndRepoName = fmt.Sprintf("%s:%d/%s", registryHost, registryPort, registryRepo)
+		err = engine.PushImage(regHostAndRepoName + ":" + tag,
+			registryUserId, registryPassword, "noone@nowhere.com")
+		testContext.AssertErrIsNil(err, "In pushing image")
+		
+		// Verify that the registry now contains an image with the full name.
+		var registry *docker.DockerRegistry
+		registry, err = docker.OpenDockerRegistryConnection(registryHost, registryPort,
+			registryUserId, registryPassword)
+		testContext.AssertErrIsNil(err, "In opening connection to docker registry")
+		var exists bool
+		exists, err = registry.ImageExists(registryRepo, tag)
+		testContext.AssertErrIsNil(err, "While calling ImageExists")
+		testContext.AssertThat(exists, "Did not find image")
+		
+		testContext.PassTestIfNoFailures()
+	}
 }
 
 /*******************************************************************************
@@ -217,14 +263,14 @@ func TestDockerRegistry(testContext *utils.TestContext) {
 	var testImageTag = os.Getenv("TestImageTag")
 	var downloadedImageFilePath = "DownloadedImage.tar"
 	
-	var registry *utils.DockerRegistry
+	var registry *docker.DockerRegistry
 	var err error
 	
 	// Test connecting to Registry.
 	{
 		testContext.StartTest(fmt.Sprintf(
 			"Open Registry connection, using %s:%s...", registryUserId, registryPassword))
-		registry, err = utils.OpenDockerRegistryConnection(registryHost, registryPort,
+		registry, err = docker.OpenDockerRegistryConnection(registryHost, registryPort,
 			registryUserId, registryPassword)
 		testContext.AssertErrIsNil(err, "In opening connection to docker registry")
 		testContext.PassTestIfNoFailures()

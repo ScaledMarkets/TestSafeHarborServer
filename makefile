@@ -93,12 +93,14 @@ regtests:
 		-tests="Registry"
 
 engtests:
+	export registryUser=testuser
+	export registryPassword=testpassword
 	bin/testsafeharbor -stop \
 		-tests="Engine"
 
 dockertests:
 	bin/testsafeharbor -stop \
-		-h=52.11.245.84 -p=6000 \
+		-h=52.38.84.3 -p=6000 \
 		-tests="DockerFunctions"
 
 clean:
