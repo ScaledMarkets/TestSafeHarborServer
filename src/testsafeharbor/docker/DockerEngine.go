@@ -205,7 +205,7 @@ func (engine *DockerEngine) BuildImage(buildDirPath, imageFullName string,
  */
 func (engine *DockerEngine) TagImage(imageName, hostAndRepoName, tag string) error {
 	
-	var uri = fmt.Sprintf("/images/%s/tag", imageName)
+	var uri = fmt.Sprintf("images/%s/tag", imageName)
 	var response *http.Response
 	var err error
 	var names = []string{ "repo", "tag" }
@@ -228,7 +228,7 @@ func (engine *DockerEngine) TagImage(imageName, hostAndRepoName, tag string) err
 func (engine *DockerEngine) PushImage(imageFullName, regUserId, regPass, regEmail string) error {
 	
 	var uri = fmt.Sprintf(
-		"/images/%s:%d/%s/push", engine.GetHostname(), engine.GetPort(), imageFullName)
+		"images/%s:%d/%s/push", engine.GetHostname(), engine.GetPort(), imageFullName)
 	
 	var parmNames = make([]string, 0)
 	var parmValues = make([]string, 0)
