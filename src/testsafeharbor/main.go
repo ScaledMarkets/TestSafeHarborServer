@@ -229,8 +229,10 @@ func TestDockerEngine(testContext *utils.TestContext) {
 		err = engine.PushImage(regHostAndRepoName + ":" + tag,
 			registryUserId, registryPassword, "noone@nowhere.com")
 		testContext.AssertErrIsNil(err, "In pushing image")
+		fmt.Println("Image pushed")
 		
 		// Verify that the registry now contains an image with the full name.
+		fmt.Println("Now verifying that the image is in the registry")
 		var registry *docker.DockerRegistry
 		registry, err = docker.OpenDockerRegistryConnection(registryHost, registryPort,
 			registryUserId, registryPassword)
