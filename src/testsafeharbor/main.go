@@ -191,7 +191,8 @@ func TestDockerEngine(testContext *utils.TestContext) {
 			for _, tagi := range tags {
 				var tag string
 				tag, isType = tagi.(string)
-				if ! testContext.AssertThat(isType, "tag is not a string") { break }
+				if ! testContext.AssertThat(isType,
+					"tag is not a string - it is a " + reflect.TypeOf(tagi).String()) { break }
 				if tag == imageFullName {
 					found = true
 					break
