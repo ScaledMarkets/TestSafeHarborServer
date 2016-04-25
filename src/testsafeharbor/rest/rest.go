@@ -154,6 +154,7 @@ func (restContext *RestContext) SendBasicFormPost(reqName string, names []string
 			case 301,302,303,307,308: 
 				var newLocation = resp.Header["Location"][0]
 				if newLocation == "" { return nil, errors.New("Empty location on redirect") }
+				fmt.Println("Redirecting to " + newLocation)
 				urlstr = newLocation
 			default: return nil, errors.New(resp.Status)
 		}

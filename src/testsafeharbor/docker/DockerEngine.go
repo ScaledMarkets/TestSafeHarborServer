@@ -223,12 +223,11 @@ func (engine *DockerEngine) TagImage(imageName, hostAndRepoName, tag string) err
 
 
 /*******************************************************************************
- * 
+ * The imageFullName must be the full registry host:port/repo:tag name.
  */
 func (engine *DockerEngine) PushImage(imageFullName, regUserId, regPass, regEmail string) error {
 	
-	var uri = fmt.Sprintf(
-		"images/%s:%d/%s/push", engine.GetHostname(), engine.GetPort(), imageFullName)
+	var uri = fmt.Sprintf("images/%s/push", imageFullName)
 	
 	var parmNames = make([]string, 0)
 	var parmValues = make([]string, 0)
@@ -245,6 +244,13 @@ func (engine *DockerEngine) PushImage(imageFullName, regUserId, regPass, regEmai
 	if response.StatusCode != 200 {
 		return utils.ConstructError(response.Status)
 	}
+	
+	// Apr 25 20:46:25 ip-172-31-41-187.us-west-2.compute.internal docker[1092]:
+	// time="2016-04-25T20:46:25.066856155Z" level=error
+	// msg="Handler for POST /images/:0/localhost:5000/myimage:alpha/push returned error:
+	// Error parsing reference: ":0/localhost:5000/myimage:alpha"
+	// is not a valid repository/tag"
+
 	return nil
 }
 
