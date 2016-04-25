@@ -212,7 +212,7 @@ func TestDockerEngine(testContext *utils.TestContext) {
 		
 		var regHostAndRepoName = fmt.Sprintf("%s:%d/%s", registryHost, registryPort, registryRepo)
 		err = engine.TagImage(imageFullName, regHostAndRepoName, tag)
-		testContext.AssertErrIsNil(err, "In tagging image")
+		testContext.AssertErrIsNil(err, "In tagging image " + imageFullName)
 		
 		// Verify that the engine now contains an image with the host/repo:tag name.
 		_, err = engine.GetImage(regHostAndRepoName + ":" + tag)
