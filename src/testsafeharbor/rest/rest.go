@@ -137,6 +137,7 @@ func (restContext *RestContext) SendBasicFormPost(reqName string, names []string
 	values []string) (*http.Response, error) {
 	
 	var urlstr string = restContext.getURL(reqName)
+	fmt.Println("urlstr=" + urlstr)  // debug
 	var data = make(map[string][]string)
 	for i, value := range values { data[names[i]] = []string{value} }
 	var resp *http.Response
