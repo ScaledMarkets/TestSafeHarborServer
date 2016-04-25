@@ -142,7 +142,10 @@ func (restContext *RestContext) SendBasicFormPost(reqName string, names []string
 	for i, value := range values { data[names[i]] = []string{value} }
 	var resp *http.Response
 	var err error
+	var i = 0
 	for {
+		i++
+		if i > 10 { return nil, errors.New("Too many redirects") }
 		fmt.Println("POSTing to " + urlstr)  // debug
 		resp, err = restContext.httpClient.PostForm(urlstr, data)
 		if err != nil { return nil, err }
