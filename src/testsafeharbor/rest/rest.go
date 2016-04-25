@@ -143,6 +143,7 @@ func (restContext *RestContext) SendBasicFormPost(reqName string, names []string
 	var resp *http.Response
 	var err error
 	for {
+		fmt.Println("POSTing to " + urlstr)  // debug
 		resp, err = restContext.httpClient.PostForm(urlstr, data)
 		if err != nil { return nil, err }
 		switch resp.StatusCode {
