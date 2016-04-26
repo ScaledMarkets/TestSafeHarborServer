@@ -185,10 +185,8 @@ func (restContext *RestContext) SendBasicFormPostWithHeaders(reqName string, nam
 		data.Add(name, values[i])
 	}
 	var encodedData = data.Encode()
-	fmt.Println("encoded data:")  // debug
-	for k, v := range encodedData {  // debug
-		fmt.Println(fmt.Sprintf("\t\"%s\": \"%s\"", k, v))  // debug
-	}  // debug
+	fmt.Println("encoded data: " + encodedData)  // debug
+
 	var content io.Reader = strings.NewReader(encodedData)
 	fmt.Println("SendBasicFormPostWithHeaders: B")  // debug
 
