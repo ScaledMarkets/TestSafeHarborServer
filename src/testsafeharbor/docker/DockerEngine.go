@@ -17,6 +17,7 @@ import (
 	//"errors"
 	"path/filepath"
 	"encoding/base64"
+	"time"
 	
 	"testsafeharbor/utils"
 	"testsafeharbor/rest"
@@ -246,6 +247,7 @@ func (engine *DockerEngine) PushImage(repoFullName, tag, regUserId, regPass, reg
 	if response.StatusCode != 200 {
 		return utils.ConstructError(response.Status)
 	}
+	time.Sleep(10000 * time.Millisecond)
 	
 	// Apr 25 20:46:25 ip-172-31-41-187.us-west-2.compute.internal docker[1092]:
 	// time="2016-04-25T20:46:25.066856155Z" level=error
