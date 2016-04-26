@@ -224,7 +224,8 @@ func (engine *DockerEngine) TagImage(imageName, hostAndRepoName, tag string) err
  */
 func (engine *DockerEngine) PushImage(repoFullName, tag, regUserId, regPass, regEmail string) error {
 	
-	var uri = fmt.Sprintf("images/%s:%s/push", repoFullName, tag)
+	var uri = fmt.Sprintf("images/%s/push", repoFullName)
+	//var uri = fmt.Sprintf("images/%s:%s/push", repoFullName, tag)
 	
 	var regCreds = fmt.Sprintf(
 		"{\"username\": \"%s\", \"password\": \"%s\", \"email\": \"%s\"}",
