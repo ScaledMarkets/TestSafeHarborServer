@@ -220,11 +220,11 @@ func (engine *DockerEngine) TagImage(imageName, hostAndRepoName, tag string) err
 
 
 /*******************************************************************************
- * The imageFullName must be the full registry host:port/repo:tag name.
+ * The imageFullName must be the full registry host:port/repo name.
  */
-func (engine *DockerEngine) PushImage(imageFullName, regUserId, regPass, regEmail string) error {
+func (engine *DockerEngine) PushImage(repoFullName, tag, regUserId, regPass, regEmail string) error {
 	
-	var uri = fmt.Sprintf("images/%s/push", imageFullName)
+	var uri = fmt.Sprintf("images/%s:%s/push", repoFullName, tag)
 	
 	var regCreds = fmt.Sprintf(
 		"{\"username\": \"%s\", \"password\": \"%s\", \"email\": \"%s\"}",
@@ -235,6 +235,7 @@ func (engine *DockerEngine) PushImage(imageFullName, regUserId, regPass, regEmai
 	var parmValues = make([]string, 0)
 	var headers = map[string]string{
 		"X-Registry-Auth": encodedRegCreds,
+		"tag": tag,
 	}
 	
 	var response *http.Response

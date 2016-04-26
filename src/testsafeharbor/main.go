@@ -225,7 +225,7 @@ func TestDockerEngine(testContext *utils.TestContext) {
 		testContext.StartTest("Test PushImage")
 		
 		var regHostAndRepoName = fmt.Sprintf("%s:%d/%s", registryHost, registryPort, registryRepo)
-		err = engine.PushImage(regHostAndRepoName + ":" + tag,
+		err = engine.PushImage(regHostAndRepoName, tag,
 			registryUserId, registryPassword, "noone@nowhere.com")
 		testContext.AssertErrIsNil(err, "In pushing image")
 		fmt.Println("Image pushed")
