@@ -204,6 +204,7 @@ func (restContext *RestContext) SendBasicFormPostWithHeaders(reqName string, nam
 	if headers != nil {
 		for name, value := range headers {
 			request.Header.Set(name, value)
+			fmt.Println(fmt.Sprintf("\theader: %s: %s", name, value))
 		}
 	}
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
