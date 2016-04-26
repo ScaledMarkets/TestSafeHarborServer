@@ -137,7 +137,6 @@ func (restContext *RestContext) SendBasicFormPost(reqName string, names []string
 	values []string) (*http.Response, error) {
 	
 	var urlstr string = restContext.getURL(reqName)
-	fmt.Println("urlstr=" + urlstr)  // debug
 	var data = make(map[string][]string)
 	for i, value := range values { data[names[i]] = []string{value} }
 	var resp *http.Response
@@ -146,7 +145,6 @@ func (restContext *RestContext) SendBasicFormPost(reqName string, names []string
 	for {
 		i++
 		if i > 10 { return nil, errors.New("Too many redirects") }
-		fmt.Println("POSTing to " + urlstr)  // debug
 		resp, err = restContext.httpClient.PostForm(urlstr, data)
 		if err != nil { return nil, err }
 		switch resp.StatusCode {
@@ -168,9 +166,15 @@ func (restContext *RestContext) SendBasicFormPost(reqName string, names []string
 func (restContext *RestContext) SendBasicFormPostWithHeaders(reqName string, names []string,
 	values []string, headers map[string]string) (*http.Response, error) {
 	
+	fmt.Println("SendBasicFormPostWithHeaders: " + reqName)  // debug
+
+	
 	if len(names) != len(values) { return nil, errors.New(
 		"Number of names != number of values")
 	}
+	
+	fmt.Println("SendBasicFormPostWithHeaders: A")  // debug
+
 	
 	// Encode form name/values as an HTTP content stream.
 	var data url.Values = make(map[string][]string)
@@ -180,13 +184,21 @@ func (restContext *RestContext) SendBasicFormPostWithHeaders(reqName string, nam
 		}
 		data.Add(name, values[i])
 	}
-	var content io.Reader = strings.NewReader(data.Encode())
+	var encodedData = data.Encode()
+	fmt.Println("encoded data:")  // debug
+	for k, v := range encodedData {  // debug
+		fmt.Println(fmt.Sprintf("\t\"%s\": \"%s\"", k, v))  // debug
+	}  // debug
+	var content io.Reader = strings.NewReader(encodedData)
+	fmt.Println("SendBasicFormPostWithHeaders: B")  // debug
 
 	// Define the HTTP request object.
 	var urlstr string = restContext.getURL(reqName)
 	var request *http.Request
 	var err error
 	request, err = http.NewRequest("POST", urlstr, content)
+	fmt.Println("SendBasicFormPostWithHeaders: C; urlstr=" + urlstr)  // debug
+	if err != nil { return nil, err }
 	
 	// Set HTTP headers on the request.
 	if headers != nil {
@@ -195,11 +207,13 @@ func (restContext *RestContext) SendBasicFormPostWithHeaders(reqName string, nam
 		}
 	}
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	fmt.Println("SendBasicFormPostWithHeaders: D")  // debug
 	
 	// Perform the request.
 	var response *http.Response
 	response, err = restContext.httpClient.Do(request)
 	if err != nil { return nil, err }
+	fmt.Println("SendBasicFormPostWithHeaders: Z")  // debug
 	return response, nil
 }
 
