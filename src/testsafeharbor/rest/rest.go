@@ -208,6 +208,7 @@ func (restContext *RestContext) SendBasicFormPostWithHeaders(reqName string, nam
 		}
 	}
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	request.Close = false
 	fmt.Println("SendBasicFormPostWithHeaders: D")  // debug
 	
 	// Perform the request.
