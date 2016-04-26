@@ -224,6 +224,10 @@ func (engine *DockerEngine) TagImage(imageName, hostAndRepoName, tag string) err
  */
 func (engine *DockerEngine) PushImage(repoFullName, tag, regUserId, regPass, regEmail string) error {
 	
+	// https://github.com/docker/docker/blob/681b5e0ed45f535d123d997884ce4ffb2907932f/daemon/image_push.go
+	// https://github.com/docker/docker/blob/master/daemon/daemon.go
+	// https://github.com/docker/docker/blob/7fd53f7c711474791ce4292326e0b1dc7d4d6b0f/vendor/src/github.com/docker/engine-api/client/image_push.go
+	
 	var uri = fmt.Sprintf("images/%s/push", repoFullName)
 	//var uri = fmt.Sprintf("images/%s:%s/push", repoFullName, tag)
 	
@@ -232,11 +236,10 @@ func (engine *DockerEngine) PushImage(repoFullName, tag, regUserId, regPass, reg
 			regUserId, regPass, regEmail)
 	var encodedRegCreds = base64.StdEncoding.EncodeToString([]byte(regCreds))
 
-	var parmNames = make([]string, 0)
-	var parmValues = make([]string, 0)
+	var parmNames = []string{ "tag" }
+	var parmValues = []string{ tag }
 	var headers = map[string]string{
 		"X-Registry-Auth": encodedRegCreds,
-		"tag": tag,
 	}
 	
 	var response *http.Response
@@ -246,6 +249,8 @@ func (engine *DockerEngine) PushImage(repoFullName, tag, regUserId, regPass, reg
 	if response.StatusCode != 200 {
 		return utils.ConstructError(response.Status)
 	}
+
+	
 	
 	// Apr 25 20:46:25 ip-172-31-41-187.us-west-2.compute.internal docker[1092]:
 	// time="2016-04-25T20:46:25.066856155Z" level=error
