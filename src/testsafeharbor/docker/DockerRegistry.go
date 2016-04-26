@@ -110,6 +110,7 @@ func (registry *DockerRegistry) ImageExists(name string, tag string) (bool, erro
 	// Make HEAD request to registry.
 	var response *http.Response
 	var err error
+	fmt.Println("Sending uri: " + uri) // debug
 	response, err = registry.SendBasicHead(uri)
 	if err != nil { return false, err }
 	if response.StatusCode == 200 {
