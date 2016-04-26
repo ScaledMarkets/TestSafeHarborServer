@@ -125,7 +125,7 @@ func TestDockerEngine(testContext *utils.TestContext) {
 
 	var registryHost = "localhost"
 	var registryPort = 5000
-	var registryRepo = "myimage"
+	var registryRepo = "greatimage"
 	var registryUserId = os.Getenv("registryUser")
 	var registryPassword = os.Getenv("registryPassword")
 
