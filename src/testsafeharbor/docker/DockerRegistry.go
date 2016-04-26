@@ -105,7 +105,7 @@ func (registry *DockerRegistry) ImageExists(name string, tag string) (bool, erro
 	
 	// https://github.com/docker/distribution/blob/master/docs/spec/api.md
 	// https://docs.docker.com/apidocs/v1.4.0/#!/repositories/GetRepository
-	var uri = "/v2/" + name + "/manifests/" + tag
+	var uri = "v2/" + name + "/manifests/" + tag
 	//v0: GET /api/v0/repositories/{namespace}/{reponame}
 	// Make HEAD request to registry.
 	var response *http.Response
@@ -130,7 +130,7 @@ func (registry *DockerRegistry) GetImage(name string, tag string, filepath strin
 	// GET /v2/<name>/blobs/<digest>
 	
 	// Retrieve manifest.
-	var uri = "/v2/" + name + "/manifests/" + tag
+	var uri = "v2/" + name + "/manifests/" + tag
 	var resp *http.Response
 	var err error
 	resp, err = registry.SendBasicGet(uri)
@@ -246,7 +246,7 @@ func (registry *DockerRegistry) DeleteImage(name, tag string) error {
 	//v1: DELETE /api/v0/repositories/{namespace}/{reponame}
 	
 	// Retrieve manifest.
-	var uri = "/v2/" + name + "/manifests/" + tag
+	var uri = "v2/" + name + "/manifests/" + tag
 	var resp *http.Response
 	var err error
 	resp, err = registry.SendBasicGet(uri)
@@ -304,7 +304,7 @@ func (registry *DockerRegistry) DeleteImage(name, tag string) error {
  */
 func (registry *DockerRegistry) PushImage(imageName, imageFilePath, digestString string) error {
 	
-	var uri = fmt.Sprintf("/v2/%s/blobs/uploads/?digest=%s", imageName, digestString)
+	var uri = fmt.Sprintf("v2/%s/blobs/uploads/?digest=%s", imageName, digestString)
 	
 	//var imageReader io.ReadCloser
 	var file *os.File
