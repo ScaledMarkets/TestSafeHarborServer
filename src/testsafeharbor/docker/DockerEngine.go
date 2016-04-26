@@ -230,7 +230,7 @@ func (engine *DockerEngine) PushImage(imageFullName, regUserId, regPass, regEmai
 	var parmValues = make([]string, 0)
 	var headers = map[string]string{
 		"X-Registry-Auth": fmt.Sprintf(
-			"{\"username\": \"%s\", \"password\": \"%s\", \"email\": \"%s\",}",
+			"{\"username\": \"%s\", \"password\": \"%s\", \"email\": \"%s\"}",
 			regUserId, regPass, regEmail),
 	}
 	
