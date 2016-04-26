@@ -226,12 +226,15 @@ func (engine *DockerEngine) PushImage(imageFullName, regUserId, regPass, regEmai
 	
 	var uri = fmt.Sprintf("images/%s/push", imageFullName)
 	
+	var regCreds = fmt.Sprintf(
+		"{\"username\": \"%s\", \"password\": \"%s\", \"email\": \"%s\"}",
+			regUserId, regPass, regEmail)
+	var encodedRegCreds = base64.StdEncoding.EncodeToString([]byte(regCreds))
+
 	var parmNames = make([]string, 0)
 	var parmValues = make([]string, 0)
 	var headers = map[string]string{
-		"X-Registry-Auth": fmt.Sprintf(
-			"{\"username\": \"%s\", \"password\": \"%s\", \"email\": \"%s\"}",
-			regUserId, regPass, regEmail),
+		"X-Registry-Auth": encodedRegCreds,
 	}
 	
 	var response *http.Response
