@@ -7,10 +7,16 @@ PACKAGENAME=testsafeharbor
 EXECNAME=$(PACKAGENAME)
 
 # These are needed by the registry tests:
+RegistryHost=localhost
+RegistryPort=5000
 registryUser=testuser
 registryPassword=testpassword
 TestImageName=atomicapp
 TestImageTag=latest
+ImageToUploadPath=BooPloinkImage
+ImageToUploadDigest=d2cf21381ce5a17243ec11062b5df136a9d5eac40c7bcdb3f65f42b32342c802
+
+
 
 # Needed by the SafeHarbor tests:
 SAFEHARBOR_PORT=6000
@@ -45,7 +51,7 @@ $(build_dir)/$(PACKAGENAME): src/..
 	@GOPATH=$(CURDIR) go install $(PACKAGENAME)
 
 # This target can only be run on a Linux system that has docker-engine installed.
-prepregistry:
+prepregistry: cleanregistry
 	# Create directories needed by the docker registry.
 	mkdir -p registryauth
 	mkdir -p registrydata
@@ -54,10 +60,10 @@ prepregistry:
 		-Bbn $(registryUser) $(registryPassword) > registryauth/htpasswd
 
 # This target can only be run on a Linux system that has docker-engine installed.
-startregistry:
+startregistry: prepregistry
 	# Start a docker registry instance.
 	sudo docker rm -f registry
-	sudo docker run -d -p 5000:5000 --name registry \
+	sudo docker run -d -p $(RegistryPort):$(RegistryPort) --name registry \
 		-v `pwd`/registryauth:/auth \
 		-v `pwd`/registrydata:/var/lib/registry \
 		-e "REGISTRY_AUTH=htpasswd" \
@@ -68,27 +74,33 @@ startregistry:
 stopregistry:
 	sudo docker stop registry
 
+cleanregistry: stopregistry
+	rm -r registryauth
+	rm -r registrydata
+
 # This target can only be run on a Linux system that has docker-engine installed.
 getatomicapp:
 	# Pull atomicapp to our docker client.
 	sudo docker pull docker.io/projectatomic/$(TestImageName)
-	sudo docker tag docker.io/projectatomic/$(TestImageName) localhost:5000/$(TestImageName)
+	sudo docker tag docker.io/projectatomic/$(TestImageName) $(RegistryHost):$(RegistryPort)/$(TestImageName)
 	# Push atomic to our registry.
-	sudo docker login -u=$(registryUser) -p=$(registryPassword) -e="" localhost:5000
-	sudo docker push localhost:5000/$(TestImageName)
+	sudo docker login -u=$(registryUser) -p=$(registryPassword) -e="" $(RegistryHost):$(RegistryPort)
+	sudo docker push $(RegistryHost):$(RegistryPort)/$(TestImageName)
 
 runall:
 	bin/testsafeharbor \
 		h=$(SAFEHARBOR_HOST) \
 		p=$(SAFEHARBOR_PORT) \
 		-redispswd=ahdal8934k383898&*kdu&^ \
-		-tests="Registry,json,goredis,redis,CreateRealmsAndUsers,CreateResources,CreateGroups,GetMy,AccessControl,UpdateAndReplace,Delete,DockerFunctions"
+		-tests="DockSvcs,Engine,Registry,json,goredis,redis,CreateRealmsAndUsers,CreateResources,CreateGroups,GetMy,AccessControl,UpdateAndReplace,Delete,DockerFunctions"
 
-regtests:
-	export registryUser=testuser
-	export registryPassword=testpassword
+regtests: startregistry
+	export registryUser=$(registryUser)
+	export registryPassword=$(registryPassword)
 	export TestImageName=$(TestImageName)
 	export TestImageTag=$(TestImageTag)
+	export ImageToUploadPath=$(ImageToUploadPath)
+	export ImageToUploadDigest=$(ImageToUploadDigest)
 	bin/testsafeharbor -stop \
 		-tests="Registry"
 
@@ -98,10 +110,21 @@ engtests:
 	bin/testsafeharbor -stop \
 		-tests="Engine"
 
+svctests:
+	bin/testsafeharbor -stop \
+		-h=52.38.84.3 -p=6000 \
+		-tests="DockSvcs"
+
 dockertests:
 	bin/testsafeharbor -stop \
 		-h=52.38.84.3 -p=6000 \
 		-tests="DockerFunctions"
+
+listimages:
+	curl http://$(registryUser):$(registryPassword)@$(RegistryHost):$(RegistryPort)/v2/_catalog
+
+checkimage:
+	curl http://$(registryUser):$(registryPassword)@$(RegistryHost):$(RegistryPort)/v2/$(TestImageName)/tags/list
 
 clean:
 	rm -r -f $(build_dir)/$(PACKAGENAME)
