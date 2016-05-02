@@ -12,6 +12,7 @@ import (
 	"time"
 	"strings"
 	"reflect"
+	"strconv"
 	
 	"redis"
 	"goredis"
@@ -144,8 +145,10 @@ func TestDockerEngine(testContext *utils.TestContext) {
 	var imageFullName = "testimage:5"
 	var dockerfileContent = "FROM centos\nRUN touch newfile"
 
-	var registryHost = "localhost"
-	var registryPort = 5000
+	var registryHost = os.Getenv("RegistryHost")
+	var registryPort int
+	registryPort, err = strconv.Atoi(os.Getenv("RegistryPort"))
+	if err != nil { testContext.AbortAllTests(err.Error()) }
 	var registryRepo = "greatimage"
 	var registryUserId = os.Getenv("registryUser")
 	var registryPassword = os.Getenv("registryPassword")
@@ -278,8 +281,10 @@ func TestDockerRegistry(testContext *utils.TestContext) {
 	
 	// Auth:
 	// https://github.com/docker/distribution/blob/master/docs/deploying.md
-	var registryHost = "localhost"
-	var registryPort = 5000
+	var registryHost = os.Getenv("RegistryHost")
+	var registryPort int
+	var err error
+	registryPort, err = strconv.Atoi(os.Getenv("RegistryPort"))
 	var registryUserId = os.Getenv("registryUser")
 	var registryPassword = os.Getenv("registryPassword")
 	var testImageName = os.Getenv("TestImageName")
@@ -289,7 +294,6 @@ func TestDockerRegistry(testContext *utils.TestContext) {
 	var downloadedImageFilePath = "DownloadedImage.tar"
 	
 	var registry docker.DockerRegistry
-	var err error
 	
 	{
 		testContext.StartTest("Initialization")
