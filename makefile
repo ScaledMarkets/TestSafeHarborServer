@@ -95,6 +95,8 @@ runall:
 		-tests="DockSvcs,Engine,Registry,json,goredis,redis,CreateRealmsAndUsers,CreateResources,CreateGroups,GetMy,AccessControl,UpdateAndReplace,Delete,DockerFunctions"
 
 regtests: startregistry
+	export RegistryHost=$(RegistryHost)
+	export RegistryPort=$(RegistryPort)
 	export registryUser=$(registryUser)
 	export registryPassword=$(registryPassword)
 	export TestImageName=$(TestImageName)
@@ -105,6 +107,8 @@ regtests: startregistry
 		-tests="Registry"
 
 engtests:
+	export RegistryHost=$(RegistryHost)
+	export RegistryPort=$(RegistryPort)
 	export registryUser=testuser
 	export registryPassword=testpassword
 	bin/testsafeharbor -stop \
