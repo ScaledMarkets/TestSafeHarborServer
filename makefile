@@ -7,7 +7,7 @@ EXECNAME=$(PACKAGENAME)
 
 # These are needed by the registry tests:
 RegistryHost=localhost
-RegistryPort=5000
+RegistryPort=3000
 registryUser=testuser
 registryPassword=testpassword
 TestImageName=atomicapp
