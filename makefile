@@ -48,7 +48,7 @@ $(build_dir)/$(PACKAGENAME): src/..
 	@GOPATH=$(CURDIR) go install $(PACKAGENAME)
 
 # This target can only be run on a Linux system that has docker-engine installed.
-prepregistry: cleanregistry
+prepregistry:
 	# Create directories needed by the docker registry.
 	mkdir -p registryauth
 	mkdir -p registrydata
@@ -57,7 +57,7 @@ prepregistry: cleanregistry
 		-Bbn $(registryUser) $(registryPassword) > registryauth/htpasswd
 
 # This target can only be run on a Linux system that has docker-engine installed.
-startregistry: prepregistry
+startregistry:
 	# Start a docker registry instance.
 	sudo docker rm -f registry
 	sudo docker run -d -p $(RegistryPort):$(RegistryPort) --name registry --net=host \
@@ -71,7 +71,7 @@ startregistry: prepregistry
 stopregistry:
 	sudo docker stop registry
 
-cleanregistry: stopregistry
+cleanregistry:
 	rm -r registryauth
 	rm -r registrydata
 
@@ -91,7 +91,7 @@ runall:
 		-redispswd=ahdal8934k383898&*kdu&^ \
 		-tests="DockSvcs,Engine,Registry,json,goredis,redis,CreateRealmsAndUsers,CreateResources,CreateGroups,GetMy,AccessControl,UpdateAndReplace,Delete,DockerFunctions"
 
-regtests: startregistry
+regtests:
 	export RegistryHost=$(RegistryHost)
 	export RegistryPort=$(RegistryPort)
 	export registryUser=$(registryUser)
