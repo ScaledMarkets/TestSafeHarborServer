@@ -35,6 +35,7 @@ func CreateTCPRestContext(scheme, hostname string, port int, userId string, pass
 	return &RestContext{
 		httpClient: &http.Client{
 			//Transport: &http.Transport{},
+			CheckRedirect: func(req *http.Request, via []*http.Request) error { return nil },
 		},
 		scheme: scheme,
 		hostname: hostname,
