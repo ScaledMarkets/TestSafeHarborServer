@@ -35,7 +35,7 @@ func CreateTCPRestContext(scheme, hostname string, port int, userId string, pass
 	return &RestContext{
 		httpClient: &http.Client{
 			//Transport: &http.Transport{},
-			CheckRedirect: func(req *http.Request, via []*http.Request) error { return nil },
+			//CheckRedirect: func(req *http.Request, via []*http.Request) error { return nil },
 		},
 		scheme: scheme,
 		hostname: hostname,
@@ -97,7 +97,8 @@ func (restContext *RestContext) SendBasicGet(reqName string) (*http.Response, er
 	
 	var resp *http.Response
 	var err error
-	resp, err = restContext.httpClient.Get(urlstr)
+	//resp, err = restContext.httpClient.Get(urlstr)
+	resp, err = http.Get(urlstr)
 	
 	if err != nil { fmt.Println("SendBasicGet: received error: " + err.Error()) }  // debug
 	
