@@ -95,8 +95,6 @@ func (registry *DockerRegistryImpl) Ping() error {
 	
 	var uri = "v2/"
 	
-	fmt.Println("Ping sending URI: " + uri)
-	
 	var response *http.Response
 	var err error
 	response, err = registry.SendBasicGet(uri)
