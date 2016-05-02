@@ -291,9 +291,6 @@ func TestDockerRegistry(testContext *utils.TestContext) {
 	var registry docker.DockerRegistry
 	var err error
 	
-	// -------------------------------------
-	// Test setup:
-	
 	{
 		testContext.StartTest("Initialization")
 		testContext.AssertThat(registryUserId != "", "registryUserId is empty")
