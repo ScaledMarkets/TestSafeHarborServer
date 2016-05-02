@@ -61,7 +61,7 @@ prepregistry: cleanregistry
 startregistry: prepregistry
 	# Start a docker registry instance.
 	sudo docker rm -f registry
-	sudo docker run -d -p $(RegistryPort):$(RegistryPort) --name registry \
+	sudo docker run -d -p $(RegistryPort):$(RegistryPort) --name registry --net=host \
 		-v `pwd`/registryauth:/auth \
 		-v `pwd`/registrydata:/var/lib/registry \
 		-e "REGISTRY_AUTH=htpasswd" \
