@@ -16,8 +16,6 @@ TestImageTag=latest
 ImageToUploadPath=BooPloinkImage
 ImageToUploadDigest=d2cf21381ce5a17243ec11062b5df136a9d5eac40c7bcdb3f65f42b32342c802
 
-
-
 # Needed by the SafeHarbor tests:
 SAFEHARBOR_PORT=6000
 
