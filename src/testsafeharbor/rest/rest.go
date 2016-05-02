@@ -92,11 +92,14 @@ func (restContext *RestContext) SendBasicGet(reqName string) (*http.Response, er
 	
 	var urlstr string = restContext.getURL(reqName)
 	
-	fmt.Println("SendBasicGet: Sending URL: " + urlstr)
+	fmt.Println("SendBasicGet: Sending URL: " + urlstr)  // debug
 	
 	var resp *http.Response
 	var err error
 	resp, err = restContext.httpClient.Get(urlstr)
+	
+	if err != nil { fmt.Println("SendBasicGet: received error: " + err.Error()) }  // debug
+	
 	if err != nil { return nil, err }
 	return resp, nil
 }
