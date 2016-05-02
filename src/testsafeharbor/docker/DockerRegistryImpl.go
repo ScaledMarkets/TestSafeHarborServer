@@ -63,14 +63,21 @@ type DockerRegistryImpl struct {
 func OpenDockerRegistryConnection(host string, port int, userId string,
 	password string) (DockerRegistry, error) {
 	
+	fmt.Println(fmt.Sprintf("Opening connection to registry %s:%s@%d:%s",
+		userId, password, host, port))
+	
 	var registry *DockerRegistryImpl = &DockerRegistryImpl{
 		RestContext: *rest.CreateTCPRestContext("http", host, port, userId, password, noop),
 	}
+	
+	fmt.Println("Pinging registry...")
 	
 	var err error = registry.Ping()
 	if err != nil {
 		return nil, err
 	}
+	
+	fmt.Println("...received response.")
 	
 	return registry, nil
 }
