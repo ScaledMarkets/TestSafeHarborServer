@@ -63,7 +63,7 @@ type DockerRegistryImpl struct {
 func OpenDockerRegistryConnection(host string, port int, userId string,
 	password string) (DockerRegistry, error) {
 	
-	fmt.Println(fmt.Sprintf("Opening connection to registry %s:%s@%d:%s",
+	fmt.Println(fmt.Sprintf("Opening connection to registry %s:%s@%s:%d",
 		userId, password, host, port))
 	
 	var registry *DockerRegistryImpl = &DockerRegistryImpl{
