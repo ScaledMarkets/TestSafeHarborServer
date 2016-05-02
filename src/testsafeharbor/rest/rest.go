@@ -33,9 +33,9 @@ func CreateTCPRestContext(scheme, hostname string, port int, userId string, pass
 	sessionIdSetter func(*http.Request, string)) *RestContext {
 
 	return &RestContext{
-		//httpClient: &http.Client{
-		//	Transport: &http.Transport{},
-		//},
+		httpClient: &http.Client{
+			//Transport: &http.Transport{},
+		},
 		scheme: scheme,
 		hostname: hostname,
 		port: port,
