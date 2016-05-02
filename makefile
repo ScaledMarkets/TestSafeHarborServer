@@ -1,5 +1,4 @@
 # Makefile for building the tests for Safe Harbor Server.
-# 
 
 PRODUCTNAME=Safe Harbor Server
 ORG=Scaled Markets
