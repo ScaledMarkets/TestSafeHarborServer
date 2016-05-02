@@ -100,7 +100,13 @@ func (restContext *RestContext) SendBasicGet(reqName string) (*http.Response, er
 	//resp, err = restContext.httpClient.Get(urlstr)
 	resp, err = http.Get(urlstr)
 	
-	if err != nil { fmt.Println("SendBasicGet: received error: " + err.Error()) }  // debug
+	// debug
+	if err != nil {
+		fmt.Println("SendBasicGet: received error: " + err.Error())
+		fmt.Println("Trying an external Get: google.com")
+		resp, err = http.Get("http://www.scaledmarkets.com")
+	} 
+	// end debug
 	
 	if err != nil { return nil, err }
 	return resp, nil
