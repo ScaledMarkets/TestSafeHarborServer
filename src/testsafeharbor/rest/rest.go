@@ -91,20 +91,24 @@ func (restContext *RestContext) getPassword() string { return restContext.Passwo
  */
 func (restContext *RestContext) SendBasicGet(reqName string) (*http.Response, error) {
 	
-	var urlstr string = restContext.getURL(reqName)
+	var urlstr string = restContext.getURL(false, reqName)
 	
 	fmt.Println("SendBasicGet: Sending URL: " + urlstr)  // debug
 	
 	var resp *http.Response
 	var err error
 	//resp, err = restContext.httpClient.Get(urlstr)
-	resp, err = http.Get(urlstr)
+	//resp, err = http.Get(urlstr)
+	var request *http.Request
+	request, err = http.NewRequest("GET", urlstr, nil)
+	if err != nil { return nil, err }
+	request.SetBasicAuth(restContext.UserId, restContext.Password)
+	resp, err = restContext.httpClient.Do(request)
+	if err != nil { return nil, err }
 	
 	// debug
 	if err != nil {
 		fmt.Println("SendBasicGet: received error: " + err.Error())
-		fmt.Println("Trying an external Get: google.com")
-		resp, err = http.Get("http://www.scaledmarkets.com")
 	} 
 	// end debug
 	
@@ -118,7 +122,7 @@ func (restContext *RestContext) SendBasicGet(reqName string) (*http.Response, er
  */
 func (restContext *RestContext) SendBasicHead(reqName string) (*http.Response, error) {
 	
-	var urlstr string = restContext.getURL(reqName)
+	var urlstr string = restContext.getURL(true, reqName)
 	var resp *http.Response
 	var err error
 	resp, err = restContext.httpClient.Head(urlstr)
@@ -132,7 +136,7 @@ func (restContext *RestContext) SendBasicHead(reqName string) (*http.Response, e
  */
 func (restContext *RestContext) SendBasicDelete(reqName string) (*http.Response, error) {
 	
-	var urlstr string = restContext.getURL(reqName)
+	var urlstr string = restContext.getURL(true, reqName)
 	var resp *http.Response
 	var request *http.Request
 	var err error
@@ -150,7 +154,7 @@ func (restContext *RestContext) SendBasicDelete(reqName string) (*http.Response,
 func (restContext *RestContext) SendBasicFormPost(reqName string, names []string,
 	values []string) (*http.Response, error) {
 	
-	var urlstr string = restContext.getURL(reqName)
+	var urlstr string = restContext.getURL(true, reqName)
 	var data = make(map[string][]string)
 	for i, value := range values { data[names[i]] = []string{value} }
 	var resp *http.Response
@@ -205,7 +209,7 @@ func (restContext *RestContext) SendBasicFormPostWithHeaders(reqName string, nam
 	fmt.Println("SendBasicFormPostWithHeaders: B")  // debug
 
 	// Define the HTTP request object.
-	var urlstr string = restContext.getURL(reqName)
+	var urlstr string = restContext.getURL(true, reqName)
 	var request *http.Request
 	var err error
 	request, err = http.NewRequest("POST", urlstr, content)
@@ -247,7 +251,7 @@ func (restContext *RestContext) SendBasicFilePost(reqName string, names []string
 func (restContext *RestContext) SendBasicStreamPost(reqName string, 
 	headers map[string]string, content io.Reader) (*http.Response, error) {
 	
-	var url string = restContext.getURL(reqName)
+	var url string = restContext.getURL(true, reqName)
 	var request *http.Request
 	var err error
 	request, err = http.NewRequest("POST", url, content)
@@ -300,7 +304,7 @@ func (restContext *RestContext) sendSessionReq(sessionId string, reqMethod strin
 	reqName string, names []string, values []string) (*http.Response, error) {
 
 	// Send REST POST request to server.
-	var urlstr string = restContext.getURL(reqName)
+	var urlstr string = restContext.getURL(true, reqName)
 	var data url.Values = url.Values{}
 	if names != nil {
 		for index, each := range names {
@@ -341,7 +345,7 @@ func (restContext *RestContext) SendFilePost(sessionId string,
 	reqName string, names []string,
 	values []string, path string) (*http.Response, error) {
 
-	var urlstr string = restContext.getURL(reqName)
+	var urlstr string = restContext.getURL(true, reqName)
 
 	// Prepare a form that you will submit to that URL.
 	var b bytes.Buffer
@@ -518,10 +522,12 @@ func (restContext *RestContext) Verify200Response(resp *http.Response) bool {
 /*******************************************************************************
  * 
  */
-func (restContext *RestContext) getURL(reqName string) string {
+func (restContext *RestContext) getURL(basicAuth bool, reqName string) string {
 	var basicAuthCreds = ""
-	if restContext.UserId != "" {
-		basicAuthCreds = fmt.Sprintf("%s:%s@", restContext.UserId, restContext.Password)
+	if basicAuth {
+		if restContext.UserId != "" {
+			basicAuthCreds = fmt.Sprintf("%s:%s@", restContext.UserId, restContext.Password)
+		}
 	}
 	var portspec = ""
 	if restContext.port != 0 { portspec = fmt.Sprintf(":%d", restContext.port) }
