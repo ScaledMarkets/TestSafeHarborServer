@@ -47,6 +47,9 @@ compile: $(build_dir)/$(PACKAGENAME)
 $(build_dir)/$(PACKAGENAME): src/..
 	@GOPATH=$(CURDIR) go install $(PACKAGENAME)
 
+# Shortcut task for stopping, cleaning up, and restarting.
+testprep: stopregistry cleanregistry prepregistry startregistry
+
 # This target can only be run on a Linux system that has docker-engine installed.
 prepregistry:
 	# Create directories needed by the docker registry.
