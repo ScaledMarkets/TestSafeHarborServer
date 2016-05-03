@@ -412,6 +412,7 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 		if nWritten == 0 { return utils.ConstructError(
 			"No data written to " + tempDirPath + "/" + header.Name)
 		}
+		fmt.Println("Wrote " + filename)
 	}
 	
 	// Parse the 'repositories' file.
