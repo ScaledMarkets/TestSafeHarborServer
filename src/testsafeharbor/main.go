@@ -287,7 +287,7 @@ func TestDockerRegistry(testContext *utils.TestContext) {
 	registryPort, err = strconv.Atoi(os.Getenv("RegistryPort"))
 	var registryUserId = os.Getenv("registryUser")
 	var registryPassword = os.Getenv("registryPassword")
-	var testImageName = os.Getenv("TestImageName")
+	var testImageRepoName = os.Getenv("TestImageRepoName")
 	var testImageTag = os.Getenv("TestImageTag")
 	var imageToUploadPath = os.Getenv("ImageToUploadPath")
 	var imageToUploadDigest = os.Getenv("ImageToUploadDigest")
@@ -299,7 +299,7 @@ func TestDockerRegistry(testContext *utils.TestContext) {
 		testContext.StartTest("Initialization")
 		testContext.AssertThat(registryUserId != "", "registryUserId is empty")
 		testContext.AssertThat(registryPassword != "", "registryPassword is empty")
-		testContext.AssertThat(testImageName != "", "TestImageName is empty")
+		testContext.AssertThat(testImageRepoName != "", "TestImageRepoName is empty")
 		testContext.AssertThat(testImageTag != "", "TestImageTag is empty")
 		testContext.AssertThat(imageToUploadPath != "", "ImageToUploadPath is empty")
 		testContext.AssertThat(imageToUploadDigest != "", "ImageToUploadDigest is empty")
@@ -319,7 +319,7 @@ func TestDockerRegistry(testContext *utils.TestContext) {
 	{
 		testContext.StartTest("PushImage")
 		
-		err = registry.PushImage(testImageName, testImageTag, imageToUploadPath)
+		err = registry.PushImage(testImageRepoName, testImageTag, imageToUploadPath)
 		testContext.AssertErrIsNil(err, "While calling PushImage")
 		
 		testContext.PassTestIfNoFailures()
@@ -330,7 +330,7 @@ func TestDockerRegistry(testContext *utils.TestContext) {
 		testContext.StartTest("ImageExists")
 		
 		var exists bool
-		exists, err = registry.ImageExists(testImageName, testImageTag)
+		exists, err = registry.ImageExists(testImageRepoName, testImageTag)
 		testContext.AssertErrIsNil(err, "While calling ImageExists")
 		testContext.AssertThat(exists, "Did not find image")
 		
@@ -343,9 +343,9 @@ func TestDockerRegistry(testContext *utils.TestContext) {
 		
 		var testDigest string
 		var layerAr []map[string]interface{}
-		testDigest, layerAr, err = registry.GetImageInfo(testImageName, testImageTag)
+		testDigest, layerAr, err = registry.GetImageInfo(testImageRepoName, testImageTag)
 		testContext.AssertThat(testDigest == imageToUploadDigest,
-			"Incorrect digest for " + testImageName + ":" + testImageTag)
+			"Incorrect digest for " + testImageRepoName + ":" + testImageTag)
 		testContext.AssertThat(len(layerAr) > 0, "No layer descriptions")
 		
 		testContext.PassTestIfNoFailures()
@@ -358,7 +358,7 @@ func TestDockerRegistry(testContext *utils.TestContext) {
 		os.Remove(downloadedImageFilePath)  // ignore error, if any.
 		
 		// Contact Registry to get image.
-		err = registry.GetImage(testImageName, testImageTag, downloadedImageFilePath)
+		err = registry.GetImage(testImageRepoName, testImageTag, downloadedImageFilePath)
 		
 		// Verify that the image was retrieved properly.
 		testContext.AssertErrIsNil(err, "While calling GetImage")
