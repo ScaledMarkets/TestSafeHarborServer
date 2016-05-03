@@ -10,7 +10,7 @@ RegistryHost=localhost
 RegistryPort=5000
 registryUser=testuser
 registryPassword=testpassword
-TestImageName=BooPloinkImage:latest
+TestImageRepoName=BooPloinkImage
 TestImageTag=latest
 ImageToUploadPath=BooPloinkImage
 BooPloinkImageDigest=d2cf21381ce5a17243ec11062b5df136a9d5eac40c7bcdb3f65f42b32342c802
@@ -82,11 +82,11 @@ cleanregistry:
 # This target can only be run on a Linux system that has docker-engine installed.
 getatomicapp:
 	# Pull atomicapp to our docker client.
-	sudo docker pull docker.io/projectatomic/$(TestImageName)
-	sudo docker tag docker.io/projectatomic/$(TestImageName) $(RegistryHost):$(RegistryPort)/$(TestImageName)
+	sudo docker pull docker.io/projectatomic/atomicapp
+	sudo docker tag docker.io/projectatomic/atomicapp $(RegistryHost):$(RegistryPort)/atomicapp
 	# Push atomic to our registry.
 	sudo docker login -u=$(registryUser) -p=$(registryPassword) -e="" $(RegistryHost):$(RegistryPort)
-	sudo docker push $(RegistryHost):$(RegistryPort)/$(TestImageName)
+	sudo docker push $(RegistryHost):$(RegistryPort)/atomicapp
 
 runall:
 	bin/testsafeharbor \
@@ -100,7 +100,7 @@ regtests:
 	export RegistryPort=$(RegistryPort)
 	export registryUser=$(registryUser)
 	export registryPassword=$(registryPassword)
-	export TestImageName=$(TestImageName)
+	export TestImageRepoName=$(TestImageRepoName)
 	export TestImageTag=$(TestImageTag)
 	export ImageToUploadPath=$(ImageToUploadPath)
 	export ImageToUploadDigest=$(ImageToUploadDigest)
@@ -129,7 +129,7 @@ listimages:
 	curl http://$(registryUser):$(registryPassword)@$(RegistryHost):$(RegistryPort)/v2/_catalog
 
 checkimage:
-	curl http://$(registryUser):$(registryPassword)@$(RegistryHost):$(RegistryPort)/v2/$(TestImageName)/tags/list
+	curl http://$(registryUser):$(registryPassword)@$(RegistryHost):$(RegistryPort)/v2/$(TestImageRepoName)/tags/list
 
 clean:
 	rm -r -f $(build_dir)/$(PACKAGENAME)

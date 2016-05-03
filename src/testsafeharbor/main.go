@@ -319,7 +319,7 @@ func TestDockerRegistry(testContext *utils.TestContext) {
 	{
 		testContext.StartTest("PushImage")
 		
-		err = registry.PushImage(testImageName, imageToUploadPath, imageToUploadDigest)
+		err = registry.PushImage(testImageName, testImageTag, imageToUploadPath)
 		testContext.AssertErrIsNil(err, "While calling PushImage")
 		
 		testContext.PassTestIfNoFailures()
