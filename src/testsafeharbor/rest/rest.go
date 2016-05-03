@@ -245,16 +245,34 @@ func (restContext *RestContext) SendBasicFilePost(reqName string, names []string
 }
 
 /*******************************************************************************
+ * 
+ */
+func (restContext *RestContext) SendBasicStreamPost(reqName string, 
+	headers map[string]string, content io.Reader) (*http.Response, error) {
+
+	return restContext.SendBasicStreamReq("POST", reqName, headers, content)
+}
+
+/*******************************************************************************
+ * 
+ */
+func (restContext *RestContext) SendBasicStreamPut(reqName string, 
+	headers map[string]string, content io.Reader) (*http.Response, error) {
+
+	return restContext.SendBasicStreamReq("PUT", reqName, headers, content)
+}
+
+/*******************************************************************************
  * Send a POST request with a body of an arbitrary content type.
  * The headers parameter may be nil.
  */
-func (restContext *RestContext) SendBasicStreamPost(reqName string, 
+func (restContext *RestContext) SendBasicStreamReq(method string, reqName string, 
 	headers map[string]string, content io.Reader) (*http.Response, error) {
 	
 	var url string = restContext.getURL(true, reqName)
 	var request *http.Request
 	var err error
-	request, err = http.NewRequest("POST", url, content)
+	request, err = http.NewRequest(method, url, content)
 	if err != nil { return nil, err }
 	
 	if headers != nil {

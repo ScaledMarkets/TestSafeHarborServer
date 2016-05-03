@@ -175,7 +175,7 @@ func TestDockerEngine(testContext *utils.TestContext) {
 	
 	// Test GetImages().
 	{
-		testContext.StartTest("Test GetImages")
+		testContext.StartTest("GetImages")
 		var imageMaps []map[string]interface{}
 		imageMaps, err = engine.GetImages()
 		testContext.AssertErrIsNil(err, "In getting images")
@@ -190,7 +190,7 @@ func TestDockerEngine(testContext *utils.TestContext) {
 	
 	// Test BuildImage.
 	{
-		testContext.StartTest("Test BuildImage")
+		testContext.StartTest("BuildImage")
 		fmt.Println("Building image '" + imageFullName + "' in directory '" + buildDirPath + "'")
 		var responseStr string
 		responseStr, err = engine.BuildImage(buildDirPath, imageFullName, "Dockerfile")
@@ -231,7 +231,7 @@ func TestDockerEngine(testContext *utils.TestContext) {
 	
 	// Test TagImage.
 	{
-		testContext.StartTest("Test TagImage")
+		testContext.StartTest("TagImage")
 		
 		var regHostAndRepoName = fmt.Sprintf("%s:%d/%s", registryHost, registryPort, registryRepo)
 		err = engine.TagImage(imageFullName, regHostAndRepoName, tag)
@@ -246,7 +246,7 @@ func TestDockerEngine(testContext *utils.TestContext) {
 	
 	// Test PushImage.
 	{
-		testContext.StartTest("Test PushImage")
+		testContext.StartTest("PushImage")
 		
 		var regHostAndRepoName = fmt.Sprintf("%s:%d/%s", registryHost, registryPort, registryRepo)
 		err = engine.PushImage(regHostAndRepoName, tag,
@@ -317,7 +317,7 @@ func TestDockerRegistry(testContext *utils.TestContext) {
 	
 	// Test PushImage.
 	{
-		testContext.StartTest("Test PushImage")
+		testContext.StartTest("PushImage")
 		
 		err = registry.PushImage(testImageName, imageToUploadPath, imageToUploadDigest)
 		testContext.AssertErrIsNil(err, "While calling PushImage")
@@ -327,7 +327,7 @@ func TestDockerRegistry(testContext *utils.TestContext) {
 	
 	// Test ImageExists.
 	{
-		testContext.StartTest("Test ImageExists")
+		testContext.StartTest("ImageExists")
 		
 		var exists bool
 		exists, err = registry.ImageExists(testImageName, testImageTag)
@@ -339,7 +339,7 @@ func TestDockerRegistry(testContext *utils.TestContext) {
 	
 	// Test GetImageInfo.
 	{
-		testContext.StartTest("Test GetImageInfo")
+		testContext.StartTest("GetImageInfo")
 		
 		var testDigest string
 		var layerAr []map[string]interface{}
@@ -353,7 +353,7 @@ func TestDockerRegistry(testContext *utils.TestContext) {
 	
 	// Test GetImage.
 	{
-		testContext.StartTest("Test GetImage")
+		testContext.StartTest("GetImage")
 		
 		os.Remove(downloadedImageFilePath)  // ignore error, if any.
 		

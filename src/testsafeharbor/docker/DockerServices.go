@@ -1,5 +1,6 @@
 /*******************************************************************************
  * Provide abstract functions that we need from docker and docker registry.
+ * This module relies on implementations of DockerEngine and DockerRegistry.
  */
 package docker
 
@@ -68,24 +69,15 @@ func (dockerSvcs *DockerServices) BuildDockerfile(dockerfileExternalFilePath,
 	var exists bool = false
 	var err error = nil
 	if dockerSvcs.Registry != nil {
-		exists, err = dockerSvcs.Registry.ImageExists(realmName + "/" + repoName, imageName)
+		var dockerImageName, tag string
+		dockerImageName, tag = dockerSvcs.ConstructDockerImageName(realmName, repoName, imageName)
+		exists, err = dockerSvcs.Registry.ImageExists(dockerImageName, tag)
+		//exists, err = dockerSvcs.Registry.ImageExists(realmName + "/" + repoName, imageName)
 	}
 	if exists {
 		return "", utils.ConstructError(
 			"Image with name " + realmName + "/" + repoName + ":" + imageName + " already exists.")
 	}
-	
-		/* Obsolete: -----------------
-		var cmd *exec.Cmd = exec.Command("/usr/bin/docker", "inspect", imageName)
-			// GET /containers/4fa6e0f0c678/json HTTP/1.1
-		var output []byte
-		output, err = cmd.CombinedOutput()
-		var outputStr string = string(output)
-		if ! strings.Contains(outputStr, "Error") {
-			return "", utils.ConstructError(
-				"'" + outputStr + "'; perhaps an image with name " + imageName + " already exists.")
-		}
-		------------------------------- */
 	
 	// Verify that the image name conforms to Docker's requirements.
 	err = NameConformsToDockerRules(imageName)
@@ -161,9 +153,11 @@ func (dockerSvcs *DockerServices) BuildDockerfile(dockerfileExternalFilePath,
 		"No checksum field found for image")
 	}
 	
-	// Push image - all layers and manifest.
+	// Push image to registry - all layers and manifest.
 	if dockerSvcs.Registry != nil {
-		err = dockerSvcs.Registry.PushImage(imageFullName, imageFilePath, digestString)
+		var dockerImageName, tag string
+		dockerImageName, tag = dockerSvcs.ConstructDockerImageName(realmName, repoName, imageName)
+		err = dockerSvcs.Registry.PushImage(dockerImageName, tag, imageFilePath)
 		if err != nil { return outputStr, err }
 		
 		// Tag the uploaded image with its name.
@@ -494,6 +488,15 @@ func NameConformsToDockerRules(name string) error {
 	if len(b) == 0 { return nil }
 	return utils.ConstructError("Name '" + name + "' does not conform to docker name rules: " +
 		"[a-z0-9]+(?:[._-][a-z0-9]+)*  Offending fragment: '" + b + "'")
+}
+
+/*******************************************************************************
+ * 
+ */
+func (dockerSvcs *DockerServices) ConstructDockerImageName(shRealmName,
+	shRepoName, shImageName string) (imageName, tag string) {
+
+	return (shRealmName + "/" + shRepoName), shImageName
 }
 
 /*******************************************************************************
