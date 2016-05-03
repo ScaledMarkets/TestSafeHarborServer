@@ -369,7 +369,7 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 	var err error
 	tempDirPath, err = ioutil.TempDir("", "")
 	if err != nil { return err }
-	defer os.RemoveAll(tempDirPath)
+	//defer os.RemoveAll(tempDirPath)
 	
 	// Expand tar file.
 	var tarFile *os.File
