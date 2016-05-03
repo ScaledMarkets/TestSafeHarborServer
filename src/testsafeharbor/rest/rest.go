@@ -91,19 +91,19 @@ func (restContext *RestContext) getPassword() string { return restContext.Passwo
  */
 func (restContext *RestContext) SendBasicGet(reqName string) (*http.Response, error) {
 	
-	var urlstr string = restContext.getURL(false, reqName)
+	var urlstr string = restContext.getURL(true, reqName)
 	
 	fmt.Println("SendBasicGet: Sending URL: " + urlstr)  // debug
 	
 	var resp *http.Response
 	var err error
-	//resp, err = restContext.httpClient.Get(urlstr)
+	resp, err = restContext.httpClient.Get(urlstr)
 	//resp, err = http.Get(urlstr)
-	var request *http.Request
-	request, err = http.NewRequest("GET", urlstr, nil)
-	if err != nil { return nil, err }
-	request.SetBasicAuth(restContext.UserId, restContext.Password)
-	resp, err = restContext.httpClient.Do(request)
+	//var request *http.Request
+	//request, err = http.NewRequest("GET", urlstr, nil)
+	//if err != nil { return nil, err }
+	//request.SetBasicAuth(restContext.UserId, restContext.Password)
+	//resp, err = restContext.httpClient.Do(request)
 	if err != nil { return nil, err }
 	
 	// debug
