@@ -395,8 +395,8 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 		var header *tar.Header
 		header, err = tarReader.Next()
 		if err == io.EOF { break }
-		
 		if err != nil { return err }
+		if ! strings.HasSuffix(header.Name, "/layer.tar") { continue }
 		
 		// Write entry to a file.
 		var nWritten int64
@@ -481,7 +481,8 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 		if err != nil { return err }
 		if exists { continue }
 		
-		err = registry.PushLayer(tempDirPath + "/" + layerDigest, repoName, layerDigest)
+		var layerFilePath = tempDirPath + "/" + layerDigest + "/layer.tar"
+		err = registry.PushLayer(layerFilePath, repoName, layerDigest)
 		if err != nil { return err }
 	}
 	
