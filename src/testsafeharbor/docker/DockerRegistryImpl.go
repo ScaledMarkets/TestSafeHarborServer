@@ -376,16 +376,19 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 	tarFile, err = os.Open(imageFilePath)
 	if err != nil { return err }
 	var tarReader *tar.Reader = tar.NewReader(tarFile)
-	for {
-		
+	for { // each tar file entry
 		var header *tar.Header
 		header, err = tarReader.Next()
 		if err == io.EOF { break }
+		
 		if err != nil { return err }
+		
+		// Write entry to a file.
 		var nWritten int64
 		var outfile *os.File
 		outfile, err = os.OpenFile(tempDirPath + "/" + header.Name, os.O_RDWR, 0700)
 		if err != nil { return err }
+		fmt.Println("Writing to " + outfile.Name())
 		nWritten, err = io.Copy(outfile, tarReader)
 		if err != nil { return err }
 		if nWritten == 0 { return utils.ConstructError(
