@@ -396,7 +396,8 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 		header, err = tarReader.Next()
 		if err == io.EOF { break }
 		if err != nil { return err }
-		if ! strings.HasSuffix(header.Name, "/layer.tar") { continue }
+		if (! strings.HasSuffix(header.Name, "/layer.tar")) &&
+			(header.Name != "repositories") { continue }
 		
 		// Write entry to a file.
 		var nWritten int64
