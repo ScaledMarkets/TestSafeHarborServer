@@ -377,20 +377,6 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 	if err != nil { return err }
 	var tarReader *tar.Reader = tar.NewReader(tarFile)
 	
-	// debug
-	for { // each tar file entry
-		var header *tar.Header
-		header, err = tarReader.Next()
-		if err == io.EOF { break }
-		
-		if err != nil { return err }
-		
-		// Write entry to a file.
-		fmt.Println("header.Name=" + header.Name)  // debug
-	}
-	tarReader = tar.NewReader(tarFile)
-	// end debug
-	
 	for { // each tar file entry
 		var header *tar.Header
 		header, err = tarReader.Next()
