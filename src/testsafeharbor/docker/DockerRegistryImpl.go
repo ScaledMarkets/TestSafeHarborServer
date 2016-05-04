@@ -479,6 +479,7 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 		exists, err = registry.LayerExistsInRepo(repoName, layerDigest)
 		if err != nil { return err }
 		if exists { continue }
+		fmt.Println("Layer does not exist in registry")  // debug
 		
 		var layerFilePath = tempDirPath + "/" + layerDigest + "/layer.tar"
 		err = registry.PushLayer(layerFilePath, repoName, layerDigest)
