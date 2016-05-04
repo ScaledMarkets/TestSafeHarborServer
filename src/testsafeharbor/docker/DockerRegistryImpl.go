@@ -498,9 +498,56 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 }
 
 /*******************************************************************************
- * 
+ * Push a layer, using the "chunked" upload registry protocol.
  */
 func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestString string) error {
+
+	var uri = fmt.Sprintf("v2/%s/blobs/uploads/", repoName)
+	
+	var response *http.Response
+	var err error
+	response, err = registry.SendBasicFormPost(uri, []string{}, []string{})
+	if err != nil { return err }
+	if response.StatusCode != 202 {
+		return utils.ConstructError(fmt.Sprintf(
+			"Posting to start upload of layer returned status: %s", response.Status))
+	}
+	
+	// Get Location header.
+	var locations []string = response.Header["Location"]
+	if locations == nil { return utils.ConstructError("No Location header") }
+	if len(locations) != 1 { return utils.ConstructError("Unexpected Location header") }
+	var location string = locations[0]
+	
+	var layerFile *os.File
+	layerFile, err = os.Open(layerFilePath)
+	if err != nil { return err }
+	var fileInfo os.FileInfo
+	fileInfo, err = layerFile.Stat()
+	if err != nil { return err }
+	
+	var fileSize int64 = fileInfo.Size()
+	var headers = map[string]string{
+		"Content-Length": fmt.Sprintf("%d", fileSize),
+		"Content-Type": "application/octet-stream",
+	}
+	
+	uri = fmt.Sprintf("v2/%s/blobs/uploads/%s?digest=%s", repoName, location, digestString)
+	response, err = registry.SendBasicStreamPut(uri, headers, layerFile)
+	if err != nil { return err }
+	if response.StatusCode != 201 {
+		return utils.ConstructError(fmt.Sprintf(
+			"Posting layer returned status: %s", response.Status))
+	}
+	
+	return nil
+}
+
+/*******************************************************************************
+ * Push a layer, using a single POST.
+ * (The Registry does not yet support this.)
+ */
+func (registry *DockerRegistryImpl) PushLayerSinglePost(layerFilePath, repoName, digestString string) error {
 	
 	var layerFile *os.File
 	var err error
@@ -525,6 +572,7 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 	if response.StatusCode != 202 {
 		return utils.ConstructError(fmt.Sprintf("Posting layer returned status: %s", response.Status))
 	}
+	
 	return nil
 }
 
