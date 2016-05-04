@@ -512,6 +512,7 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 		return utils.ConstructError(fmt.Sprintf(
 			"Posting to start upload of layer returned status: %s", response.Status))
 	}
+	fmt.Println("Started upload")  // debug
 	
 	// Get Location header.
 	var locations []string = response.Header["Location"]
@@ -539,6 +540,7 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 		return utils.ConstructError(fmt.Sprintf(
 			"Posting layer returned status: %s", response.Status))
 	}
+	fmt.Println("Completed upload")  // debug
 	
 	return nil
 }
