@@ -397,7 +397,7 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 			var nWritten int64
 			var outfile *os.File
 			var filename = tempDirPath + "/" + header.Name
-			fmt.Println("header.Name=" + header.Name)  // debug
+			fmt.Println("Opening file in Create mode: " + filename)  // debug
 			outfile, err = os.OpenFile(filename, os.O_CREATE, 0770)
 			if err != nil { return err }
 			fmt.Println("Writing to " + outfile.Name())
