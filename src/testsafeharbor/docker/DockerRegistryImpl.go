@@ -400,6 +400,9 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 			fmt.Println("Opening file in Create mode: " + filename)  // debug
 			outfile, err = os.OpenFile(filename, os.O_CREATE, 0770)
 			if err != nil { return err }
+			fmt.Println("Opening file in ReadWrite mode: " + filename)  // debug
+			outfile, err = os.OpenFile(filename, os.O_RDWR, 0770)
+			if err != nil { return err }
 			fmt.Println("Writing to " + outfile.Name())
 			nWritten, err = io.Copy(outfile, tarReader)
 			if err != nil { return err }
