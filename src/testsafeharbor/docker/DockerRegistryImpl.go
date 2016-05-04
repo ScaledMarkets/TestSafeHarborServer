@@ -506,6 +506,7 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 	
 	var response *http.Response
 	var err error
+	fmt.Println("uri=" + uri)  // debug
 	fmt.Println("Starting upload...")  // debug
 	response, err = registry.SendBasicFormPost(uri, []string{}, []string{})
 	if err != nil { return err }
