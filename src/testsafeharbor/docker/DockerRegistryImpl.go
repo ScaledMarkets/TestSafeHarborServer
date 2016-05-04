@@ -388,7 +388,7 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 			var dirname = tempDirPath + "/" + header.Name
 			err = os.Mkdir(dirname, 0770)
 			if err != nil { return err }
-			fmt.Println("Created directory " + dirname)
+			fmt.Println("Created directory " + dirname)  // debug
 			
 		} else if (header.Name == "repositories") ||
 				strings.HasSuffix(header.Name, "/layer.tar") {
@@ -397,20 +397,15 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 			var nWritten int64
 			var outfile *os.File
 			var filename = tempDirPath + "/" + header.Name
-			//fmt.Println("Opening file in Create mode: " + filename)  // debug
 			outfile, err = os.OpenFile(filename, os.O_CREATE | os.O_RDWR, 0770)
 			if err != nil { return err }
-			//fmt.Println("Opening file in ReadWrite mode: " + filename)  // debug
-			//outfile, err = os.OpenFile(filename, os.O_RDWR, 0770)
-			//if err != nil { return err }
-			//fmt.Println("Writing to " + outfile.Name())
 			nWritten, err = io.Copy(outfile, tarReader)
 			if err != nil { return err }
 			if nWritten == 0 { return utils.ConstructError(
 				"No data written to " + filename)
 			}
 			outfile.Close()
-			fmt.Println("Wrote " + filename)
+			fmt.Println("Wrote " + filename)  // debug
 		}
 	}
 	
@@ -440,6 +435,7 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 	if len(repositoriesMap) > 1 { return utils.ConstructError(
 		"More than one entry found in repository map for image")
 	}
+	
 	//var oldRepoName string
 	//var oldTag string
 	var imageDigest string
@@ -466,6 +462,7 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 			imageDigest = tagDigest
 		}
 	}
+	fmt.Println("Finished parsing repositories file")  // debug
 	
 	// Obtain digest strings and layer paths.
 	var scratchDir *os.File
@@ -476,6 +473,7 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 	if err != nil { return err }
 
 	// Send each layer to the registry.
+	fmt.Println("Sending each layer to registry...")  // debug
 	for _, layerDigest := range layerFilenames {  // layer files are named by their digest
 		var exists bool
 		exists, err = registry.LayerExistsInRepo(repoName, layerDigest)
@@ -488,6 +486,7 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 	}
 	
 	// Send a manifest to the registry.
+	fmt.Println("Sending manifest to registry...")  // debug
 	err = registry.PushManifest(repoName, tag, imageDigest, layerFilenames)
 	if err != nil { return err }
 	
