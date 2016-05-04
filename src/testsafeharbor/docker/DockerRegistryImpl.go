@@ -382,23 +382,30 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 		header, err = tarReader.Next()
 		if err == io.EOF { break }
 		if err != nil { return err }
-		if (! strings.HasSuffix(header.Name, "/layer.tar")) &&
-			(header.Name != "repositories") { continue }
 		
-		// Write entry to a file.
-		var nWritten int64
-		var outfile *os.File
-		var filename = tempDirPath + "/" + header.Name
-		fmt.Println("header.Name=" + header.Name)  // debug
-		outfile, err = os.OpenFile(filename, os.O_CREATE, 0700)
-		if err != nil { return err }
-		fmt.Println("Writing to " + outfile.Name())
-		nWritten, err = io.Copy(outfile, tarReader)
-		if err != nil { return err }
-		if nWritten == 0 { return utils.ConstructError(
-			"No data written to " + tempDirPath + "/" + header.Name)
+		if strings.HasSuffix(header.Name, "/") {  // a directory
+			
+			err = os.Mkdir(header.Name, 0770)
+			if err != nil { return err }
+			
+		} else if (header.Name == "repositories") ||
+				strings.HasSuffix(header.Name, "/layer.tar") {
+			
+			// Write entry to a file.
+			var nWritten int64
+			var outfile *os.File
+			var filename = tempDirPath + "/" + header.Name
+			fmt.Println("header.Name=" + header.Name)  // debug
+			outfile, err = os.OpenFile(filename, os.O_CREATE, 0770)
+			if err != nil { return err }
+			fmt.Println("Writing to " + outfile.Name())
+			nWritten, err = io.Copy(outfile, tarReader)
+			if err != nil { return err }
+			if nWritten == 0 { return utils.ConstructError(
+				"No data written to " + tempDirPath + "/" + header.Name)
+			}
+			fmt.Println("Wrote " + filename)
 		}
-		fmt.Println("Wrote " + filename)
 	}
 	
 	// Parse the 'repositories' file.
