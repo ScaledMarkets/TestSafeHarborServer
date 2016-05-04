@@ -385,9 +385,10 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 		
 		if strings.HasSuffix(header.Name, "/") {  // a directory
 			
-			err = os.Mkdir(header.Name, 0770)
+			var dirname = tempDirPath + "/" + header.Name
+			err = os.Mkdir(dirname, 0770)
 			if err != nil { return err }
-			fmt.Println("Created directory " + header.Name)
+			fmt.Println("Created directory " + dirname)
 			
 		} else if (header.Name == "repositories") ||
 				strings.HasSuffix(header.Name, "/layer.tar") {
