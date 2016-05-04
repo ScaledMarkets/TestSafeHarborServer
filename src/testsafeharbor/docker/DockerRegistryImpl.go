@@ -387,6 +387,7 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 			
 			err = os.Mkdir(header.Name, 0770)
 			if err != nil { return err }
+			fmt.Println("Created directory " + header.Name)
 			
 		} else if (header.Name == "repositories") ||
 				strings.HasSuffix(header.Name, "/layer.tar") {
@@ -402,7 +403,7 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 			nWritten, err = io.Copy(outfile, tarReader)
 			if err != nil { return err }
 			if nWritten == 0 { return utils.ConstructError(
-				"No data written to " + tempDirPath + "/" + header.Name)
+				"No data written to " + filename)
 			}
 			fmt.Println("Wrote " + filename)
 		}
