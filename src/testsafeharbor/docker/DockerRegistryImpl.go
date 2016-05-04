@@ -397,18 +397,19 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 			var nWritten int64
 			var outfile *os.File
 			var filename = tempDirPath + "/" + header.Name
-			fmt.Println("Opening file in Create mode: " + filename)  // debug
+			//fmt.Println("Opening file in Create mode: " + filename)  // debug
 			outfile, err = os.OpenFile(filename, os.O_CREATE | os.O_RDWR, 0770)
 			if err != nil { return err }
 			//fmt.Println("Opening file in ReadWrite mode: " + filename)  // debug
 			//outfile, err = os.OpenFile(filename, os.O_RDWR, 0770)
 			//if err != nil { return err }
-			fmt.Println("Writing to " + outfile.Name())
+			//fmt.Println("Writing to " + outfile.Name())
 			nWritten, err = io.Copy(outfile, tarReader)
 			if err != nil { return err }
 			if nWritten == 0 { return utils.ConstructError(
 				"No data written to " + filename)
 			}
+			outfile.Close()
 			fmt.Println("Wrote " + filename)
 		}
 	}
@@ -425,7 +426,7 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 	bytes, err = ioutil.ReadAll(repositoriesFile)
 	if err != nil { return err }
 	var obj interface{}
-	err = json.Unmarshal(bytes, obj)
+	err = json.Unmarshal(bytes, &obj)
 	if err != nil { return err }
 	var repositoriesMap map[string]interface{}
 	var isType bool
@@ -488,8 +489,11 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 	
 	// Send a manifest to the registry.
 	err = registry.PushManifest(repoName, tag, imageDigest, layerFilenames)
+	if err != nil { return err }
 	
-	return err
+	os.RemoveAll(tempDirPath)
+
+	return nil
 }
 
 /*******************************************************************************
