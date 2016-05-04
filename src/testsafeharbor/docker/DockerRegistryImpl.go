@@ -482,6 +482,7 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 		fmt.Println("Layer does not exist in registry")  // debug
 		
 		var layerFilePath = tempDirPath + "/" + layerDigest + "/layer.tar"
+		fmt.Println("Pushing layer " + layerFilePath)  // debug
 		err = registry.PushLayer(layerFilePath, repoName, layerDigest)
 		if err != nil { return err }
 	}
@@ -517,6 +518,7 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 	}
 	
 	var uri = fmt.Sprintf("v2/%s/blobs/uploads/?digest=%s", repoName, digestString)
+	fmt.Println("uri: " + uri)  // debug
 	
 	response, err = registry.SendBasicStreamPost(uri, headers, layerFile)
 	if err != nil { return err }
