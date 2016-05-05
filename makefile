@@ -10,9 +10,9 @@ RegistryHost=localhost
 RegistryPort=5000
 registryUser=testuser
 registryPassword=testpassword
-TestImageRepoName=BooPloinkImage
+TestImageRepoName=booploink
 TestImageTag=latest
-ImageToUploadPath=BooPloinkImage
+ImageToUploadPath=booploink
 BooPloinkImageDigest=d2cf21381ce5a17243ec11062b5df136a9d5eac40c7bcdb3f65f42b32342c802
 ImageToUploadDigest=$(BooPloinkImageDigest)
 
