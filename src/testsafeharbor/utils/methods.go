@@ -1806,9 +1806,22 @@ func (testContext *TestContext) TryDeactivateRealm(realmId string) bool {
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryDeleteRepo() {
+func (testContext *TestContext) TryDeleteRepo(repoId string) bool {
 	testContext.StartTest("TryDeleteRepo")
-	testContext.FailTest()
+	
+	var resp *http.Response
+	var err error
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
+		"deleteRepo",
+		[]string{"Log", "RepoId"},
+		[]string{testContext.TestDemarcation(), repoId})
+	
+	defer resp.Body.Close()
+	if ! testContext.AssertErrIsNil(err, "") { return false }
+
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	testContext.PassTestIfNoFailures()
+	return testContext.CurrentTestPassed
 }
 
 /*******************************************************************************

@@ -1326,11 +1326,6 @@ func TestDelete(testContext *utils.TestContext) {
 	
 	// -------------------------------------
 	// Test setup:
-	// Create a realm and an admin user for the realm, and then log in as that user.
-	// Create a repo.
-	// Create a non-admin user.
-	// Create a ScanConfig, with a flag.
-	// Create a group.
 	//
 	
 	var realmXId string
@@ -1344,6 +1339,8 @@ func TestDelete(testContext *utils.TestContext) {
 	var realmXGroupId string
 	var realmXFlagId string
 	var flagImagePath = "Seal.png"
+	var dockerfile1Path string
+	var image1ObjId string
 
 	{
 		realmXId, _, _ = testContext.TryCreateRealmAnon(
@@ -1365,6 +1362,18 @@ func TestDelete(testContext *utils.TestContext) {
 		
 		var err = utils.DownloadFile(SealURL, flagImagePath, true)
 		if err != nil { testContext.AbortAllTests(err.Error()) }
+		
+		
+		var tempdir string
+		tempdir, err = utils.CreateTempDir()
+		if err != nil { testContext.AbortAllTests(err.Error()) }
+		dockerfile1Path, err = utils.CreateTempFile(
+			tempdir, "Dockerfile", "FROM centos\nRUN echo moo > oink")
+		if err != nil { testContext.AbortAllTests(err.Error()) }
+		defer os.Remove(dockerfile1Path)
+
+		image1ObjId, _ = testContext.TryAddAndExecDockerfile(realmXRepo1Id,
+			"My first image", "myimage1", dockerfile1Path)
 	}
 	
 	// -------------------------------------
@@ -1407,6 +1416,17 @@ func TestDelete(testContext *utils.TestContext) {
 		if testContext.TryRemFlag(realmXFlagId) {
 			testContext.TryGetFlagDesc(realmXFlagId, false)
 		}
+	}
+	
+	// Test ability to delete a docker image.
+	{
+		testContext.AssertThat(testContext.TryRemDockerImage(image1ObjId),
+			"Unable to remove docker image")
+	}
+	
+	// Test ability to delete a repo.
+	{
+		testContext.TryDeleteRepo(realmXRepo1Id)
 	}
 	
 	// Test ability to log out.
