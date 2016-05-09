@@ -1,5 +1,8 @@
 # Makefile for building the tests for Safe Harbor Server.
 
+SHHOST=52.34.87.76
+SHPORT=6000
+
 PRODUCTNAME=Safe Harbor Server
 ORG=Scaled Markets
 PACKAGENAME=testsafeharbor
@@ -118,13 +121,23 @@ engtests:
 
 svctests:
 	bin/testsafeharbor -stop \
-		-h=52.38.84.3 -p=6000 \
+		-h=$(SHHOST) -p=$(SHPORT) \
 		-tests="DockSvcs"
 
 dockertests:
 	bin/testsafeharbor -stop \
-		-h=52.38.84.3 -p=6000 \
+		-h=$(SHHOST) -p=$(SHPORT) \
 		-tests="DockerFunctions"
+
+basic:
+	bin/testsafeharbor -stop \
+		-h=$(SHHOST) -p=$(SHPORT) \
+		-tests="CreateRealmsAndUsers"
+
+delete:
+	bin/testsafeharbor -stop \
+		-h=$(SHHOST) -p=$(SHPORT) \
+		-tests="Delete"
 
 listimages:
 	curl http://$(registryUser):$(registryPassword)@$(RegistryHost):$(RegistryPort)/v2/_catalog

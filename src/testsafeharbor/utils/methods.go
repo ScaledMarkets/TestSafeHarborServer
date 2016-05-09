@@ -299,6 +299,7 @@ func (testContext *TestContext) TryAuthenticate(userId string, pswd string,
 func (testContext *TestContext) TryDisableUser(userObjId string) bool {
 	testContext.StartTest("TryDisableUser")
 	
+	fmt.Println("TryDisableUser: A")  // debug
 	var resp *http.Response
 	var err error
 	resp, err = testContext.SendSessionPost(testContext.SessionId,
@@ -306,18 +307,25 @@ func (testContext *TestContext) TryDisableUser(userObjId string) bool {
 		[]string{"Log", "UserObjId"},
 		[]string{testContext.TestDemarcation(), userObjId})
 	
+	fmt.Println("TryDisableUser: B")  // debug
 	defer resp.Body.Close()
 
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	fmt.Println("TryDisableUser: C")  // debug
 	
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
+	fmt.Println("TryDisableUser: D")  // debug
 	if err != nil { fmt.Println(err.Error()); return false }
 	rest.PrintMap(responseMap)
-	var retStatus string = responseMap["Status"].(string)
-	//var retMessage string = responseMap["Message"].(string)
-	if retStatus != "200" { return false }
+	fmt.Println("TryDisableUser: E")  // debug
+	var retStatus float64
+	retStatus, _ = responseMap["HTTPStatusCode"].(float64)
+	fmt.Println("TryDisableUser: F")  // debug
+	if retStatus != 200 { return false }
+	fmt.Println("TryDisableUser: G")  // debug
 	testContext.PassTestIfNoFailures()
+	fmt.Println(fmt.Sprintf("TryDisableUser returning %x", testContext.CurrentTestPassed))
 	return testContext.CurrentTestPassed
 }
 
@@ -342,9 +350,8 @@ func (testContext *TestContext) TryDeleteGroup(groupId string) bool {
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
 	if err != nil { fmt.Println(err.Error()); return false }
 	rest.PrintMap(responseMap)
-	var retStatus string = responseMap["Status"].(string)
-	//var retMessage string = responseMap["Message"].(string)
-	if retStatus != "200" { return false }
+	var retStatus float64 = responseMap["HTTPStatusCode"].(float64)
+	if retStatus != 200 { return false }
 	testContext.PassTestIfNoFailures()
 	return testContext.CurrentTestPassed
 }
@@ -370,9 +377,8 @@ func (testContext *TestContext) TryLogout() bool {
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
 	if err != nil { fmt.Println(err.Error()); return false }
 	rest.PrintMap(responseMap)
-	var retStatus string = responseMap["Status"].(string)
-	//var retMessage string = responseMap["Message"].(string)
-	if retStatus != "200" { return false }
+	var retStatus float64 = responseMap["HTTPStatusCode"].(float64)
+	if retStatus != 200 { return false }
 	testContext.PassTestIfNoFailures()
 	return testContext.CurrentTestPassed
 }
@@ -763,11 +769,11 @@ func (testContext *TestContext) TryAddGroupUser(groupId, userId string) bool {
 	if err != nil { fmt.Println(err.Error()); return false }  // returns Result
 	// Status - A value of “0” indicates success.
 	// Message
-	var retStatus string = responseMap["Status"].(string)
-	var retMessage string = responseMap["Message"].(string)
+	var retStatus float64 = responseMap["HTTPStatusCode"].(float64)
+	var retMessage string = responseMap["HTTPReasonPhrase"].(string)
 	rest.PrintMap(responseMap)
 	
-	testContext.AssertThat(retStatus == "200", "Returned Status is empty")
+	testContext.AssertThat(retStatus == 200, "Returned Status is empty")
 	testContext.AssertThat(retMessage != "", "Returned Message is empty")
 	
 	testContext.PassTestIfNoFailures()
@@ -794,10 +800,10 @@ func (testContext *TestContext) TryMoveUserToRealm(userObjId, realmId string) bo
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
 	if ! testContext.AssertErrIsNil(err, "") { return false }
-	var retStatus string = responseMap["Status"].(string)
-	var retMsg string = responseMap["Message"].(string)
+	var retStatus float64 = responseMap["HTTPStatusCode"].(float64)
+	var retMsg string = responseMap["HTTPReasonPhrase"].(string)
 	rest.PrintMap(responseMap)
-	testContext.AssertThat(retStatus != "", "Empty return status")
+	testContext.AssertThat(retStatus == 200, "Error return status")
 	testContext.AssertThat(retMsg != "", "Empty return message")
 	testContext.PassTestIfNoFailures()
 	return testContext.CurrentTestPassed
@@ -1677,11 +1683,11 @@ func (testContext *TestContext) TryReplaceDockerfile(dockerfileId, dockerfilePat
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
 	if ! testContext.AssertErrIsNil(err, "") { return }
-	var retStatus string = responseMap["Status"].(string)
-	var retMessage string = responseMap["Message"].(string)
+	var retStatus float64 = responseMap["HTTPStatusCode"].(float64)
+	var retMessage string = responseMap["HTTPReasonPhrase"].(string)
 	rest.PrintMap(responseMap)
 	
-	testContext.AssertThat(retStatus == "200", "Returned Status is empty")
+	testContext.AssertThat(retStatus == 200, "Returned Status is empty")
 	testContext.AssertThat(retMessage != "", "Returned Message is empty")
 	testContext.PassTestIfNoFailures()
 }
@@ -2243,8 +2249,8 @@ func (testContext *TestContext) TryRemScanConfig(scanConfigId string,
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
 	if ! testContext.AssertErrIsNil(err, "") { return false }
 
-	if retStatus, isType := responseMap["Status"].(string); (! isType) || (retStatus == "") { testContext.FailTest() }
-	if retMessage, isType := responseMap["Message"].(string); (! isType) || (retMessage == "") { testContext.FailTest() }
+	if _, isType := responseMap["HTTPStatusCode"].(float64); (! isType) { testContext.FailTest() }
+	if retMessage, isType := responseMap["HTTPReasonPhrase"].(string); (! isType) || (retMessage == "") { testContext.FailTest() }
 
 	testContext.PassTestIfNoFailures()
 	return testContext.CurrentTestPassed
@@ -2338,8 +2344,8 @@ func (testContext *TestContext) TryRemFlag(flagId string) bool {
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
 	if ! testContext.AssertErrIsNil(err, "") { return false }
 
-	if retStatus, isType := responseMap["Status"].(string); (! isType) || (retStatus == "") { testContext.FailTest() }
-	if retMessage, isType := responseMap["Message"].(string); (! isType) || (retMessage == "") { testContext.FailTest() }
+	if _, isType := responseMap["HTTPStatusCode"].(float64); (! isType) { testContext.FailTest() }
+	if retMessage, isType := responseMap["HTTPReasonPhrase"].(string); (! isType) || (retMessage == "") { testContext.FailTest() }
 
 	testContext.PassTestIfNoFailures()
 	return testContext.CurrentTestPassed
@@ -2365,8 +2371,8 @@ func (testContext *TestContext) TryRemDockerImage(imageId string) bool {
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
 	if ! testContext.AssertErrIsNil(err, "") { return false }
 
-	if retStatus, isType := responseMap["Status"].(string); (! isType) || (retStatus == "") { testContext.FailTest() }
-	if retMessage, isType := responseMap["Message"].(string); (! isType) || (retMessage == "") { testContext.FailTest() }
+	if _, isType := responseMap["HTTPStatusCode"].(float64); (! isType) { testContext.FailTest() }
+	if retMessage, isType := responseMap["HTTPReasonPhrase"].(string); (! isType) || (retMessage == "") { testContext.FailTest() }
 
 	testContext.PassTestIfNoFailures()
 	return testContext.CurrentTestPassed
