@@ -160,7 +160,7 @@ func (restContext *RestContext) SendBasicFormPost(reqName string, names []string
 		resp, err = restContext.httpClient.PostForm(urlstr, data)
 		if err != nil { return nil, err }
 		switch resp.StatusCode {
-			case 200,201: return resp, nil
+			case 200,201,202: return resp, nil
 			case 301,302,303,307,308: 
 				var newLocation = resp.Header["Location"][0]
 				if newLocation == "" { return nil, errors.New("Empty location on redirect") }
