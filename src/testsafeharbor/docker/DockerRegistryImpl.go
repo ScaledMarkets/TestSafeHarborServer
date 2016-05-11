@@ -120,6 +120,7 @@ func (registry *DockerRegistryImpl) ImageExists(repoName string, tag string) (bo
 	var err error
 	response, err = registry.SendBasicHead(uri)
 	if err != nil { return false, err }
+	if response.StatusCode == 404 { return false, nil }
 	err = utils.GenerateError(response.StatusCode, response.Status + "; while checking if image exists")
 	if err != nil { return false, err }
 	return true, nil
@@ -135,6 +136,7 @@ func (registry *DockerRegistryImpl) LayerExistsInRepo(repoName, digest string) (
 	var err error
 	response, err = registry.SendBasicHead(uri)
 	if err != nil { return false, err }
+	if response.StatusCode == 404 { return false, nil }
 	err = utils.GenerateError(response.StatusCode, response.Status + "; while checking if layer exists")
 	if err != nil { return false, err }
 	return true, nil
