@@ -505,11 +505,38 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 	}
 	
 	location = strings.TrimPrefix(location, "/")
-	uri = fmt.Sprintf("%s", location)
-	fmt.Println("PushLayer: E") // debug
-	response, err = registry.SendBasicStreamPut(uri, headers, layerFile)
-	fmt.Println("PushLayer: F") // debug
+	
+	
+	
+	
+	
+	// Send the request using the URL provided.
+	var request *http.Request
+	request, err = http.NewRequest("PUT", location, layerFile)
 	if err != nil { return err }
+	
+	if headers != nil {
+		for name, value := range headers {
+			request.Header.Set(name, value)
+		}
+	}
+	
+	// Submit the request
+	fmt.Println("PushLayer: location='" + location + "'")
+	response, err = registry.GetHttpClient().Do(request)
+	fmt.Println("PushLayer: response Status='" + response.Status + "'")
+
+	
+	
+	
+	fmt.Println("PushLayer: E") // debug
+	//response, err = registry.SendBasicStreamPut(uri, headers, layerFile)
+	//fmt.Println("PushLayer: F") // debug
+	//if err != nil { return err }
+	
+	
+	
+	
 	err = utils.GenerateError(response.StatusCode, response.Status + "; while posting layer")
 	if (response.StatusCode >= 300) && (response.StatusCode < 400) {
 		var newURL string = response.Header["Location"][0]
