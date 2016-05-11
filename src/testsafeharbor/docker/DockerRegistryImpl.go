@@ -600,9 +600,8 @@ func (registry *DockerRegistryImpl) PushManifest(repoName, tag, imageDigestStrin
 	var err error
 	response, err = registry.SendBasicStreamPut(uri, headers, stringReader)
 	if err != nil { return err }
-	if response.StatusCode != 201 {
-		return utils.ConstructServerError(fmt.Sprintf("Putting manifest returned status: %s", response.Status))
-	}
+	err = utils.GenerateError(response.StatusCode, response.Status + "; while putting manifest")
+	if err != nil { return err }
 	
 	return nil
 }
