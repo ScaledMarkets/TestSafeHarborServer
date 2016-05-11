@@ -100,9 +100,8 @@ func (registry *DockerRegistryImpl) Ping() error {
 	var err error
 	response, err = registry.SendBasicGet(uri)
 	if err != nil { return err }
-	if response.StatusCode != 200 {
-		return utils.ConstructServerError(fmt.Sprintf("Ping returned status: %s", response.Status))
-	}
+	err = utils.GenerateError(response.StatusCode, response.Status + "; in Ping")
+	if err != nil { return err }
 	return nil
 }
 
@@ -121,13 +120,9 @@ func (registry *DockerRegistryImpl) ImageExists(repoName string, tag string) (bo
 	var err error
 	response, err = registry.SendBasicHead(uri)
 	if err != nil { return false, err }
-	if response.StatusCode == 200 {
-		return true, nil
-	} else if response.StatusCode == 404 { // Not Found
-		return false, nil
-	} else {
-		return false, utils.ConstructServerError(fmt.Sprintf("ImageExists returned status: %s", response.Status))
-	}
+	err = utils.GenerateError(response.StatusCode, response.Status + "; while checking if image exists")
+	if err != nil { return false, err }
+	return true, nil
 }
 
 /*******************************************************************************
@@ -140,13 +135,9 @@ func (registry *DockerRegistryImpl) LayerExistsInRepo(repoName, digest string) (
 	var err error
 	response, err = registry.SendBasicHead(uri)
 	if err != nil { return false, err }
-	if response.StatusCode == 200 {
-		return true, nil
-	} else if response.StatusCode == 404 { // Not Found
-		return false, nil
-	} else {
-		return false, utils.ConstructServerError(fmt.Sprintf("ImageExists returned status: %s", response.Status))
-	}
+	err = utils.GenerateError(response.StatusCode, response.Status + "; while checking if layer exists")
+	if err != nil { return false, err }
+	return true, nil
 }
 
 /*******************************************************************************
@@ -161,11 +152,8 @@ func (registry *DockerRegistryImpl) GetImageInfo(repoName string, tag string) (d
 	var resp *http.Response
 	resp, err = registry.SendBasicGet(uri)
 	if err != nil { return "", nil, err }
-	if resp.StatusCode == 404 {
-		return "", nil, utils.ConstructUserError("Not found")
-	} else if resp.StatusCode != 200 {
-		return "", nil, utils.ConstructServerError(fmt.Sprintf("ImageExists returned status: %s", resp.Status))
-	}
+	err = utils.GenerateError(resp.StatusCode, resp.Status + "; while getting image info")
+	if err != nil { return "", nil, err }
 	
 	// Parse description of each layer.
 	layerAr, err = parseManifest(resp.Body)
@@ -193,11 +181,8 @@ func (registry *DockerRegistryImpl) GetImage(repoName string, tag string, filepa
 	var err error
 	resp, err = registry.SendBasicGet(uri)
 	if err != nil { return err }
-	if resp.StatusCode == 404 {
-		return utils.ConstructUserError("Not found")
-	} else if resp.StatusCode != 200 {
-		return utils.ConstructServerError(fmt.Sprintf("ImageExists returned status: %s", resp.Status))
-	}
+	err = utils.GenerateError(resp.StatusCode, resp.Status + "; while getting image")
+	if err != nil { return err }
 	
 	// Parse description of each layer.
 	var layerAr []map[string]interface{}
@@ -234,16 +219,9 @@ func (registry *DockerRegistryImpl) GetImage(repoName string, tag string, filepa
 		resp, err = registry.SendBasicGet(uri)
 		if err != nil { return err }
 		defer resp.Body.Close()
-		if resp.StatusCode >= 500 {
-			return utils.ConstructServerError(fmt.Sprintf(
-				"Response code %d, when requesting uri: '%s'", resp.StatusCode, uri))
-		} else if resp.StatusCode >= 400 {
-			return utils.ConstructUserError(fmt.Sprintf(
-				"Response code %d, when requesting uri: '%s'", resp.StatusCode, uri))
-		} else  if resp.StatusCode >= 300 {
-			return utils.ConstructServerError(fmt.Sprintf(
-				"Response code %d, when requesting uri: '%s'", resp.StatusCode, uri))
-		}
+		err = utils.GenerateError(resp.StatusCode, resp.Status + 
+			fmt.Sprintf("when requesting uri: '%s'", uri))
+		if err != nil { return err }
 
 		// Create temporary file in which to write layer.
 		var layerFile *os.File
@@ -315,11 +293,8 @@ func (registry *DockerRegistryImpl) DeleteImage(repoName, tag string) error {
 	resp, err = registry.SendBasicGet(uri)
 	if err != nil { return err }
 	resp.Body.Close()
-	if resp.StatusCode == 404 {
-		return utils.ConstructUserError("Not found")
-	} else if resp.StatusCode != 200 {
-		return utils.ConstructServerError(fmt.Sprintf("DeleteImage returned status: %s", resp.Status))
-	}
+	err = utils.GenerateError(resp.StatusCode, resp.Status + "; while deleting image")
+	if err != nil { return err }
 	
 	// Parse description of each layer.
 	var layerAr []map[string]interface{}
@@ -345,13 +320,8 @@ func (registry *DockerRegistryImpl) DeleteImage(repoName, tag string) error {
 		var err error
 		response, err = registry.SendBasicDelete(uri)
 		if err != nil { return err }
-		if response.StatusCode == 200 {
-			return nil
-		} else if response.StatusCode == 404 { // Not Found
-			return utils.ConstructUserError(fmt.Sprintf("DeleteImage - image not found: %s", response.Status))
-		} else {
-			return utils.ConstructServerError(fmt.Sprintf("DeleteImage returned status: %s", response.Status))
-		}
+		err = utils.GenerateError(response.StatusCode, response.Status + "; while deleting layer")
+		if err != nil { return err }
 	}
 	
 	// Delete manifest.
@@ -504,10 +474,8 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 	var err error
 	response, err = registry.SendBasicFormPost(uri, []string{}, []string{})
 	if err != nil { return err }
-	if response.StatusCode != 202 {
-		return utils.ConstructServerError(fmt.Sprintf(
-			"Posting to start upload of layer returned status: %s", response.Status))
-	}
+	err = utils.GenerateError(response.StatusCode, response.Status + "; while starting layer upload")
+	if err != nil { return err }
 	
 	// Get Location header.
 	var locations []string = response.Header["Location"]
@@ -531,10 +499,8 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 	uri = fmt.Sprintf("v2/%s/blobs/uploads/%s?digest=%s", repoName, location, digestString)
 	response, err = registry.SendBasicStreamPut(uri, headers, layerFile)
 	if err != nil { return err }
-	if response.StatusCode != 201 {
-		return utils.ConstructServerError(fmt.Sprintf(
-			"Posting layer returned status: %s", response.Status))
-	}
+	err = utils.GenerateError(response.StatusCode, response.Status + "; while posting layer")
+	if err != nil { return err }
 	
 	return nil
 }
@@ -564,9 +530,8 @@ func (registry *DockerRegistryImpl) PushLayerSinglePost(layerFilePath, repoName,
 	
 	response, err = registry.SendBasicStreamPost(uri, headers, layerFile)
 	if err != nil { return err }
-	if response.StatusCode != 202 {
-		return utils.ConstructServerError(fmt.Sprintf("Posting layer returned status: %s", response.Status))
-	}
+	err = utils.GenerateError(response.StatusCode, response.Status + "; while posting layer")
+	if err != nil { return err }
 	
 	return nil
 }

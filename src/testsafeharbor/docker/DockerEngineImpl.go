@@ -68,9 +68,8 @@ func (engine *DockerEngineImpl) Ping() error {
 	var err error
 	response, err = engine.SendBasicGet(uri)
 	if err != nil { return err }
-	if response.StatusCode != 200 {
-		return utils.ConstructServerError(fmt.Sprintf("Ping returned status: %s", response.Status))
-	}
+	err = utils.GenerateError(response.StatusCode, response.Status + "; during Ping")
+	if err != nil { return err }
 	return nil
 }
 
