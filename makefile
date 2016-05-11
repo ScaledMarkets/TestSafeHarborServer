@@ -1,6 +1,6 @@
 # Makefile for building the tests for Safe Harbor Server.
 
-SHHOST=52.34.87.76
+SHHOST=52.38.121.149
 SHPORT=6000
 
 PRODUCTNAME=Safe Harbor Server
@@ -52,7 +52,7 @@ $(build_dir)/$(EXECNAME): $(build_dir) $(src_dir)
 # 'make compile' builds the executable, which is placed in <build_dir>.
 compile: $(build_dir)/$(PACKAGENAME)
 
-$(build_dir)/$(PACKAGENAME): src/..
+$(build_dir)/$(PACKAGENAME): $(build_dir)
 	@GOPATH=$(CURDIR) go install $(PACKAGENAME)
 
 # This target can only be run on a Linux system that has docker-engine installed.

@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"os"
 	"io"
-	"io/ioutil"
+	//"io/ioutil"
 	"bufio"
 	"strings"
 	"encoding/json"
@@ -19,6 +19,7 @@ import (
 	
 	// SafeHarbor packages:
 	"testsafeharbor/utils"
+	"testsafeharbor/rest"
 )
 
 /* Replace with REST calls.
@@ -60,7 +61,7 @@ func (dockerSvcs *DockerServices) BuildDockerfile(dockerfileExternalFilePath,
 	dockerfileName, realmName, repoName, imageName string) (string, error) {
 	
 	if ! localDockerImageNameIsValid(imageName) {
-		return "", utils.ConstructError(fmt.Sprintf("Image name '%s' is not valid - must be " +
+		return "", utils.ConstructUserError(fmt.Sprintf("Image name '%s' is not valid - must be " +
 			"of format <name>[:<tag>]", imageName))
 	}
 	fmt.Println("Image name =", imageName)
@@ -75,7 +76,7 @@ func (dockerSvcs *DockerServices) BuildDockerfile(dockerfileExternalFilePath,
 		//exists, err = dockerSvcs.Registry.ImageExists(realmName + "/" + repoName, imageName)
 	}
 	if exists {
-		return "", utils.ConstructError(
+		return "", utils.ConstructUserError(
 			"Image with name " + realmName + "/" + repoName + ":" + imageName + " already exists.")
 	}
 	
@@ -85,7 +86,8 @@ func (dockerSvcs *DockerServices) BuildDockerfile(dockerfileExternalFilePath,
 	
 	// Create a temporary directory to serve as the build context.
 	var tempDirPath string
-	tempDirPath, err = ioutil.TempDir("", "")
+	tempDirPath, err = utils.MakeTempDir()
+	if err != nil { return "", err }
 	//....TO DO: Is the above a security problem? Do we need to use a private
 	// directory? I think so.
 	defer func() {
@@ -109,7 +111,7 @@ func (dockerSvcs *DockerServices) BuildDockerfile(dockerfileExternalFilePath,
 	
 //	fmt.Println("Changing directory to '" + tempDirPath + "'")
 //	err = os.Chdir(tempDirPath)
-//	if err != nil { return apitypes.NewFailureDesc(err.Error()) }
+//	if err != nil { return apitypes.NewFailureDescFromError(err) }
 	
 	// Create a the docker build command.
 	// https://docs.docker.com/reference/commandline/build/
@@ -130,9 +132,11 @@ func (dockerSvcs *DockerServices) BuildDockerfile(dockerfileExternalFilePath,
 	
 	// Obtain image as a file.
 	var tempDirPath2 string
-	tempDirPath2, err = ioutil.TempDir("", "")
+	tempDirPath2, err = utils.MakeTempDir()
+	if err != nil { return outputStr, err }
+	defer os.RemoveAll(tempDirPath2)
 	var imageFile *os.File
-	imageFile, err = ioutil.TempFile(tempDirPath2, "")
+	imageFile, err = utils.MakeTempFile(tempDirPath2, "")
 	if err != nil { return outputStr, err }
 	var imageFilePath = imageFile.Name()
 	err = dockerSvcs.Engine.GetImage(imageFullName, imageFilePath)
@@ -142,14 +146,18 @@ func (dockerSvcs *DockerServices) BuildDockerfile(dockerfileExternalFilePath,
 	var info map[string]interface{}
 	info, err = dockerSvcs.Engine.GetImageInfo(imageFullName)
 	if err != nil { return outputStr, err }
-	var digest = info["checksum"]
+	var digest = info["Id"]
 	var digestString string
 	var isType bool
 	digestString, isType = digest.(string)
-	if ! isType { return outputStr, utils.ConstructError(
+	if digest == nil {
+		fmt.Println("Digest is nil; map returned from GetImageInfo:")
+		rest.PrintMap(info)
+		return outputStr, utils.ConstructServerError("Digest is nil") }
+	if ! isType { return outputStr, utils.ConstructServerError(
 		"checksum is not a string: it is a " + reflect.TypeOf(digest).String())
 	}
-	if digestString == "" { return outputStr, utils.ConstructError(
+	if digestString == "" { return outputStr, utils.ConstructServerError(
 		"No checksum field found for image")
 	}
 	
@@ -279,7 +287,7 @@ func ParseBuildCommandOutput(buildOutputStr string) (*DockerBuildOutput, error) 
 	for {
 		
 		if lineNo >= len(lines) {
-			return output, utils.ConstructError("Incomplete")
+			return output, utils.ConstructServerError("Incomplete")
 		}
 		
 		var line string = lines[lineNo]
@@ -317,7 +325,7 @@ func ParseBuildCommandOutput(buildOutputStr string) (*DockerBuildOutput, error) 
 			therest = strings.TrimPrefix(line, "Error")
 			if len(therest) < len(line) {
 				output.ErrorMessage = therest
-				return output, utils.ConstructError(output.ErrorMessage)
+				return output, utils.ConstructServerError(output.ErrorMessage)
 			}
 			
 			lineNo++
@@ -328,7 +336,7 @@ func ParseBuildCommandOutput(buildOutputStr string) (*DockerBuildOutput, error) 
 			
 			if step == nil {
 				output.ErrorMessage = "Internal error: should not happen"
-				return output, utils.ConstructError(output.ErrorMessage)
+				return output, utils.ConstructServerError(output.ErrorMessage)
 			}
 
 			var therest = strings.TrimPrefix(line, " ---> ")
@@ -350,11 +358,11 @@ func ParseBuildCommandOutput(buildOutputStr string) (*DockerBuildOutput, error) 
 			
 		default:
 			output.ErrorMessage = "Internal error: Unrecognized state"
-			return output, utils.ConstructError(output.ErrorMessage)
+			return output, utils.ConstructServerError(output.ErrorMessage)
 		}
 	}
 	output.ErrorMessage = "Did not find a final image Id"
-	return output, utils.ConstructError(output.ErrorMessage)
+	return output, utils.ConstructServerError(output.ErrorMessage)
 }
 
 /*******************************************************************************
@@ -409,13 +417,13 @@ func extractBuildOutputFromRESTResponse(restResponse string) (string, error) {
 		var isType bool
 		var msgMap map[string]interface{}
 		msgMap, isType = obj.(map[string]interface{})
-		if ! isType { return "", utils.ConstructError(
+		if ! isType { return "", utils.ConstructServerError(
 			"Unexpected format for json build output: " + string(lineBytes))
 		}
 		obj = msgMap["stream"]
 		var value string
 		value, isType = obj.(string)
-		if ! isType { return "", utils.ConstructError(
+		if ! isType { return "", utils.ConstructServerError(
 			"Unexpected type in json field value: " + reflect.TypeOf(obj).String())
 		}
 
@@ -431,12 +439,12 @@ func extractBuildOutputFromRESTResponse(restResponse string) (string, error) {
  */
 func (dockerSvcs *DockerServices) SaveImage(imageNamespace, imageName, tag string) (string, error) {
 	
-	if dockerSvcs.Registry == nil { return "", utils.ConstructError("No registry") }
+	if dockerSvcs.Registry == nil { return "", utils.ConstructServerError("No registry") }
 	
 	fmt.Println("Creating temp file to save the image to...")
 	var tempFile *os.File
 	var err error
-	tempFile, err = ioutil.TempFile("", "")
+	tempFile, err = utils.MakeTempFile("", "")
 	// TO DO: Is the above a security issue?
 	if err != nil { return "", err }
 	var tempFilePath = tempFile.Name()
@@ -462,17 +470,17 @@ func GetDigest(imageId string) ([]byte, error) {
 /*******************************************************************************
  * 
  */
-func (dockerSvcs *DockerServices) RemoveDockerImage(imageName, tag string) error {
+func (dockerSvcs *DockerServices) RemoveDockerImage(repoName, tag string) error {
 	
 	// Delete from registry.
 	var err error
 	if dockerSvcs.Registry != nil {
-		err = dockerSvcs.Registry.DeleteImage(imageName, tag)
+		err = dockerSvcs.Registry.DeleteImage(repoName, tag)
 	}
 	if err != nil { return err }
 	
 	// Delete local engine copy as well, if it exists.
-	err = dockerSvcs.Engine.DeleteImage(imageName)
+	err = dockerSvcs.Engine.DeleteImage(repoName, tag)
 	return err
 }
 
@@ -486,7 +494,7 @@ func NameConformsToDockerRules(name string) error {
 	var a = strings.TrimLeft(name, "abcdefghijklmnopqrstuvwxyz0123456789")
 	var b = strings.TrimRight(a, "abcdefghijklmnopqrstuvwxyz0123456789._-")
 	if len(b) == 0 { return nil }
-	return utils.ConstructError("Name '" + name + "' does not conform to docker name rules: " +
+	return utils.ConstructUserError("Name '" + name + "' does not conform to docker name rules: " +
 		"[a-z0-9]+(?:[._-][a-z0-9]+)*  Offending fragment: '" + b + "'")
 }
 
@@ -510,7 +518,7 @@ func localDockerImageNameIsValid(name string) bool {
 	
 	for _, part := range parts {
 		matched, err := regexp.MatchString("^[a-zA-Z0-9\\-_]*$", part)
-		if err != nil { panic(utils.ConstructError("Unexpected internal error")) }
+		if err != nil { panic(utils.ConstructServerError("Unexpected internal error")) }
 		if ! matched { return false }
 	}
 	
