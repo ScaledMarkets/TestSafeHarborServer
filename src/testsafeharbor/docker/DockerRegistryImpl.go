@@ -339,8 +339,6 @@ func (registry *DockerRegistryImpl) DeleteImage(repoName, tag string) error {
  */
 func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath string) error {
 	
-	fmt.Println("PushImage: A") // debug
-	
 	// Create a scratch directory.
 	var tempDirPath string
 	var err error
@@ -353,7 +351,6 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 	tarFile, err = os.Open(imageFilePath)
 	if err != nil { return err }
 	var tarReader *tar.Reader = tar.NewReader(tarFile)
-	fmt.Println("PushImage: B") // debug
 	
 	for { // each tar file entry
 		var header *tar.Header
@@ -384,7 +381,6 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 			outfile.Close()
 		}
 	}
-	fmt.Println("PushImage: C") // debug
 	
 	// Parse the 'repositories' file.
 	// We are expecting a format as,
@@ -399,7 +395,6 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 	if err != nil { return err }
 	var obj interface{}
 	err = json.Unmarshal(bytes, &obj)
-	fmt.Println("PushImage: D") // debug
 	if err != nil { return err }
 	var repositoriesMap map[string]interface{}
 	var isType bool
@@ -413,28 +408,23 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 	if len(repositoriesMap) > 1 { return utils.ConstructServerError(
 		"More than one entry found in repository map for image")
 	}
-	fmt.Println("PushImage: E") // debug
 	
 	//var oldRepoName string
 	//var oldTag string
 	var imageDigest string
 	for _, tagObj := range repositoriesMap {
-		fmt.Println("PushImage: E.1") // debug
 		//oldRepoName = rName
 		var tagMap map[string]interface{}
 		tagMap, isType = tagObj.(map[string]interface{})
-		fmt.Println("PushImage: E.2") // debug
 		if ! isType { return utils.ConstructServerError(
 			"repository json does not translate to a map[string]interface")
 		}
 		if len(tagMap) == 0 { return utils.ConstructServerError(
 			"No entries found in tag map for repo")
 		}
-		fmt.Println("PushImage: E.3") // debug
 		if len(tagMap) > 1 { return utils.ConstructServerError(
 			"More than one entry found in tag map for repo")
 		}
-		fmt.Println("PushImage: E.4") // debug
 		for _, tagDigestObj := range tagMap {
 			//oldTag = t
 			var tagDigest string
@@ -445,7 +435,6 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 			imageDigest = tagDigest
 		}
 	}
-	fmt.Println("PushImage: F") // debug
 	
 	// Obtain digest strings and layer paths.
 	var scratchDir *os.File
@@ -456,17 +445,13 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 	if err != nil { return err }
 
 	// Send each layer to the registry.
-	fmt.Println("PushImage: G") // debug
 	for _, layerDigest := range layerFilenames {  // layer files are named by their digest
-		fmt.Println("PushImage: G.1") // debug
 		var exists bool
 		exists, err = registry.LayerExistsInRepo(repoName, layerDigest)
 		if err != nil { return err }
-		fmt.Println("PushImage: G.2") // debug
 		if exists { continue }
 		
 		var layerFilePath = tempDirPath + "/" + layerDigest + "/layer.tar"
-		fmt.Println("PushImage: G.3") // debug
 		err = registry.PushLayer(layerFilePath, repoName, layerDigest)
 		fmt.Println("PushImage: G.4") // debug
 		if err != nil { return err }
@@ -474,12 +459,9 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 	}
 	
 	// Send a manifest to the registry.
-	fmt.Println("PushImage: Gg") // debug
 	err = registry.PushManifest(repoName, tag, imageDigest, layerFilenames)
-	fmt.Println("PushImage: H") // debug
 	if err != nil { return err }
 	
-	fmt.Println("PushImage: I") // debug
 	os.RemoveAll(tempDirPath)
 
 	return nil
@@ -490,13 +472,16 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
  */
 func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestString string) error {
 
+	fmt.Println("PushLayer: A") // debug
 	var uri = fmt.Sprintf("v2/%s/blobs/uploads/", repoName)
 	
 	var response *http.Response
 	var err error
 	response, err = registry.SendBasicFormPost(uri, []string{}, []string{})
+	fmt.Println("PushLayer: B") // debug
 	if err != nil { return err }
 	err = utils.GenerateError(response.StatusCode, response.Status + "; while starting layer upload")
+	fmt.Println("PushLayer: C") // debug
 	if err != nil { return err }
 	
 	// Get Location header.
@@ -504,6 +489,7 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 	if locations == nil { return utils.ConstructServerError("No Location header") }
 	if len(locations) != 1 { return utils.ConstructServerError("Unexpected Location header") }
 	var location string = locations[0]
+	fmt.Println("PushLayer: D") // debug
 	
 	var layerFile *os.File
 	layerFile, err = os.Open(layerFilePath)
@@ -519,10 +505,13 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 	}
 	
 	uri = fmt.Sprintf("v2/%s/blobs/uploads/%s?digest=%s", repoName, location, digestString)
+	fmt.Println("PushLayer: E") // debug
 	response, err = registry.SendBasicStreamPut(uri, headers, layerFile)
+	fmt.Println("PushLayer: F") // debug
 	if err != nil { return err }
 	err = utils.GenerateError(response.StatusCode, response.Status + "; while posting layer")
 	if err != nil { return err }
+	fmt.Println("PushLayer: G") // debug
 	
 	return nil
 }
