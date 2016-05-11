@@ -339,6 +339,8 @@ func (registry *DockerRegistryImpl) DeleteImage(repoName, tag string) error {
  */
 func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath string) error {
 	
+	fmt.Println("PushImage: A") // debug
+	
 	// Create a scratch directory.
 	var tempDirPath string
 	var err error
@@ -351,6 +353,7 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 	tarFile, err = os.Open(imageFilePath)
 	if err != nil { return err }
 	var tarReader *tar.Reader = tar.NewReader(tarFile)
+	fmt.Println("PushImage: B") // debug
 	
 	for { // each tar file entry
 		var header *tar.Header
@@ -381,6 +384,7 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 			outfile.Close()
 		}
 	}
+	fmt.Println("PushImage: C") // debug
 	
 	// Parse the 'repositories' file.
 	// We are expecting a format as,
@@ -395,6 +399,7 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 	if err != nil { return err }
 	var obj interface{}
 	err = json.Unmarshal(bytes, &obj)
+	fmt.Println("PushImage: D") // debug
 	if err != nil { return err }
 	var repositoriesMap map[string]interface{}
 	var isType bool
@@ -408,23 +413,28 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 	if len(repositoriesMap) > 1 { return utils.ConstructServerError(
 		"More than one entry found in repository map for image")
 	}
+	fmt.Println("PushImage: E") // debug
 	
 	//var oldRepoName string
 	//var oldTag string
 	var imageDigest string
 	for _, tagObj := range repositoriesMap {
+		fmt.Println("PushImage: E.1") // debug
 		//oldRepoName = rName
 		var tagMap map[string]interface{}
 		tagMap, isType = tagObj.(map[string]interface{})
+		fmt.Println("PushImage: E.2") // debug
 		if ! isType { return utils.ConstructServerError(
 			"repository json does not translate to a map[string]interface")
 		}
 		if len(tagMap) == 0 { return utils.ConstructServerError(
 			"No entries found in tag map for repo")
 		}
+		fmt.Println("PushImage: E.3") // debug
 		if len(tagMap) > 1 { return utils.ConstructServerError(
 			"More than one entry found in tag map for repo")
 		}
+		fmt.Println("PushImage: E.4") // debug
 		for _, tagDigestObj := range tagMap {
 			//oldTag = t
 			var tagDigest string
@@ -435,6 +445,7 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 			imageDigest = tagDigest
 		}
 	}
+	fmt.Println("PushImage: F") // debug
 	
 	// Obtain digest strings and layer paths.
 	var scratchDir *os.File
@@ -445,21 +456,27 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 	if err != nil { return err }
 
 	// Send each layer to the registry.
+	fmt.Println("PushImage: G") // debug
 	for _, layerDigest := range layerFilenames {  // layer files are named by their digest
+		fmt.Println("PushImage: G.1") // debug
 		var exists bool
 		exists, err = registry.LayerExistsInRepo(repoName, layerDigest)
 		if err != nil { return err }
+		fmt.Println("PushImage: G.2") // debug
 		if exists { continue }
 		
 		var layerFilePath = tempDirPath + "/" + layerDigest + "/layer.tar"
+		fmt.Println("PushImage: G.3") // debug
 		err = registry.PushLayer(layerFilePath, repoName, layerDigest)
 		if err != nil { return err }
 	}
 	
 	// Send a manifest to the registry.
 	err = registry.PushManifest(repoName, tag, imageDigest, layerFilenames)
+	fmt.Println("PushImage: H") // debug
 	if err != nil { return err }
 	
+	fmt.Println("PushImage: I") // debug
 	os.RemoveAll(tempDirPath)
 
 	return nil
