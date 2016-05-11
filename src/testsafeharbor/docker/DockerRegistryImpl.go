@@ -514,12 +514,12 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 	
 	// Send the request using the URL provided.
 	var url = location
-	//var url = strings.Replace(url, "//", fmt.Sprintf("//%s:%s@",
-	//	registry.GetUserId(), registry.GetPassword()), 1)
+	url = strings.Replace(url, "//", fmt.Sprintf("//%s:%s@",
+		registry.GetUserId(), registry.GetPassword()), 1)
 	
 	
 	var request *http.Request
-	request, err = http.NewRequest("PUT", location, layerFile)
+	request, err = http.NewRequest("PUT", url, layerFile)
 	if err != nil { return err }
 	
 	if headers != nil {
