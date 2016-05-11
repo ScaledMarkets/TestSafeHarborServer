@@ -266,9 +266,9 @@ func (restContext *RestContext) SendBasicStreamReq(method string, reqName string
 	
 	// Submit the request
 	var response *http.Response
-	fmt.Println("SendBasicStreamPost: url='" + url + "'")
+	fmt.Println("SendBasicStreamReq: url='" + url + "'")
 	response, err = restContext.httpClient.Do(request)
-	fmt.Println("SendBasicStreamPost: response Status='" + response.Status + "'")
+	fmt.Println("SendBasicStreamReq: response Status='" + response.Status + "'")
 	if err != nil { return nil, err }
 
 	return response, nil

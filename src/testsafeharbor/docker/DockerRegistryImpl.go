@@ -504,7 +504,8 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 		"Content-Type": "application/octet-stream",
 	}
 	
-	uri = fmt.Sprintf("v2/%s/blobs/uploads/%s?digest=%s", repoName, location, digestString)
+	location = strings.TrimPrefix(location, "/")
+	uri = fmt.Sprintf("%s", location)
 	fmt.Println("PushLayer: E") // debug
 	response, err = registry.SendBasicStreamPut(uri, headers, layerFile)
 	fmt.Println("PushLayer: F") // debug
