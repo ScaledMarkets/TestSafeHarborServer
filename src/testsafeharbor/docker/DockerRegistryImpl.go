@@ -506,7 +506,7 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 		"Content-Type": "application/octet-stream",
 	}
 	
-	location = strings.TrimPrefix(location, "/")
+	//location = strings.TrimPrefix(location, "/")
 	
 	
 	
