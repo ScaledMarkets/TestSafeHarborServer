@@ -75,6 +75,8 @@ func (restContext *RestContext) Print() {
 	fmt.Println(fmt.Sprintf("\tport: %d", restContext.port))
 }
 
+func (restContext *RestContext) GetHttpClient() *http.Client { return restContext.httpClient }
+
 func (restContext *RestContext) GetScheme() string { return restContext.scheme }
 
 func (restContext *RestContext) GetHostname() string { return restContext.hostname }
@@ -93,8 +95,6 @@ func (restContext *RestContext) SendBasicGet(reqName string) (*http.Response, er
 	
 	var urlstr string = restContext.getURL(true, reqName)
 	
-	fmt.Println("SendBasicGet: Sending URL: " + urlstr)  // debug
-	
 	var resp *http.Response
 	var err error
 	resp, err = restContext.httpClient.Get(urlstr)
@@ -105,12 +105,6 @@ func (restContext *RestContext) SendBasicGet(reqName string) (*http.Response, er
 	//request.SetBasicAuth(restContext.UserId, restContext.Password)
 	//resp, err = restContext.httpClient.Do(request)
 	if err != nil { return nil, err }
-	
-	// debug
-	if err != nil {
-		fmt.Println("SendBasicGet: received error: " + err.Error())
-	} 
-	// end debug
 	
 	if err != nil { return nil, err }
 	return resp, nil
@@ -184,15 +178,9 @@ func (restContext *RestContext) SendBasicFormPost(reqName string, names []string
 func (restContext *RestContext) SendBasicFormPostWithHeaders(reqName string, names []string,
 	values []string, headers map[string]string) (*http.Response, error) {
 	
-	fmt.Println("SendBasicFormPostWithHeaders: " + reqName)  // debug
-
-	
 	if len(names) != len(values) { return nil, errors.New(
 		"Number of names != number of values")
 	}
-	
-	fmt.Println("SendBasicFormPostWithHeaders: A")  // debug
-
 	
 	// Encode form name/values as an HTTP content stream.
 	var data url.Values = make(map[string][]string)
@@ -203,17 +191,14 @@ func (restContext *RestContext) SendBasicFormPostWithHeaders(reqName string, nam
 		data.Add(name, values[i])
 	}
 	var encodedData = data.Encode()
-	fmt.Println("encoded data: " + encodedData)  // debug
 
 	var content io.Reader = strings.NewReader(encodedData)
-	fmt.Println("SendBasicFormPostWithHeaders: B")  // debug
 
 	// Define the HTTP request object.
 	var urlstr string = restContext.getURL(true, reqName)
 	var request *http.Request
 	var err error
 	request, err = http.NewRequest("POST", urlstr, content)
-	fmt.Println("SendBasicFormPostWithHeaders: C; urlstr=" + urlstr)  // debug
 	if err != nil { return nil, err }
 	
 	// Set HTTP headers on the request.
@@ -225,13 +210,11 @@ func (restContext *RestContext) SendBasicFormPostWithHeaders(reqName string, nam
 	}
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	request.Close = false
-	fmt.Println("SendBasicFormPostWithHeaders: D")  // debug
 	
 	// Perform the request.
 	var response *http.Response
 	response, err = restContext.httpClient.Do(request)
 	if err != nil { return nil, err }
-	fmt.Println("SendBasicFormPostWithHeaders: Z")  // debug
 	return response, nil
 }
 
@@ -418,12 +401,12 @@ func ParseResponseBodyToMap(body io.ReadCloser) (map[string]interface{}, error) 
 	var err error
 	value, err = ioutil.ReadAll(body)
 	if err != nil { return nil, err }
-	//var value []byte = ReadResponseBody(body)
 	var obj map[string]interface{}
 	err = json.Unmarshal(value, &obj)
-	//var dec *json.Decoder = json.NewDecoder(body)
-	//err := dec.Decode(&obj)
 	if err != nil { return nil, err }
+	
+	fmt.Println("ParseResponseBodyToMap Map:" + string(value))
+	fmt.Println("endof map")
 	
 	return obj, nil
 }
@@ -515,8 +498,9 @@ func ParseResponseBodyToPayloadMaps(body io.ReadCloser) ([]map[string]interface{
 func PrintMap(m map[string]interface{}) {
 	fmt.Println("Map:")
 	for k, v := range m {
-		fmt.Println(k, v)
+		fmt.Println(fmt.Sprintf("\"%s\": %x", k, v))
 	}
+	fmt.Println("End of map.")
 }
 
 /*******************************************************************************
