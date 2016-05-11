@@ -85,7 +85,7 @@ func (restContext *RestContext) GetPort() int { return restContext.port }
 
 func (restContext *RestContext) GetUserId() string { return restContext.UserId }
 
-func (restContext *RestContext) getPassword() string { return restContext.Password }
+func (restContext *RestContext) GetPassword() string { return restContext.Password }
 
 /*******************************************************************************
  * Send a GET request to the SafeHarborServer, at the specified REST endpoint method

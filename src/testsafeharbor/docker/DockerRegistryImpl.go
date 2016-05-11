@@ -58,6 +58,8 @@ type DockerRegistryImpl struct {
 	rest.RestContext
 }
 
+var _ DockerRegistry = &DockerRegistryImpl{}
+
 /*******************************************************************************
  * 
  */
@@ -511,6 +513,10 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 	
 	
 	// Send the request using the URL provided.
+	var url = strings.Replace(location, "//", fmt.Sprintf("//%s:%s@",
+		registry.GetUserId(), registry.GetPassword()), 1)
+	
+	
 	var request *http.Request
 	request, err = http.NewRequest("PUT", location, layerFile)
 	if err != nil { return err }
@@ -522,7 +528,7 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 	}
 	
 	// Submit the request
-	fmt.Println("PushLayer: location='" + location + "'")
+	fmt.Println("PushLayer: url='" + url + "'")
 	response, err = registry.GetHttpClient().Do(request)
 	fmt.Println("PushLayer: response Status='" + response.Status + "'")
 

@@ -26,6 +26,8 @@ type DockerEngineImpl struct {
 	rest.RestContext
 }
 
+var _ DockerEngine = &DockerEngineImpl{}
+
 /*******************************************************************************
  * 
  */
