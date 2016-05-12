@@ -449,6 +449,9 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 
 	// Send each layer to the registry.
 	for _, layerDigest := range layerFilenames {  // layer files are named by their digest
+
+		if layerDigest == "repositories" { continue } // not a layer
+		
 		var exists bool
 		exists, err = registry.LayerExistsInRepo(repoName, layerDigest)
 		if err != nil { return err }
