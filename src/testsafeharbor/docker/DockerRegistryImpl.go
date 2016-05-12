@@ -47,6 +47,7 @@ import (
 	"net/http"
 	"archive/tar"
 	"encoding/json"
+	"encoding/base64"
 	"reflect"
 	"strings"
 	
@@ -500,24 +501,26 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 	fileInfo, err = layerFile.Stat()
 	if err != nil { return err }
 	
+	//location = strings.TrimPrefix(location, "/")
+	
+	// Send the request using the URL provided.
+	var url = location
+	
+	// Construct Authorization header.
+	// Ref: https://tools.ietf.org/html/rfc2617 section 2.
+	var encoded string = base64.StdEncoding.EncodeToString([]byte(
+		fmt.Sprintf("%s:%s", registry.GetUserId(), registry.GetPassword())))
+	var authHeaderValue = "Basic " + encoded
+	
+	// Assemble headers.
 	var fileSize int64 = fileInfo.Size()
 	var headers = map[string]string{
 		"Content-Length": fmt.Sprintf("%d", fileSize),
 		"Content-Type": "application/octet-stream",
+		"Authorization": authHeaderValue,
 	}
 	
-	//location = strings.TrimPrefix(location, "/")
-	
-	
-	
-	
-	
-	// Send the request using the URL provided.
-	var url = location
-	//url = strings.Replace(url, "//", fmt.Sprintf("//%s:%s@",
-	//	registry.GetUserId(), registry.GetPassword()), 1)
-	
-	
+	// Construct request.
 	var request *http.Request
 	request, err = http.NewRequest("PUT", url, layerFile)
 	if err != nil { return err }
@@ -532,17 +535,11 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 	fmt.Println("PushLayer: url='" + url + "'")
 	response, err = registry.GetHttpClient().Do(request)
 	fmt.Println("PushLayer: response Status='" + response.Status + "'")
-
-	
-	
 	
 	fmt.Println("PushLayer: E") // debug
 	//response, err = registry.SendBasicStreamPut(uri, headers, layerFile)
 	//fmt.Println("PushLayer: F") // debug
 	//if err != nil { return err }
-	
-	
-	
 	
 	err = utils.GenerateError(response.StatusCode, response.Status + "; while posting layer")
 	if (response.StatusCode >= 300) && (response.StatusCode < 400) {
