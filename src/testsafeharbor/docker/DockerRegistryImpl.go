@@ -496,9 +496,11 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 	
 	var layerFile *os.File
 	layerFile, err = os.Open(layerFilePath)
+	fmt.Println("PushLayer: D.1") // debug
 	if err != nil { return err }
 	var fileInfo os.FileInfo
 	fileInfo, err = layerFile.Stat()
+	fmt.Println("PushLayer: D.2") // debug
 	if err != nil { return err }
 	
 	//location = strings.TrimPrefix(location, "/")
@@ -511,6 +513,7 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 	var encoded string = base64.StdEncoding.EncodeToString(
 		[]byte(fmt.Sprintf("%s:%s", registry.GetUserId(), registry.GetPassword())))
 	var authHeaderValue = "Basic " + encoded
+	fmt.Println("PushLayer: D.3") // debug
 	
 	// Assemble headers.
 	var fileSize int64 = fileInfo.Size()
