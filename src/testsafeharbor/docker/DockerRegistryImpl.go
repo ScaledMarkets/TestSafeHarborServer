@@ -498,6 +498,7 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 	layerFile, err = os.Open(layerFilePath)
 	fmt.Println("PushLayer: D.1") // debug
 	if err != nil { return err }
+	fmt.Println("PushLayer: D.1.1") // debug
 	var fileInfo os.FileInfo
 	fileInfo, err = layerFile.Stat()
 	fmt.Println("PushLayer: D.2") // debug
