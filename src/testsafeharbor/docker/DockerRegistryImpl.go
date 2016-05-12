@@ -520,6 +520,14 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 		"Authorization": authHeaderValue,
 	}
 	
+	// debug
+	fmt.Println("Headers:")
+	for k, v := range headers {
+		fmt.Println(fmt.Sprintf("%s: %s", k, v))
+	}
+	fmt.Println("end of headers")
+	// end debug
+	
 	// Construct request.
 	var request *http.Request
 	request, err = http.NewRequest("PUT", url, layerFile)
