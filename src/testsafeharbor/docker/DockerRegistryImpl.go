@@ -504,7 +504,7 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 	//location = strings.TrimPrefix(location, "/")
 	
 	// Send the request using the URL provided.
-	var url = location + "&digest=" + digestString
+	var url = location
 	
 	// Construct Authorization header.
 	// Ref: https://tools.ietf.org/html/rfc2617 section 2.
@@ -516,6 +516,7 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 	var fileSize int64 = fileInfo.Size()
 	var headers = map[string]string{
 		"Content-Length": fmt.Sprintf("%d", fileSize),
+		"Content-Range": fmt.Sprintf("0-%d", (fileSize-1)),
 		"Content-Type": "application/octet-stream",
 		"Authorization": authHeaderValue,
 	}
@@ -532,7 +533,7 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 	
 	// Construct request.
 	var request *http.Request
-	request, err = http.NewRequest("PUT", url, layerFile)
+	request, err = http.NewRequest("PATCH", url, layerFile)
 	if err != nil { return err }
 	
 	if headers != nil {
@@ -569,6 +570,11 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 	fmt.Println("PushLayer: G") // debug
 	if err != nil { return err }
 	fmt.Println("PushLayer: H") // debug
+	
+	
+	
+	
+	
 	
 	return nil
 }
