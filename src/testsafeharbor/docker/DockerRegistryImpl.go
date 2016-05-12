@@ -508,8 +508,8 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 	
 	// Construct Authorization header.
 	// Ref: https://tools.ietf.org/html/rfc2617 section 2.
-	var encoded string = base64.StdEncoding.EncodeToString([]byte(
-		fmt.Sprintf("%s:%s", registry.GetUserId(), registry.GetPassword())))
+	var encoded string = base64.StdEncoding.EncodeToString(
+		[]byte(fmt.Sprintf("%s:%s", registry.GetUserId(), registry.GetPassword())))
 	var authHeaderValue = "Basic " + encoded
 	
 	// Assemble headers.
@@ -526,6 +526,8 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 		fmt.Println(fmt.Sprintf("%s: %s", k, v))
 	}
 	fmt.Println("end of headers")
+	fmt.Println("Aladdin:open sesame: " + base64.StdEncoding.EncodeToString(
+		[]byte("Aladdin:open sesame")))
 	// end debug
 	
 	// Construct request.
