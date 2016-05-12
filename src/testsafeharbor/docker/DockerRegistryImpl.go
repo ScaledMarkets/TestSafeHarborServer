@@ -504,7 +504,7 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 	//location = strings.TrimPrefix(location, "/")
 	
 	// Send the request using the URL provided.
-	var url = location
+	var url = location + "?digest=" + digestString
 	
 	// Construct Authorization header.
 	// Ref: https://tools.ietf.org/html/rfc2617 section 2.
