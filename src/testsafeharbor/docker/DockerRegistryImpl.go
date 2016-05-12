@@ -552,9 +552,19 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 	//if err != nil { return err }
 	
 	err = utils.GenerateError(response.StatusCode, response.Status + "; while posting layer")
-	if (response.StatusCode >= 300) && (response.StatusCode < 400) {
-		var newURL string = response.Header["Location"][0]
-		fmt.Println("Redirection to " + newURL)
+	
+	if err != nil {
+		var bytes []byte
+		var err2 error
+		bytes, err2 = ioutil.ReadAll(response.Body)
+		if err2 != nil { fmt.Println(err2.Error()); return err }
+		fmt.Println(string(bytes))
+	}
+	
+	
+	if (response.StatusCode >= 300) && (response.StatusCode < 400) { // debug
+		var newURL string = response.Header["Location"][0] // debug
+		fmt.Println("Redirection to " + newURL) // debug
 	}
 	fmt.Println("PushLayer: G") // debug
 	if err != nil { return err }
