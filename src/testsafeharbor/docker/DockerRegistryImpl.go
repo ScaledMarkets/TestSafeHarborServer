@@ -513,6 +513,7 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 	if locations == nil { return utils.ConstructServerError("No Location header") }
 	if len(locations) != 1 { return utils.ConstructServerError("Unexpected Location header") }
 	var location string = locations[0]
+	fmt.Println("Location header: " + location)  // debug
 	
 	var layerFile *os.File
 	layerFile, err = os.Open(layerFilePath)
@@ -562,7 +563,7 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 	locations = response.Header["Location"]
 	location = ""
 	if len(locations) > 0 { location = locations[0] }
-	fmt.Println("Location header: " + location)
+	fmt.Println("Location header 2: " + location)  // debug
 	//response, err = registry.SendBasicStreamPut(uri, headers, layerFile)
 	//fmt.Println("PushLayer: F") // debug
 	//if err != nil { return err }
