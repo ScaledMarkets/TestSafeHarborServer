@@ -514,6 +514,17 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 	if len(locations) != 1 { return utils.ConstructServerError("Unexpected Location header") }
 	var location string = locations[0]
 	fmt.Println("Location header: " + location)  // debug
+	var uuid string = response.Header.Get("Docker-Upload-UUID")
+	fmt.Println("UUID: " + uuid)  // debug
+	
+	// See docker/distribution/push_v2.go, Upload method.
+	// ********See docker/distribution/registry/client/blog_writer.go.
+	// See distribution/registry/client/repository.go, Create method.
+	//u, err := bs.ub.BuildBlobUploadURL(bs.name, values...)
+	//....location, err := sanitizeLocation(resp.Header.Get("Location"), u)
+	//req.URL.RawQuery = values.Encode()
+	
+	
 	
 	var layerFile *os.File
 	layerFile, err = os.Open(layerFilePath)
@@ -597,6 +608,7 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 //	url = parts[0] + "digest=" + digestString
 
 	url = location + "&digest=" + digestString
+	//uri = fmt.Sprintf("/v2/%s/blob/uploads/%s?digest=%s", repoName, uuid, digestString)
 	fmt.Println("PUT url: " + url)  // debug
 	
 	request, err = http.NewRequest("PUT", url, layerFile)
@@ -638,6 +650,22 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 	
 	return nil
 }
+
+/*
+func sanitizeLocation(location, base string) (string, error) {
+	baseURL, err := url.Parse(base)
+	if err != nil {
+		return "", err
+	}
+
+	locationURL, err := url.Parse(location)
+	if err != nil {
+		return "", err
+	}
+
+	return baseURL.ResolveReference(locationURL).String(), nil
+}
+*/
 
 /*******************************************************************************
  * Push a layer, using a single POST.
