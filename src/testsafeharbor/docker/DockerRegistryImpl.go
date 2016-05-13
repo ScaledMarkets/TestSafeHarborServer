@@ -597,7 +597,7 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 	url = parts[0] + "digest=" + digestString
 	fmt.Println("PUT url: " + url)  // debug
 	
-	request, err = http.NewRequest("PUT", url, nil)
+	request, err = http.NewRequest("PUT", url, layerFile)
 	fmt.Println("PushLayer: I") // debug
 	if err != nil { return err }
 
