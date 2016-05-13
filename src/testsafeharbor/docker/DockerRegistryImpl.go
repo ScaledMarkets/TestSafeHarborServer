@@ -48,6 +48,7 @@ import (
 	"archive/tar"
 	"encoding/json"
 	"encoding/base64"
+	"encoding/hex"
 	"crypto/sha256"
 	"reflect"
 	"strings"
@@ -501,7 +502,7 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName string) er
 	var err error
 	digest, err = utils.ComputeFileSignature(sha256.New(), layerFilePath)
 	if err != nil { return err }
-	var digestString = string(digest)
+	var digestString = hex.EncodeToString(digest)
 	fmt.Println("Computed digest: " + digestString)
 	
 	// Check if layer already exists in repo.
