@@ -603,7 +603,7 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 
 	headers = map[string]string{
 		"Content-Length": fmt.Sprintf("%d", fileSize),
-		//"Content-Range": fmt.Sprintf("0-%d", (fileSize-1)),
+		"Content-Range": fmt.Sprintf("0-%d", (fileSize-1)),
 		"Content-Type": "application/octet-stream",
 		"Authorization": authHeaderValue,
 		//"Content-Length": "0",
