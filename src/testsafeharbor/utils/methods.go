@@ -299,7 +299,6 @@ func (testContext *TestContext) TryAuthenticate(userId string, pswd string,
 func (testContext *TestContext) TryDisableUser(userObjId string) bool {
 	testContext.StartTest("TryDisableUser")
 	
-	fmt.Println("TryDisableUser: A")  // debug
 	var resp *http.Response
 	var err error
 	resp, err = testContext.SendSessionPost(testContext.SessionId,
@@ -307,23 +306,17 @@ func (testContext *TestContext) TryDisableUser(userObjId string) bool {
 		[]string{"Log", "UserObjId"},
 		[]string{testContext.TestDemarcation(), userObjId})
 	
-	fmt.Println("TryDisableUser: B")  // debug
 	defer resp.Body.Close()
 
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
-	fmt.Println("TryDisableUser: C")  // debug
 	
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
-	fmt.Println("TryDisableUser: D")  // debug
 	if err != nil { fmt.Println(err.Error()); return false }
 	rest.PrintMap(responseMap)
-	fmt.Println("TryDisableUser: E")  // debug
 	var retStatus float64
 	retStatus, _ = responseMap["HTTPStatusCode"].(float64)
-	fmt.Println("TryDisableUser: F")  // debug
 	if retStatus != 200 { return false }
-	fmt.Println("TryDisableUser: G")  // debug
 	testContext.PassTestIfNoFailures()
 	fmt.Println(fmt.Sprintf("TryDisableUser returning %x", testContext.CurrentTestPassed))
 	return testContext.CurrentTestPassed

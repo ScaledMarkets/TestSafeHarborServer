@@ -338,7 +338,9 @@ func (registry *DockerRegistryImpl) DeleteImage(repoName, tag string) error {
 }
 
 /*******************************************************************************
- * 
+ * Registry 2 image push protocol:
+ *	1. Upload each layer. (See PushLayer.)
+ * 	2. Upload image manifest.
  */
 func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath string) error {
 	
@@ -385,8 +387,7 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 		}
 	}
 	
-	// Parse the 'repositories' file.
-	// We are expecting a format as,
+	// Parse the 'repositories' file. We are expecting a format as,
 	//	{"<repo-name>":{"<tag>":"<digest>"}}
 	// E.g.,
 	//	{"realm4/repo1":{"myimage2":"d2cf21381ce5a17243ec11062b5..."}}
@@ -446,7 +447,7 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 	var layerFilenames []string
 	layerFilenames, err = scratchDir.Readdirnames(0)
 	if err != nil { return err }
-
+	
 	// Send each layer to the registry.
 	for _, layerDigest := range layerFilenames {  // layer files are named by their digest
 
@@ -465,8 +466,10 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 	}
 	
 	// Send a manifest to the registry.
+	fmt.Println("PushImage: Sending manifest...") // debug
 	err = registry.PushManifest(repoName, tag, imageDigest, layerFilenames)
 	if err != nil { return err }
+	fmt.Println("PushImage: manifest sent.") // debug
 	
 	os.RemoveAll(tempDirPath)
 
@@ -475,19 +478,34 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 
 /*******************************************************************************
  * Push a layer, using the "chunked" upload registry protocol.
+ * Registry 2 layer push protocol:
+ *	1. Obtain Location URL:
+ 		HTTP Method: POST
+ 		URI: /v2/<name>/blobs/uploads/
+ 		Response includes a Location header. We call this value 'location'.
+ *	2. Send layer:
+		HTTP Method: PATCH
+		URL: <location from #1>
+		Headers:
+			Content-Length: <size of chunk>
+			Content-Range: 0-<file size -1>
+			Content-Type: application/octet-stream
+			Authorization: Basic <base 64 encoded userid:password, per RFC 2617>
+		Body: <layer binary data>
+ *	3. Signal completion of layer upload:
+		HTTP Method: PUT
+		URL: <location from #1>?digest=<layer digest>
+		Headers: ....
  */
 func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestString string) error {
 
-	fmt.Println("PushLayer: A") // debug
 	var uri = fmt.Sprintf("v2/%s/blobs/uploads/", repoName)
 	
 	var response *http.Response
 	var err error
 	response, err = registry.SendBasicFormPost(uri, []string{}, []string{})
-	fmt.Println("PushLayer: B") // debug
 	if err != nil { return err }
 	err = utils.GenerateError(response.StatusCode, response.Status + "; while starting layer upload")
-	fmt.Println("PushLayer: C") // debug
 	if err != nil { return err }
 	
 	// Get Location header.
@@ -495,16 +513,13 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 	if locations == nil { return utils.ConstructServerError("No Location header") }
 	if len(locations) != 1 { return utils.ConstructServerError("Unexpected Location header") }
 	var location string = locations[0]
-	fmt.Println("PushLayer: D") // debug
 	
 	var layerFile *os.File
 	layerFile, err = os.Open(layerFilePath)
 	fmt.Println("PushLayer: D.1; layerFilePath=" + layerFilePath) // debug
 	if err != nil { return err }
-	fmt.Println("PushLayer: D.1.1") // debug
 	var fileInfo os.FileInfo
 	fileInfo, err = layerFile.Stat()
-	fmt.Println("PushLayer: D.2") // debug
 	if err != nil { return err }
 	
 	//location = strings.TrimPrefix(location, "/")
@@ -517,7 +532,6 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 	var encoded string = base64.StdEncoding.EncodeToString(
 		[]byte(fmt.Sprintf("%s:%s", registry.GetUserId(), registry.GetPassword())))
 	var authHeaderValue = "Basic " + encoded
-	fmt.Println("PushLayer: D.3") // debug
 	
 	// Assemble headers.
 	var fileSize int64 = fileInfo.Size()
@@ -527,16 +541,6 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 		"Content-Type": "application/octet-stream",
 		"Authorization": authHeaderValue,
 	}
-	
-	// debug
-	fmt.Println("Headers:")
-	for k, v := range headers {
-		fmt.Println(fmt.Sprintf("%s: %s", k, v))
-	}
-	fmt.Println("end of headers")
-	fmt.Println("Aladdin:open sesame: " + base64.StdEncoding.EncodeToString(
-		[]byte("Aladdin:open sesame")))
-	// end debug
 	
 	// Construct request.
 	var request *http.Request
@@ -549,12 +553,16 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 		}
 	}
 	
-	// Submit the request
+	// Submit the request (sends the layer).
 	fmt.Println("PushLayer: url='" + url + "'")
 	response, err = registry.GetHttpClient().Do(request)
 	fmt.Println("PushLayer: response Status='" + response.Status + "'")
 	
-	fmt.Println("PushLayer: E") // debug
+	fmt.Println("PushLayer: E (after layer upload request)") // debug
+	locations = response.Header["Location"]
+	location = ""
+	if len(locations) > 0 { location = locations[0] }
+	fmt.Println("Location header: " + location)
 	//response, err = registry.SendBasicStreamPut(uri, headers, layerFile)
 	//fmt.Println("PushLayer: F") // debug
 	//if err != nil { return err }
@@ -578,8 +586,8 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 	if err != nil { return err }
 	fmt.Println("PushLayer: H") // debug
 	
-	
-	
+	// Signal completion of upload.
+	// .... not clear how to construct the URL.
 	
 	
 	
