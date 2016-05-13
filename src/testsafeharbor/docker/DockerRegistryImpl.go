@@ -607,7 +607,20 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 	}
 	
 	response, err = registry.GetHttpClient().Do(request)
+	if err != nil { return err }
 	fmt.Println("PushLayer: J; response status: " + response.Status) // debug
+	err = utils.GenerateError(response.StatusCode, response.Status)
+
+	if err != nil {
+		var bytes []byte
+		var err2 error
+		bytes, err2 = ioutil.ReadAll(response.Body)
+		if err2 != nil { fmt.Println(err2.Error()); return err }
+		fmt.Println(string(bytes))
+	}
+		
+		
+		
 	if err != nil { return err }
 	fmt.Println("PushLayer: K") // debug
 	
