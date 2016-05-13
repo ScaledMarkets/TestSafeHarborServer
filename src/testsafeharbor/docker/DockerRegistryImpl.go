@@ -548,10 +548,8 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 	request, err = http.NewRequest("PATCH", url, layerFile)
 	if err != nil { return err }
 	
-	if headers != nil {
-		for name, value := range headers {
-			request.Header.Set(name, value)
-		}
+	for name, value := range headers {
+		request.Header.Set(name, value)
 	}
 	
 	// Submit the request (sends the layer).
@@ -589,8 +587,29 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 	
 	// Signal completion of upload.
 	// .... not clear how to construct the URL.
+	var parts []string = strings.SplitAfter(location, "?")
+	if len(parts) != 2 { return utils.ConstructServerError("Malformed location: " + location) }
+	url = parts[0] + "?digest=" + digestString
 	
+	request, err = http.NewRequest("PUT", url, layerFile)
+	fmt.Println("PushLayer: I") // debug
+	if err != nil { return err }
+
+	headers = map[string]string{
+		"Content-Length": "0",
+		"Content-Range": fmt.Sprintf("%d-%d", (fileSize-1), (fileSize-1)),
+		"Content-Type": "application/octet-stream",
+		"Authorization": authHeaderValue,
+	}
 	
+	for name, value := range headers {
+		request.Header.Set(name, value)
+	}
+	
+	response, err = registry.GetHttpClient().Do(request)
+	fmt.Println("PushLayer: J") // debug
+	if err != nil { return err }
+	fmt.Println("PushLayer: K") // debug
 	
 	return nil
 }
