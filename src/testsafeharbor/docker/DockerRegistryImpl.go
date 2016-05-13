@@ -614,7 +614,7 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName string) er
 //	if len(parts) != 2 { return utils.ConstructServerError("Malformed location: " + location) }
 //	url = parts[0] + "digest=" + digestString
 
-	url = location + "&digest=" + digestString
+	url = location + "&digest=sha256:" + digestString
 	//uri = fmt.Sprintf("/v2/%s/blob/uploads/%s?digest=%s", repoName, uuid, digestString)
 	fmt.Println("PUT url: " + url)  // debug
 	
