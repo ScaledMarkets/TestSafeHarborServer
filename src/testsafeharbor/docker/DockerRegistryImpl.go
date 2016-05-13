@@ -460,7 +460,7 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 		
 		var layerFilePath = tempDirPath + "/" + layerDigest + "/layer.tar"
 		err = registry.PushLayer(layerFilePath, repoName, layerDigest)
-		fmt.Println("PushImage: G.4") // debug
+		fmt.Println("PushImage: G.4, layerDigest=" + layerDigest) // debug
 		if err != nil { return err }
 		fmt.Println("PushImage: G.5") // debug
 	}
