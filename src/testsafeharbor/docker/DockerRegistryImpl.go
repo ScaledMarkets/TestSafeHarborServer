@@ -595,6 +595,7 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 	var parts []string = strings.SplitAfter(location, "?")
 	if len(parts) != 2 { return utils.ConstructServerError("Malformed location: " + location) }
 	url = parts[0] + "?digest=" + digestString
+	fmt.Println("PUT url: " + url)  // debug
 	
 	request, err = http.NewRequest("PUT", url, nil)
 	fmt.Println("PushLayer: I") // debug
