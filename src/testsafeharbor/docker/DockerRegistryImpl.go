@@ -592,9 +592,11 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 	
 	// Signal completion of upload.
 	// .... not clear how to construct the URL.
-	var parts []string = strings.SplitAfter(location, "?")
-	if len(parts) != 2 { return utils.ConstructServerError("Malformed location: " + location) }
-	url = parts[0] + "digest=" + digestString
+//	var parts []string = strings.SplitAfter(location, "?")
+//	if len(parts) != 2 { return utils.ConstructServerError("Malformed location: " + location) }
+//	url = parts[0] + "digest=" + digestString
+
+	url = location + "&digest=" + digestString
 	fmt.Println("PUT url: " + url)  // debug
 	
 	request, err = http.NewRequest("PUT", url, nil)
