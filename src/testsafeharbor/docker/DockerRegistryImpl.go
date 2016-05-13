@@ -552,7 +552,7 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 		request.Header.Set(name, value)
 	}
 	
-	/*
+	
 	// Submit the request (sends the layer).
 	fmt.Println("PushLayer: url='" + url + "'")
 	response, err = registry.GetHttpClient().Do(request)
@@ -585,7 +585,7 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 	fmt.Println("PushLayer: G") // debug
 	if err != nil { return err }
 	fmt.Println("PushLayer: H") // debug
-	*/
+	
 	
 	
 	
@@ -597,19 +597,19 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 	url = parts[0] + "digest=" + digestString
 	fmt.Println("PUT url: " + url)  // debug
 	
-	request, err = http.NewRequest("PUT", url, layerFile)
+	request, err = http.NewRequest("PUT", url, nil)
 	fmt.Println("PushLayer: I") // debug
 	if err != nil { return err }
 
 	headers = map[string]string{
-		"Content-Length": fmt.Sprintf("%d", fileSize),
-		"Content-Range": fmt.Sprintf("0-%d", (fileSize-1)),
-		"Content-Type": "application/octet-stream",
-		"Authorization": authHeaderValue,
-		//"Content-Length": "0",
-		//"Content-Range": fmt.Sprintf("%d-%d", (fileSize-1), (fileSize-1)),
+		//"Content-Length": fmt.Sprintf("%d", fileSize),
+		//"Content-Range": fmt.Sprintf("0-%d", (fileSize-1)),
 		//"Content-Type": "application/octet-stream",
 		//"Authorization": authHeaderValue,
+		"Content-Length": "0",
+		"Content-Range": fmt.Sprintf("%d-%d", (fileSize), (fileSize-1)),
+		"Content-Type": "application/octet-stream",
+		"Authorization": authHeaderValue,
 	}
 	
 	for name, value := range headers {
