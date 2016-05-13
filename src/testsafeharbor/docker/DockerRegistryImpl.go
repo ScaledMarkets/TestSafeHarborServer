@@ -48,6 +48,7 @@ import (
 	"archive/tar"
 	"encoding/json"
 	"encoding/base64"
+	"crypto/sha256"
 	"reflect"
 	"strings"
 	
@@ -453,13 +454,9 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 
 		if layerDigest == "repositories" { continue } // not a layer
 		
-		var exists bool
-		exists, err = registry.LayerExistsInRepo(repoName, layerDigest)
-		if err != nil { return err }
-		if exists { continue }
-		
 		var layerFilePath = tempDirPath + "/" + layerDigest + "/layer.tar"
-		err = registry.PushLayer(layerFilePath, repoName, layerDigest)
+		err = registry.PushLayer(layerFilePath, repoName)
+		//err = registry.PushLayer(layerFilePath, repoName, layerDigest)
 		fmt.Println("PushImage: G.4, layerDigest=" + layerDigest) // debug
 		if err != nil { return err }
 		fmt.Println("PushImage: G.5") // debug
@@ -497,18 +494,29 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 		URL: <location from #1>?digest=<layer digest>
 		Headers: ....
  */
-func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestString string) error {
+func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName string) error {
 
-	var uri = fmt.Sprintf("v2/%s/blobs/uploads/", repoName)
-	
-	var response *http.Response
+	// Compute layer signature.
+	var digest []byte
 	var err error
+	digest, err = utils.ComputeFileSignature(sha256.New(), layerFilePath)
+	if err != nil { return err }
+	var digestString = string(digest)
+	fmt.Println("Computed digest: " + digestString)
+	
+	// Check if layer already exists in repo.
+	var exists bool
+	exists, err = registry.LayerExistsInRepo(repoName, digestString)
+	if err != nil { return err }
+	if exists { return nil }
+	
+	// Get Location header.
+	var response *http.Response
+	var uri = fmt.Sprintf("v2/%s/blobs/uploads/", repoName)
 	response, err = registry.SendBasicFormPost(uri, []string{}, []string{})
 	if err != nil { return err }
 	err = utils.GenerateError(response.StatusCode, response.Status + "; while starting layer upload")
 	if err != nil { return err }
-	
-	// Get Location header.
 	var locations []string = response.Header["Location"]
 	if locations == nil { return utils.ConstructServerError("No Location header") }
 	if len(locations) != 1 { return utils.ConstructServerError("Unexpected Location header") }
@@ -523,8 +531,6 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName, digestStr
 	//u, err := bs.ub.BuildBlobUploadURL(bs.name, values...)
 	//....location, err := sanitizeLocation(resp.Header.Get("Location"), u)
 	//req.URL.RawQuery = values.Encode()
-	
-	
 	
 	var layerFile *os.File
 	layerFile, err = os.Open(layerFilePath)

@@ -1549,7 +1549,7 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 			// Check image signature.
 			var image2Signature []byte
 			var err error
-			image2Signature, err = utils.ComputeFileSignature("BooPloinkImage")
+			image2Signature, err = utils.ComputeSHA512FileSignature("BooPloinkImage")
 			if testContext.AssertErrIsNil(err, "Unable to compute signature") {
 				var obj interface{} = responseMap["Signature"]
 				var sig, isType = obj.([]interface{})
