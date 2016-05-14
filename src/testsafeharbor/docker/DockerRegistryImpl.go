@@ -703,6 +703,10 @@ func (registry *DockerRegistryImpl) PushManifest(repoName, tag, imageDigestStrin
 	
 	manifest = manifest + "]}"
 	
+	fmt.Println("manifest:")
+	fmt.Println(manifest)
+	fmt.Println()
+	
 	var stringReader *strings.Reader = strings.NewReader(manifest)
 	
 	var encoded string = base64.StdEncoding.EncodeToString(
