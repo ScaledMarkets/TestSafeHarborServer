@@ -727,6 +727,13 @@ func (registry *DockerRegistryImpl) PushManifest(repoName, tag, imageDigestStrin
 	//response, err = registry.SendBasicStreamPut(uri, headers, stringReader)
 	if err != nil { return err }
 	err = utils.GenerateError(response.StatusCode, response.Status + "; while putting manifest")
+	if err != nil {
+		var bytes []byte
+		var err2 error
+		bytes, err2 = ioutil.ReadAll(response.Body)
+		if err2 != nil { fmt.Println(err2.Error()); return err }
+		fmt.Println(string(bytes))
+	}
 	if err != nil { return err }
 	
 	return nil
