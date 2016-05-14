@@ -678,43 +678,16 @@ func sanitizeLocation(location, base string) (string, error) {
 */
 
 /*******************************************************************************
- * Push a layer, using a single POST.
- * (The Registry does not yet support this.)
- */
-func (registry *DockerRegistryImpl) PushLayerSinglePost(layerFilePath, repoName, digestString string) error {
-	
-	var layerFile *os.File
-	var err error
-	layerFile, err = os.Open(layerFilePath)
-	if err != nil { return err }
-	var fileInfo os.FileInfo
-	fileInfo, err = layerFile.Stat()
-	if err != nil { return err }
-	
-	var fileSize int64 = fileInfo.Size()
-	var response *http.Response
-	var headers = map[string]string{
-		"Content-Length": fmt.Sprintf("%d", fileSize),
-		"Content-Type": "application/octet-stream",
-	}
-	
-	var uri = fmt.Sprintf("v2/%s/blobs/uploads/?digest=%s", repoName, digestString)
-	
-	response, err = registry.SendBasicStreamPost(uri, headers, layerFile)
-	if err != nil { return err }
-	err = utils.GenerateError(response.StatusCode, response.Status + "; while posting layer")
-	if err != nil { return err }
-	
-	return nil
-}
-
-/*******************************************************************************
  * 
  */
 func (registry *DockerRegistryImpl) PushManifest(repoName, tag, imageDigestString string,
 	layerDigestStrings []string) error {
 	
 	var uri = fmt.Sprintf("v2/%s/manifests/%s", repoName + ":" + tag, imageDigestString)
+	
+	var url = registry.GetScheme() + "://" + registry.GetHostname()
+	if registry.GetPort() != 0 { url = url + fmt.Sprintf(":%d", registry.GetPort()) }
+	url = url + "/" + uri
 	
 	var manifest = fmt.Sprintf("{" +
 		"\"name\": \"%s\", \"tag\": \"%s\", \"fsLayers\": [", repoName, tag)
@@ -728,14 +701,30 @@ func (registry *DockerRegistryImpl) PushManifest(repoName, tag, imageDigestStrin
 	
 	var stringReader *strings.Reader = strings.NewReader(manifest)
 	
+	var encoded string = base64.StdEncoding.EncodeToString(
+		[]byte(fmt.Sprintf("%s:%s", registry.GetUserId(), registry.GetPassword())))
+	var authHeaderValue = "Basic " + encoded
+
 	var headers = map[string]string{
 		"Content-Length": fmt.Sprintf("%d", len(manifest)),
 		"Content-Type": "application/json",
+		"Authorization": authHeaderValue,
+	}
+	
+	var request *http.Request
+	var err error
+	request, err = http.NewRequest("PUT", url, stringReader)
+	if err != nil { return err }
+	
+	for name, value := range headers {
+		request.Header.Set(name, value)
 	}
 	
 	var response *http.Response
-	var err error
-	response, err = registry.SendBasicStreamPut(uri, headers, stringReader)
+	response, err = registry.GetHttpClient().Do(request)
+	if err != nil { return err }
+	
+	//response, err = registry.SendBasicStreamPut(uri, headers, stringReader)
 	if err != nil { return err }
 	err = utils.GenerateError(response.StatusCode, response.Status + "; while putting manifest")
 	if err != nil { return err }
