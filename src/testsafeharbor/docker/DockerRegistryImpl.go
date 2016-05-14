@@ -451,21 +451,24 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 	if err != nil { return err }
 	
 	// Send each layer to the registry.
-	for _, layerDigest := range layerFilenames {  // layer files are named by their digest
+	var layerDigests = make([]string, 0)
+	for _, layerFilename := range layerFilenames {  // layer files are named by their digest
 
-		if layerDigest == "repositories" { continue } // not a layer
+		if layerFilename == "repositories" { continue } // not a layer
 		
-		var layerFilePath = tempDirPath + "/" + layerDigest + "/layer.tar"
-		err = registry.PushLayer(layerFilePath, repoName)
+		var layerFilePath = tempDirPath + "/" + layerFilename + "/layer.tar"
+		var layerDigest string
+		layerDigest, err = registry.PushLayer(layerFilePath, repoName)
 		//err = registry.PushLayer(layerFilePath, repoName, layerDigest)
 		fmt.Println("PushImage: G.4, layerDigest=" + layerDigest) // debug
 		if err != nil { return err }
+		layerDigests = append(layerDigests, layerDigest)
 		fmt.Println("PushImage: G.5") // debug
 	}
 	
 	// Send a manifest to the registry.
 	fmt.Println("PushImage: Sending manifest...") // debug
-	err = registry.PushManifest(repoName, tag, imageDigest, layerFilenames)
+	err = registry.PushManifest(repoName, tag, imageDigest, layerDigests)
 	if err != nil { return err }
 	fmt.Println("PushImage: manifest sent.") // debug
 	
@@ -495,32 +498,32 @@ func (registry *DockerRegistryImpl) PushImage(repoName, tag, imageFilePath strin
 		URL: <location from #1>?digest=<layer digest>
 		Headers: ....
  */
-func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName string) error {
+func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName string) (string, error) {
 
 	// Compute layer signature.
 	var digest []byte
 	var err error
 	digest, err = utils.ComputeFileSignature(sha256.New(), layerFilePath)
-	if err != nil { return err }
+	if err != nil { return "", err }
 	var digestString = hex.EncodeToString(digest)
 	fmt.Println("Computed digest: " + digestString)
 	
 	// Check if layer already exists in repo.
 	var exists bool
 	exists, err = registry.LayerExistsInRepo(repoName, digestString)
-	if err != nil { return err }
-	if exists { return nil }
+	if err != nil { return digestString, err }
+	if exists { return digestString, nil }
 	
 	// Get Location header.
 	var response *http.Response
 	var uri = fmt.Sprintf("v2/%s/blobs/uploads/", repoName)
 	response, err = registry.SendBasicFormPost(uri, []string{}, []string{})
-	if err != nil { return err }
+	if err != nil { return digestString, err }
 	err = utils.GenerateError(response.StatusCode, response.Status + "; while starting layer upload")
-	if err != nil { return err }
+	if err != nil { return digestString, err }
 	var locations []string = response.Header["Location"]
-	if locations == nil { return utils.ConstructServerError("No Location header") }
-	if len(locations) != 1 { return utils.ConstructServerError("Unexpected Location header") }
+	if locations == nil { return digestString, utils.ConstructServerError("No Location header") }
+	if len(locations) != 1 { return digestString, utils.ConstructServerError("Unexpected Location header") }
 	var location string = locations[0]
 	fmt.Println("Location header: " + location)  // debug
 	var uuid string = response.Header.Get("Docker-Upload-UUID")
@@ -536,10 +539,10 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName string) er
 	var layerFile *os.File
 	layerFile, err = os.Open(layerFilePath)
 	fmt.Println("PushLayer: D.1; layerFilePath=" + layerFilePath) // debug
-	if err != nil { return err }
+	if err != nil { return digestString, err }
 	var fileInfo os.FileInfo
 	fileInfo, err = layerFile.Stat()
-	if err != nil { return err }
+	if err != nil { return digestString, err }
 	
 	//location = strings.TrimPrefix(location, "/")
 	
@@ -564,7 +567,7 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName string) er
 	// Construct request.
 	var request *http.Request
 	request, err = http.NewRequest("PATCH", url, layerFile)
-	if err != nil { return err }
+	if err != nil { return digestString, err }
 	
 	for name, value := range headers {
 		request.Header.Set(name, value)
@@ -620,7 +623,7 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName string) er
 	
 	request, err = http.NewRequest("PUT", url, layerFile)
 	fmt.Println("PushLayer: I") // debug
-	if err != nil { return err }
+	if err != nil { return digestString, err }
 
 	headers = map[string]string{
 		"Content-Length": fmt.Sprintf("%d", fileSize),
@@ -638,7 +641,7 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName string) er
 	}
 	
 	response, err = registry.GetHttpClient().Do(request)
-	if err != nil { return err }
+	if err != nil { return digestString, err }
 	fmt.Println("PushLayer: J; response status: " + response.Status) // debug
 	err = utils.GenerateError(response.StatusCode, response.Status)
 
@@ -646,16 +649,16 @@ func (registry *DockerRegistryImpl) PushLayer(layerFilePath, repoName string) er
 		var bytes []byte
 		var err2 error
 		bytes, err2 = ioutil.ReadAll(response.Body)
-		if err2 != nil { fmt.Println(err2.Error()); return err }
+		if err2 != nil { fmt.Println(err2.Error()); return digestString, err }
 		fmt.Println(string(bytes))
 	}
 		
 		
 		
-	if err != nil { return err }
+	if err != nil { return digestString, err }
 	fmt.Println("PushLayer: K") // debug
 	
-	return nil
+	return digestString, nil
 }
 
 /*
