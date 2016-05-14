@@ -698,7 +698,7 @@ func (registry *DockerRegistryImpl) PushManifest(repoName, tag, imageDigestStrin
 	
 	for i, layerDigestString := range layerDigestStrings {
 		if i > 0 { manifest = manifest + ",\n" }
-		manifest = manifest + fmt.Sprintf("{\"blobSum\": \"sha256:%s\"}", layerDigestString)
+		manifest = manifest + fmt.Sprintf("{\"blobSum\": \"%s\"}", layerDigestString)
 	}
 	
 	manifest = manifest + "]}"
