@@ -731,7 +731,11 @@ func (registry *DockerRegistryImpl) PushManifest(repoName, tag, imageDigestStrin
 		var bytes []byte
 		var err2 error
 		bytes, err2 = ioutil.ReadAll(response.Body)
-		if err2 != nil { fmt.Println("While readoing response body, " + err2.Error()); } else { fmt.Println(string(bytes)) }
+		if err2 != nil { fmt.Println("While readoing response body, " + err2.Error()); } else {
+			fmt.Println("Response body:")
+			fmt.Println(string(bytes))
+			fmt.Println("\nEnd of Response body.")
+		}
 	}
 	if err != nil { return err }
 	
