@@ -696,6 +696,12 @@ func (registry *DockerRegistryImpl) PushManifest(repoName, tag, imageDigestStrin
 	var manifest = fmt.Sprintf("{" +
 		"\"name\": \"%s\", \"tag\": \"%s\", \"fsLayers\": [", repoName, tag)
 	
+	// Info on JSON Web Tokens:
+	// https://jwt.io/introduction/
+	// https://tools.ietf.org/html/rfc7515
+	
+	
+	
 	for i, layerDigestString := range layerDigestStrings {
 		if i > 0 { manifest = manifest + ",\n" }
 		manifest = manifest + fmt.Sprintf("{\"blobSum\": \"sha256:%s\"}", layerDigestString)
@@ -715,7 +721,7 @@ func (registry *DockerRegistryImpl) PushManifest(repoName, tag, imageDigestStrin
 
 	var headers = map[string]string{
 		"Content-Length": fmt.Sprintf("%d", len(manifest)),
-		"Content-Type": "application/json",
+		"Content-Type": "application/json; charset=utf-8",
 		"Authorization": authHeaderValue,
 	}
 	
