@@ -683,7 +683,7 @@ func sanitizeLocation(location, base string) (string, error) {
 func (registry *DockerRegistryImpl) PushManifest(repoName, tag, imageDigestString string,
 	layerDigestStrings []string) error {
 	
-	var uri = fmt.Sprintf("v2/%s/manifests/%s", repoName + ":" + tag, imageDigestString)
+	var uri = fmt.Sprintf("v2/%s/manifests/sha256:%s", repoName + ":" + tag, imageDigestString)
 	
 	var url = registry.GetScheme() + "://" + registry.GetHostname()
 	if registry.GetPort() != 0 { url = url + fmt.Sprintf(":%d", registry.GetPort()) }
