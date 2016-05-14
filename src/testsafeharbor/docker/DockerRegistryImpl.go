@@ -689,6 +689,8 @@ func (registry *DockerRegistryImpl) PushManifest(repoName, tag, imageDigestStrin
 	if registry.GetPort() != 0 { url = url + fmt.Sprintf(":%d", registry.GetPort()) }
 	url = url + "/" + uri
 	
+	fmt.Println("url=" + url)
+	
 	var manifest = fmt.Sprintf("{" +
 		"\"name\": \"%s\", \"tag\": \"%s\", \"fsLayers\": [", repoName, tag)
 	
