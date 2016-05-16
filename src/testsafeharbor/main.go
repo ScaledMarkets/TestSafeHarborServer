@@ -74,6 +74,8 @@ func main() {
 	// Parse the 'tests' option to determine which tests to run.
 	var testsToRun []string = strings.Split(*tests, ",")
 	var testFunctionsToRun = make([]func(*utils.TestContext), 0)
+	fmt.Println("tests: " + *tests)
+	fmt.Println("Test suites that will be run:")
 	for _, testName := range testsToRun {
 		var testFunction = testSuite[testName]
 		if testFunction == nil {
@@ -81,6 +83,7 @@ func main() {
 			os.Exit(0)
 		}
 		testFunctionsToRun = append(testFunctionsToRun, testFunction)
+		fmt.Println("\t" + testName)
 	}
 	
 	// Prepare to run tests.

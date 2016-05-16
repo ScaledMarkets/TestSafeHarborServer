@@ -1,6 +1,6 @@
 # Makefile for building the tests for Safe Harbor Server.
 
-SHHOST=52.38.141.111
+SHHOST=52.39.197.94
 SHPORT=6000
 
 PRODUCTNAME=Safe Harbor Server
@@ -92,13 +92,20 @@ getatomicapp:
 	sudo docker login -u=$(registryUser) -p=$(registryPassword) -e="" $(RegistryHost):$(RegistryPort)
 	sudo docker push $(RegistryHost):$(RegistryPort)/atomicapp
 
+# Run all SafeHarborServer tests.
 runall:
-	bin/testsafeharbor \
-		h=$(SAFEHARBOR_HOST) \
-		p=$(SAFEHARBOR_PORT) \
-		-redispswd=ahdal8934k383898&*kdu&^ \
-		-tests="DockSvcs,Engine,Registry,json,goredis,redis,CreateRealmsAndUsers,CreateResources,CreateGroups,GetMy,AccessControl,UpdateAndReplace,Delete,DockerFunctions"
+	bin/testsafeharbor -stop \
+		-h=$(SHHOST) -p=$(SHPORT) \
+		-tests="CreateRealmsAndUsers,CreateResources,CreateGroups,GetMy,AccessControl,UpdateAndReplace,Delete"
+#		-tests="CreateRealmsAndUsers,CreateResources,CreateGroups,GetMy,AccessControl,UpdateAndReplace,Delete,DockerFunctions"
 
+# Run redis tests.
+runredis:
+	bin/testsafeharbor \
+		-redispswd="ahdal8934k383898&*kdu&^"
+		-tests="redis"
+
+# Unit test the DockerRegistry module.
 regtests:
 	export RegistryHost=$(RegistryHost)
 	export RegistryPort=$(RegistryPort)
@@ -111,6 +118,7 @@ regtests:
 	bin/testsafeharbor -stop \
 		-tests="Registry"
 
+# Unit test the DockerEngine module.
 engtests:
 	export RegistryHost=$(RegistryHost)
 	export RegistryPort=$(RegistryPort)
@@ -119,32 +127,39 @@ engtests:
 	bin/testsafeharbor -stop \
 		-tests="Engine"
 
+# Unit test the DockerServices module.
 svctests:
 	bin/testsafeharbor -stop \
 		-h=$(SHHOST) -p=$(SHPORT) \
 		-tests="DockSvcs"
 
+# Run SafeHarborServer docker related tests.
 dockertests:
 	bin/testsafeharbor -stop \
 		-h=$(SHHOST) -p=$(SHPORT) \
 		-tests="DockerFunctions"
 
+# Run a SafeHarborServer "smoke" test suite.
 basic:
 	bin/testsafeharbor -stop \
 		-h=$(SHHOST) -p=$(SHPORT) \
 		-tests="CreateRealmsAndUsers"
 
+# Run the SafeHarborServer "Delete" test suite.
 delete:
 	bin/testsafeharbor -stop \
 		-h=$(SHHOST) -p=$(SHPORT) \
 		-tests="Delete"
 
+# List the images in the registry.
 listimages:
 	curl http://$(registryUser):$(registryPassword)@$(RegistryHost):$(RegistryPort)/v2/_catalog
 
+# List the registry tags for the test image ("repo").
 checkimage:
 	curl http://$(registryUser):$(registryPassword)@$(RegistryHost):$(RegistryPort)/v2/$(TestImageRepoName)/tags/list
 
+# Remove compilation artifacts.
 clean:
 	rm -r -f $(build_dir)/$(PACKAGENAME)
 
