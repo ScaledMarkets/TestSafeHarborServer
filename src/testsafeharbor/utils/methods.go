@@ -510,15 +510,23 @@ func (testContext *TestContext) TryGetDockerfiles(repoId string) []string {
  * The result is the object id and docker id of the image that was built.
  */
 func (testContext *TestContext) TryExecDockerfile(repoId string, dockerfileId string,
-	imageName string) (string, string) {
+	imageName string, paramNames, paramValues []string) (string, string) {
 	testContext.StartTest("TryExecDockerfile")
+	
+	if len(paramNames) != len(paramValues) { panic(
+		"Invalid test: len param names != len param values") }
+	var paramStr string = ""
+	for i, paramName := range paramNames {
+		if i > 0 { paramStr = paramStr + ";" }
+		paramStr = paramStr + fmt.Sprintf("%s:%s", paramName, paramValues[i])
+	}
 	
 	var resp *http.Response
 	var err error
 	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"execDockerfile",
-		[]string{"Log", "RepoId", "DockerfileId", "ImageName"},
-		[]string{testContext.TestDemarcation(), repoId, dockerfileId, imageName})
+		[]string{"Log", "RepoId", "DockerfileId", "ImageName", "Params"},
+		[]string{testContext.TestDemarcation(), repoId, dockerfileId, imageName, paramStr})
 	
 	defer resp.Body.Close()
 
@@ -547,16 +555,25 @@ func (testContext *TestContext) TryExecDockerfile(repoId string, dockerfileId st
  * The result is the object id and docker id of the image that was built.
  */
 func (testContext *TestContext) TryAddAndExecDockerfile(repoId string, desc string,
-	imageName string, dockerfilePath string) (string, string) {
+	imageName string, dockerfilePath string, paramNames, paramValues []string) (string, string) {
 	testContext.StartTest("TryAddAndExecDockerfile")
+	
+	if len(paramNames) != len(paramValues) { panic(
+		"Invalid test: len param names != len param values") }
+	var paramStr string = ""
+	for i, paramName := range paramNames {
+		if i > 0 { paramStr = paramStr + ";" }
+		paramStr = paramStr + fmt.Sprintf("%s:%s", paramName, paramValues[i])
+	}
 	
 	var resp *http.Response
 	var err error
 	//resp, err = testContext.SendSessionFilePost(testContext.SessionId,
 	resp, err = testContext.SendSessionFilePost("",
 		"addAndExecDockerfile",
-		[]string{"Log", "RepoId", "Description", "ImageName", "SessionId"},
-		[]string{testContext.TestDemarcation(), repoId, desc, imageName, testContext.SessionId},
+		[]string{"Log", "RepoId", "Description", "ImageName", "SessionId", "Params"},
+		[]string{testContext.TestDemarcation(), repoId, desc, imageName,
+			testContext.SessionId, paramStr},
 		dockerfilePath)
 
 	defer resp.Body.Close()
@@ -1063,7 +1080,7 @@ func (testContext *TestContext) TryCreateRealmAnon(realmName, orgFullName, admin
 
 	defer resp1.Body.Close()
 
-	testContext.Verify200Response(resp1)
+	if ! testContext.Verify200Response(resp1) { testContext.FailTest() }
 	
 	var response1Map map[string]interface{}
 	response1Map, err = rest.ParseResponseBodyToMap(resp1.Body)
@@ -1099,7 +1116,7 @@ func (testContext *TestContext) TryCreateRealmAnon(realmName, orgFullName, admin
 	testContext.AssertThat(ret2SessionId != "", "Session id is empty string")
 	testContext.AssertThat(ret2UserId == adminUserId, "Returned user id '" + ret2UserId + "' does not match user id")
 
-	testContext.Verify200Response(resp2)	
+	if ! testContext.Verify200Response(resp2) { testContext.FailTest() }
 	testContext.SessionId = ret2SessionId
 	
 	// Now retrieve the description of the realm that we just created.
@@ -1118,7 +1135,7 @@ func (testContext *TestContext) TryCreateRealmAnon(realmName, orgFullName, admin
 
 	defer resp3.Body.Close()
 
-	testContext.Verify200Response(resp3)
+	if ! testContext.Verify200Response(resp3) { testContext.FailTest() }
 	
 	var response3Map map[string]interface{}
 	response3Map, err = rest.ParseResponseBodyToMap(resp3.Body)

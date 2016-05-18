@@ -167,6 +167,16 @@ func (testContext *TestContext) AssertThat(condition bool, msg string) bool {
 /*******************************************************************************
  * 
  */
+func (testContext *TestContext) AssertOKResponse(resp *http.Response) {
+	if ! testContext.Verify200Response(resp) {
+		testContext.FailTest()
+		fmt.Println("Response status: " + resp.Status)
+	}
+}
+
+/*******************************************************************************
+ * 
+ */
 func (testContext *TestContext) AssertErrIsNil(err error, msg string) bool {
 	if err == nil { return true }
 	fmt.Println("Original error message:", err.Error())

@@ -1376,7 +1376,7 @@ func TestDelete(testContext *utils.TestContext) {
 		defer os.Remove(dockerfile1Path)
 
 		image1ObjId, _ = testContext.TryAddAndExecDockerfile(realmXRepo1Id,
-			"My first image", "myimage1", dockerfile1Path)
+			"My first image", "myimage1", dockerfile1Path, []string{}, []string{})
 	}
 	
 	// -------------------------------------
@@ -1475,9 +1475,12 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 	var realmXAdminObjId string
 	var realmXRepo1Id string
 	var dockerImage1ObjId string
+	var dockerImage2ObjId string
 	var scanConfigId string
 	var dockerfilePath string
+	var dockerfileParamPath string
 	var dockerfileId string
+	var dockerfileParamId string
 	var dockerfile2Path string
 	//var dockerfile2Id string
 	var flagImagePath = "Seal.png"
@@ -1503,6 +1506,12 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 		defer os.Remove(dockerfilePath)
 		dockerfileId = testContext.TryAddDockerfile(realmXRepo1Id, dockerfilePath, "A fine dockerfile")
 		
+		dockerfileParamPath, err = utils.CreateTempFile(tempdir, "Dockerfile",
+			"FROM centos\nARG param1\nRUN echo moo > $param1")
+		if err != nil { testContext.AbortAllTests(err.Error()) }
+		defer os.Remove(dockerfileParamPath)
+		dockerfileParamId = testContext.TryAddDockerfile(realmXRepo1Id, dockerfileParamPath, "A parameterized dockerfile")
+		
 		dockerfile2Path, err = utils.CreateTempFile(tempdir, "Dockerfile2", "FROM centos\nRUN echo boo > ploink")
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfile2Path)
@@ -1518,7 +1527,28 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 	
 	// Test ability to build image from a dockerfile.
 	{
-		dockerImage1ObjId, _ = testContext.TryExecDockerfile(realmXRepo1Id, dockerfileId, "myimage")
+		dockerImage1ObjId, _ = testContext.TryExecDockerfile(realmXRepo1Id,
+			dockerfileId, "myimage", []string{}, []string{})
+	}
+	
+	// Test ability to build image from a parameterized dockerfile.
+	{
+		dockerImage2ObjId, _ = testContext.TryExecDockerfile(realmXRepo1Id,
+			dockerfileParamId, "myParamimage", []string{ "param1" }, []string{ "abc" })
+		if testContext.AssertThat(dockerImage2ObjId != "", "No image obj Id returned") {
+			var imageInfo map[string]interface{}
+			imageInfo = testContext.TryGetDockerImageDesc(dockerImage2ObjId, true)
+			if testContext.AssertThat(imageInfo != nil, "No image info") {
+				var obj = imageInfo["Name"]
+				var name string
+				var isType bool
+				name, isType = obj.(string)
+				if testContext.AssertThat(isType, "No string value for Name in image desc") {
+					testContext.AssertThat(name == "myParamimage",
+						"Image has wrong name: " + name)
+				}
+			}
+		}
 	}
 	
 	// Test ability to list the images in a repo.
@@ -1542,7 +1572,7 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 	{
 		var dockerImage2ObjId string
 		dockerImage2ObjId, _ = testContext.TryAddAndExecDockerfile(realmXRepo1Id,
-			"My second image", "myimage2", dockerfile2Path)
+			"My second image", "myimage2", dockerfile2Path, []string{}, []string{})
 		fmt.Println(dockerImage2ObjId)
 	
 		/*
