@@ -521,6 +521,9 @@ func (testContext *TestContext) TryExecDockerfile(repoId string, dockerfileId st
 		paramStr = paramStr + fmt.Sprintf("%s:%s", paramName, paramValues[i])
 	}
 	
+	fmt.Println("paramStr=" + paramStr)
+	fmt.Println(fmt.Sprintf("len(paramNames)=%d, len(paramValues)=%d", len(paramNames), len(paramValues)))
+	
 	var resp *http.Response
 	var err error
 	resp, err = testContext.SendSessionPost(testContext.SessionId,

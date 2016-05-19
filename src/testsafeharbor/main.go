@@ -1482,6 +1482,7 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 	var dockerfileId string
 	var dockerfileParamId string
 	var dockerfile2Path string
+	var dockerfile3Path string
 	//var dockerfile2Id string
 	var flagImagePath = "Seal.png"
 	var tempdir string
@@ -1506,7 +1507,7 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 		defer os.Remove(dockerfilePath)
 		dockerfileId = testContext.TryAddDockerfile(realmXRepo1Id, dockerfilePath, "A fine dockerfile")
 		
-		dockerfileParamPath, err = utils.CreateTempFile(tempdir, "Dockerfile",
+		dockerfileParamPath, err = utils.CreateTempFile(tempdir, "DockerfileP",
 			"FROM centos\nARG param1\nRUN echo moo > $param1")
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfileParamPath)
@@ -1517,6 +1518,10 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 		defer os.Remove(dockerfile2Path)
 		testContext.TryAddDockerfile(realmXRepo1Id, dockerfile2Path, "A finer dockerfile")
 		
+		dockerfile3Path, err = utils.CreateTempFile(tempdir, "Dockerfile3", "FROM centos\nRUN echo split > splat")
+		if err != nil { testContext.AbortAllTests(err.Error()) }
+		defer os.Remove(dockerfile3Path)
+
 		err = utils.DownloadFile(SealURL, flagImagePath, true)
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 	}
@@ -1529,12 +1534,13 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 	{
 		dockerImage1ObjId, _ = testContext.TryExecDockerfile(realmXRepo1Id,
 			dockerfileId, "myimage", []string{}, []string{})
+		testContext.AssertThat(dockerImage1ObjId != "", "No image obj Id returned")
 	}
 	
 	// Test ability to build image from a parameterized dockerfile.
 	{
 		dockerImage2ObjId, _ = testContext.TryExecDockerfile(realmXRepo1Id,
-			dockerfileParamId, "myParamimage", []string{ "param1" }, []string{ "abc" })
+			dockerfileParamId, "myparamimage", []string{ "param1" }, []string{ "abc" })
 		if testContext.AssertThat(dockerImage2ObjId != "", "No image obj Id returned") {
 			var imageInfo map[string]interface{}
 			imageInfo = testContext.TryGetDockerImageDesc(dockerImage2ObjId, true)
@@ -1544,7 +1550,7 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 				var isType bool
 				name, isType = obj.(string)
 				if testContext.AssertThat(isType, "No string value for Name in image desc") {
-					testContext.AssertThat(name == "myParamimage",
+					testContext.AssertThat(name == "myparamimage",
 						"Image has wrong name: " + name)
 				}
 			}
@@ -1554,13 +1560,13 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 	// Test ability to list the images in a repo.
 	{
 		var imageNames []string = testContext.TryGetDockerImages(realmXRepo1Id)
-		testContext.AssertThat(len(imageNames) == 1, "Wrong number of images")
+		testContext.AssertThat(len(imageNames) == 2, "Wrong number of images")
 	}
 	
 	// Test abilty to get the current logged in user's docker images.
 	{
 		var myDockerImageIds []string = testContext.TryGetMyDockerImages()
-		testContext.AssertThat(len(myDockerImageIds) == 1, "Wrong number of docker images")
+		testContext.AssertThat(len(myDockerImageIds) == 2, "Wrong number of docker images")
 	}
 	
 	// Test ability to scan a docker image.
@@ -1570,14 +1576,14 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 	
 	// Test ability to upload and exec a dockerfile in one command.
 	{
-		var dockerImage2ObjId string
-		dockerImage2ObjId, _ = testContext.TryAddAndExecDockerfile(realmXRepo1Id,
-			"My second image", "myimage2", dockerfile2Path, []string{}, []string{})
-		fmt.Println(dockerImage2ObjId)
+		var dockerImage3ObjId string
+		dockerImage3ObjId, _ = testContext.TryAddAndExecDockerfile(realmXRepo1Id,
+			"My third image", "myimage3", dockerfile3Path, []string{}, []string{})
+		fmt.Println(dockerImage3ObjId)
 	
 		/*
-		testContext.TryDownloadImage(dockerImage2ObjId, "BooPloinkImage")
-		var responseMap = testContext.TryGetDockerImageDesc(dockerImage2ObjId, true)
+		testContext.TryDownloadImage(dockerImage3ObjId, "BooPloinkImage")
+		var responseMap = testContext.TryGetDockerImageDesc(dockerImage3ObjId, true)
 		if testContext.CurrentTestPassed {
 			// Check image signature.
 			var image2Signature []byte
@@ -1602,20 +1608,21 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 	// Test ability of a user to to retrieve the user's docker images.
 	{
 		var imageIds []string = testContext.TryGetMyDockerImages()
-		testContext.AssertThat(len(imageIds) == 2, "Wrong number of docker images")
+		testContext.AssertThat(len(imageIds) == 3, "Wrong number of docker images")
 	}
 
 	// Test ability to get the events for a specified user, including docker build events.
 	{
 		var eventIds []string = testContext.TryGetUserEvents(realmXAdminObjId)
-		testContext.AssertThat(len(eventIds) == 3, "Wrong number of user events")
+		testContext.AssertThat(len(eventIds) == 4, "Wrong number of user events")
 			// Should be one scan event and two dockerfile exec events.
 	}
 	
 	// Test ability to get the events for a specified docker image.
 	{
 		var eventIds []string = testContext.TryGetDockerImageEvents(dockerImage1ObjId)
-		testContext.AssertThat(len(eventIds) == 1, "Wrong number of image events")
+		testContext.AssertThat(len(eventIds) == 1,
+			fmt.Sprintf("Wrong number of image events: it is %d", len(eventIds)))
 			// Should be one scan event.
 	}
 	
