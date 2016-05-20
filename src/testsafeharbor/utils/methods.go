@@ -1968,7 +1968,8 @@ func (testContext *TestContext) TryGetDockerImageStatus(imageObjId string) map[s
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryGetDockerfileEvents(dockerfileId string) []string {
+func (testContext *TestContext) TryGetDockerfileEvents(dockerfileId string,
+	dockerfilePath string) ([]string, map[string]string) {
 
 	testContext.StartTest("TryGetDockerfileEvents")
 	
@@ -1992,9 +1993,43 @@ func (testContext *TestContext) TryGetDockerfileEvents(dockerfileId string) []st
 		var retId string = responseMap["Id"].(string)
 		testContext.AssertThat(retId != "", "Returned Id is empty string")
 		result = append(result, retId)
+		
+		var objAr = responseMap["ParameterValues"].([]interface)
+		
+		var paramValues map[string]string
+		for i, obj := range objAr {  // { "Name": ..., "StringValue": ... }
+			var objMap map[string]interface{}
+			var isType bool
+			objMap, isType = obj.(map[string]interface{})
+			if testContext.AssertThat(isType,
+					fmt.Sprintf("Value for param %d is not a string", i)) {
+				var obj2 interface{}
+				var name
+				obj2 = objMap["Name"]
+				name, isType = obj2.(string)
+				if testContext.AssertThat(isType, "type of Name is not a string") {
+					var value
+					obj2 = objMap["StringValue"]
+					value, isType = obj2.(string)
+					if testContext.AssertThat(isType, "type of StringValue is not a string") {
+						paramValues[name] = value
+					}
+				}
+			}
+		}
+		
+		var dockerfileContent = responseMap["DockerfileContent"].(string)
+		var file *io.File
+		file, err = os.Open(dockerfilePath)
+		testContext.AssertThat(err == nil, err.Error())
+		var actualDockerfileBytes []byte
+		actualDockerfileBytes, err = ioutil.ReadAll(file)
+		testContext.AssertThat(err == nil, err.Error())
+		testContext.AssertThat(dockerfileContent == string(actualDockerfileBytes),
+			"Dockerfile content from server does not matach actual dockerfile content")
 	}
 	testContext.PassTestIfNoFailures()
-	return result
+	return result, paramValues
 }
 
 /*******************************************************************************

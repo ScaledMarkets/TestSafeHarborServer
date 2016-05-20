@@ -1640,9 +1640,15 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 	
 	// Test ability to get the events for a specified docker file.
 	{
-		var eventIds []string = testContext.TryGetDockerfileEvents(dockerfileId)
+		var eventIds []string
+		var paramMap map[string]string
+		eventIds, paramMap = testContext.TryGetDockerfileEvents(dockerfileId)
 		testContext.AssertThat(len(eventIds) == 1, "Wrong number of image events")
-			// Should be one dockerfile exec event.
+		testContext.AssertThat(len(paramMap) == 0, "Wrong number of build parameters")
+		
+		eventIds, paramMap = testContext.TryGetDockerfileEvents(dockerfileParamId)
+		testContext.AssertThat(len(eventIds) == 1, "Wrong number of image events")
+		testContext.AssertThat(len(paramMap) == 1, "Wrong number of build parameters")
 	}
 	
 	// Test abilit to delete a specified docker image.
