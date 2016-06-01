@@ -1470,7 +1470,45 @@ func TestDelete(testContext *utils.TestContext) {
 			}
 			
 			// Verify that events had their image version references nullified.
-			....testContext.TryGetDockerImageEvents(imageId)
+			var eventIds []string = testContext.TryGetUserEvents(imageId)
+			var imageVersionEmptyCount = 0
+			var imageVersion1ObjIdCount = 0
+			var imageVersion2ObjIdCount = 0
+			if ! testContext.TestHasFailed() {
+				testContext.AssertThat(len(eventIds) == 2, "Wrong number of events")
+				for _, eventId := range eventIds {
+					
+					var eventMap map[string]interface{}
+					eventMap = testContext.TryGetEventDesc(eventId)
+					if testContext.AssertThat(eventMap != nil, "Nil event map") {
+						var obj = eventMap["ObjectType"]
+						var isType bool
+						var objectType string
+						objectType, isType = obj.(string)
+						if testContext.AssertThat(isType, "ObjectType is not a string") {
+							if objectType == "DockerfileExecEventDesc" {
+								obj = eventMap["ImageVersionObjId"]
+								var versionObjId string
+								versionObjId, isType = obj.(string)
+								if testContext.AssertThat(isType, "ImageVersionObjId is not a string") {
+									if versionObjId == imageVersion1ObjId) {
+										imageVersion1ObjIdCount++
+									}
+									if versionObjId == imageVersion2ObjId) {
+										imageVersion2ObjIdCount++
+									}
+									if versionObjId == "") {
+										imageVersionEmptyCount++
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+			testContext.AssertThat(imageVersionEmptyCount == 1, "Empty count is not 1")
+			testContext.AssertThat(imageVersion1ObjIdCount == 0, "Version 1 count is not 0")
+			testContext.AssertThat(imageVersion2ObjIdCount == 1, "Version 2 count is not 1")
 		}
 	}
 		
