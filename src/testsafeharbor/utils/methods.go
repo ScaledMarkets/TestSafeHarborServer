@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"io"
+	"io/ioutil"
 	"reflect"
 	
 	"testsafeharbor/rest"
@@ -507,7 +508,8 @@ func (testContext *TestContext) TryGetDockerfiles(repoId string) []string {
 /*******************************************************************************
  * Verify that we can build an image, from a dockerfile that has already been
  * uploaded into a repo and for which we have the SafeHarborServer image id.
- * The result is the object id and docker id of the image that was built.
+ * The result is the object Id of image, and the event pertaining to the creation
+ * of the image.
  */
 func (testContext *TestContext) TryExecDockerfile(repoId string, dockerfileId string,
 	imageName string, paramNames, paramValues []string) (string, string) {
@@ -542,20 +544,24 @@ func (testContext *TestContext) TryExecDockerfile(repoId string, dockerfileId st
 	var retObjId string = responseMap["ObjId"].(string)
 	var retDockerImageTag string = responseMap["Name"].(string)
 	var retDesc string = responseMap["Description"].(string)
+	var retImageCreationEventId = responseMap["ImageCreationEventId"].(string)
 	var retCreationDate = responseMap["CreationDate"].(string)
 	rest.PrintMap(responseMap)
 	
 	testContext.AssertThat(retObjId != "", "ObjId is empty")
 	testContext.AssertThat(retDockerImageTag != "", "Name is empty")
 	testContext.AssertThat(retDesc != "", "Description is empty")
+	testContext.AssertThat(retImageCreationEventId != "", "ImageCreationEventId is empty")
 	testContext.AssertThat(retCreationDate != "", "CreationDate is empty")
+	
 	testContext.PassTestIfNoFailures()
 	return retObjId, retDockerImageTag
 }
 
 /*******************************************************************************
  * Verify that we can upload a dockerfile and build an image from it.
- * The result is the object id and docker id of the image that was built.
+ * The result is the object id and docker id of the image version that was built,
+ * and the object Id of the event pertaining to the creation of the image.
  */
 func (testContext *TestContext) TryAddAndExecDockerfile(repoId string, desc string,
 	imageName string, dockerfilePath string, paramNames, paramValues []string) (string, string) {
@@ -583,6 +589,7 @@ func (testContext *TestContext) TryAddAndExecDockerfile(repoId string, desc stri
 
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
+	// Response returns a DockerImageVersionDesc.
 	// Get the repo Id that is returned in the response body.
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
@@ -590,15 +597,39 @@ func (testContext *TestContext) TryAddAndExecDockerfile(repoId string, desc stri
 	var retObjId string = responseMap["ObjId"].(string)
 	var retDockerImageTag string = responseMap["Name"].(string)
 	var retDesc string = responseMap["Description"].(string)
+	var retImageCreationEventId = responseMap["ImageCreationEventId"].(string)
 	var retCreationDate = responseMap["CreationDate"].(string)
 	rest.PrintMap(responseMap)
 	
 	testContext.AssertThat(retObjId != "", "ObjId is empty")
 	testContext.AssertThat(retDockerImageTag != "", "Name is empty")
 	testContext.AssertThat(retDesc != "", "Description is empty")
+	testContext.AssertThat(retImageCreationEventId != "", "ImageCreationEventId is empty")
 	testContext.AssertThat(retCreationDate != "", "CreationDate is empty")
+	
 	testContext.PassTestIfNoFailures()
-	return retObjId, retDockerImageTag
+	return retObjId, retDockerImageTag, retImageCreationEventId
+}
+
+/*******************************************************************************
+ * 
+ */
+func (testContext *TestContext) TryGetEventDesc(eventId string) map[string]interface {
+	testContext.StartTest("TryGetEventDesc")
+	
+	var resp *http.Response
+	var err error
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
+		"getEventDesc",
+		[]string{"Log", "EventId"},
+		[]string{testContext.TestDemarcation(), eventId})
+	
+	defer resp.Body.Close()
+
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	
+	var responseMap map[string]interface{}
+	return responseMap
 }
 
 /*******************************************************************************
@@ -1368,7 +1399,7 @@ func (testContext *TestContext) TryDefineScanConfig(name, desc, repoId, provider
 		testContext.AssertThat(isType && (retFlagId != ""), "Returned FlagId is empty")
 	}
 	// ParamValueDescs []*ParameterValueDesc
-	var retParamValueDescs []interface{} = responseMap["ParameterValueDescs"].([]interface{})
+	var retParamValueDescs []interface{} = responseMap["ScanParameterValueDescs"].([]interface{})
 	for _, desc := range retParamValueDescs {
 		descMap, isType := desc.(map[string]interface{})
 		if ! testContext.AssertThat(isType, "param value is not a map[string]interface{}") { continue }
@@ -1899,7 +1930,7 @@ func (testContext *TestContext) TryGetUserEvents(userId string) []string {
 }
 
 /*******************************************************************************
- * 
+ * Returns array of event Ids.
  */
 func (testContext *TestContext) TryGetDockerImageEvents(imageObjId string) []string {
 	
@@ -1986,40 +2017,43 @@ func (testContext *TestContext) TryGetDockerfileEvents(dockerfileId string,
 	
 	var responseMaps []map[string]interface{}
 	responseMaps, err = rest.ParseResponseBodyToPayloadMaps(resp.Body)
-	if err != nil { fmt.Println(err.Error()); return nil }
+	if err != nil { fmt.Println(err.Error()); return nil, nil }
 	var result []string = make([]string, 0)
+	var paramValues = make(map[string]string)
 	for _, responseMap := range responseMaps {
 		rest.PrintMap(responseMap)
 		var retId string = responseMap["Id"].(string)
 		testContext.AssertThat(retId != "", "Returned Id is empty string")
 		result = append(result, retId)
 		
-		var objAr = responseMap["ParameterValues"].([]interface)
-		
-		var paramValues map[string]string
-		for i, obj := range objAr {  // { "Name": ..., "StringValue": ... }
-			var objMap map[string]interface{}
-			var isType bool
-			objMap, isType = obj.(map[string]interface{})
-			if testContext.AssertThat(isType,
-					fmt.Sprintf("Value for param %d is not a string", i)) {
-				var obj2 interface{}
-				var name
-				obj2 = objMap["Name"]
-				name, isType = obj2.(string)
-				if testContext.AssertThat(isType, "type of Name is not a string") {
-					var value
-					obj2 = objMap["StringValue"]
-					value, isType = obj2.(string)
-					if testContext.AssertThat(isType, "type of StringValue is not a string") {
-						paramValues[name] = value
+		var obj interface{} = responseMap["ParameterValues"]  // array of maps
+		var objAr []interface{}
+		var isType bool
+		objAr, isType = obj.([]interface{})
+		if testContext.AssertThat(isType, "ParameterValues is not an array") {
+			for i, obj := range objAr {  // map: { "Name": ..., "StringValue": ... }
+				var objMap map[string]interface{}
+				objMap, isType = obj.(map[string]interface{})
+				if testContext.AssertThat(isType,
+						fmt.Sprintf("Value for param %d is not a string", i)) {
+					var obj2 interface{}
+					var name string
+					obj2 = objMap["Name"]
+					name, isType = obj2.(string)
+					if testContext.AssertThat(isType, "type of Name is not a string") {
+						var value string
+						obj2 = objMap["StringValue"]
+						value, isType = obj2.(string)
+						if testContext.AssertThat(isType, "type of StringValue is not a string") {
+							paramValues[name] = value
+						}
 					}
 				}
 			}
 		}
 		
 		var dockerfileContent = responseMap["DockerfileContent"].(string)
-		var file *io.File
+		var file *os.File
 		file, err = os.Open(dockerfilePath)
 		testContext.AssertThat(err == nil, err.Error())
 		var actualDockerfileBytes []byte
@@ -2094,7 +2128,7 @@ func (testContext *TestContext) TryGetScanConfigDesc(scanConfigId string,
 	if retScanConfigId, scanConfigIdIsType = responseMap["Id"].(string); (! scanConfigIdIsType) || (retScanConfigId == "") { testContext.FailTest() }
 	if retProviderName, isType := responseMap["ProviderName"].(string); (! isType) || (retProviderName == "") { testContext.FailTest() }
 	if retFlagId, isType := responseMap["FlagId"].(string); (! isType) || (retFlagId == "") { testContext.FailTest() }
-	if retParameterValueDescs, isType := responseMap["ParameterValueDescs"].([]interface{}); (! isType) || (retParameterValueDescs == nil) { testContext.FailTest() }
+	if retParameterValueDescs, isType := responseMap["ScanParameterValueDescs"].([]interface{}); (! isType) || (retParameterValueDescs == nil) { testContext.FailTest() }
 	
 	testContext.PassTestIfNoFailures()
 	return responseMap
@@ -2424,6 +2458,97 @@ func (testContext *TestContext) TryRemDockerImage(imageId string) bool {
 
 	testContext.PassTestIfNoFailures()
 	return testContext.CurrentTestPassed
+}
+
+/*******************************************************************************
+ * 
+ */
+func (testContext *TestContext) TryRemImageVersion(imageVersionId string) bool {
+	testContext.StartTest("TryRemImageVersion")
+
+	var resp *http.Response
+	var err error
+	resp, err = testContext.SendSessionGet("remImageVersion",
+		"",
+		[]string{"Log", "ImageVersionId"},
+		[]string{testContext.TestDemarcation(), imageVersionId})
+	if ! testContext.AssertErrIsNil(err, "") { return false}
+	
+	testContext.PassTestIfNoFailures()
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	return true
+}
+
+/*******************************************************************************
+ * Return an array of maps, each containing the fields on a DockerImageVersionDesc.
+ */
+func (testContext *TestContext) TryGetDockerImageVersions(imageId string) []map[string]interface{} {
+	testContext.StartTest("TryGetDockerImageVersions")
+
+	var resp *http.Response
+	var err error
+	resp, err = testContext.SendSessionGet("getDockerImageVersions",
+		"",
+		[]string{"Log", "DockerImageId"},
+		[]string{testContext.TestDemarcation(), imageId})
+	if ! testContext.AssertErrIsNil(err, "") { return false}
+	
+	var responseMap map[string]interface{}
+	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
+	if ! testContext.AssertErrIsNil(err, "") { return false }
+
+	if ! testContext.Verify200Response(resp) {
+		testContext.FailTest()
+		return nil
+	}
+
+	var isType bool
+	if _, isType = responseMap["HTTPStatusCode"].(float64); (! isType) { testContext.FailTest() }
+	var retMessage string
+	if retMessage, isType = responseMap["HTTPReasonPhrase"].(string); (! isType) || (retMessage == "") { testContext.FailTest() }
+
+	var payload []interface
+	payload, isType = responseMap["payload"].([]interface{})
+	if testContext.AssertThat(isType, "payload is not a []interface{}") {
+		var eltFieldMaps = make([]map[string]interface{}, 0)
+
+		for _, elt := range payload {
+			
+			var eltFieldMap map[string]interface{}
+			eltFieldMap, isType = elt.(map[string]interface{})
+			if testContext.AssertThat(isType, "element is not a map[string]interface{}") {
+				eltFieldMaps = append(eltFieldMaps, eltFieldMap)
+			} else {
+				testContext.FailTest()
+				return nil
+			}
+		}
+		
+		testContext.PassTestIfNoFailures()
+		return eltFieldMaps
+	}
+	
+	testContext.FailTest()
+	return nil
+}
+
+/*******************************************************************************
+ * 
+ */
+func (testContext *TestContext) TryRemDockerImage(imageId string) bool {
+	testContext.StartTest("TryRemDockerImage")
+
+	var resp *http.Response
+	var err error
+	resp, err = testContext.SendSessionGet("remDockerImage",
+		"",
+		[]string{"Log", "ImageId"},
+		[]string{testContext.TestDemarcation(), imageId})
+	if ! testContext.AssertErrIsNil(err, "") { return false}
+	
+	testContext.PassTestIfNoFailures()
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	return true
 }
 
 /*******************************************************************************

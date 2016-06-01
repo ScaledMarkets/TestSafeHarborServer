@@ -640,7 +640,8 @@ func TestCreateRealmsAndUsers(testContext *utils.TestContext) {
 		realm4Id, _, user4AdminRealms = testContext.TryCreateRealmAnon(
 			"realm4", "realm 4 Org",
 			realm4AdminUserId, "realm 4 Admin Full Name", "realm4admin@gmail.com", realm4AdminPswd)
-		testContext.AssertThat(len(user4AdminRealms) == 1, "Wrong number of admin realms")
+		testContext.AssertThat(len(user4AdminRealms) == 1,
+			fmt.Sprintf("Wrong number of admin realms: %d", len(user4AdminRealms)))
 	}
 	
 	// Verify that we can log in as the admin user that we just created.
@@ -1266,7 +1267,7 @@ func TestUpdateAndReplace(testContext *utils.TestContext) {
 	
 	// Test ability to replace a dockerfile.
 	{
-		dockerfileId = testContext.TryAddDockerfile(realmXRepo1Id, dockerfilePath, "A fine dockerfile")
+		//dockerfileId = testContext.TryAddDockerfile(realmXRepo1Id, dockerfilePath, "A fine dockerfile")
 		testContext.TryReplaceDockerfile(dockerfileId, "Dockerfile2", "The boo/ploink one")
 	}
 	
@@ -1343,7 +1344,12 @@ func TestDelete(testContext *utils.TestContext) {
 	var realmXFlagId string
 	var flagImagePath = "Seal.png"
 	var dockerfile1Path string
-	var image1ObjId string
+	var dockerfile1Id string
+	var imageId string
+	var imageVersion1ObjId string
+	var imageVersion2ObjId string
+	var execEvent1Id string
+	var execEvent2Id string
 
 	{
 		realmXId, _, _ = testContext.TryCreateRealmAnon(
@@ -1366,7 +1372,6 @@ func TestDelete(testContext *utils.TestContext) {
 		var err = utils.DownloadFile(SealURL, flagImagePath, true)
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		
-		
 		var tempdir string
 		tempdir, err = utils.CreateTempDir()
 		if err != nil { testContext.AbortAllTests(err.Error()) }
@@ -1375,8 +1380,24 @@ func TestDelete(testContext *utils.TestContext) {
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfile1Path)
 
-		image1ObjId, _ = testContext.TryAddAndExecDockerfile(realmXRepo1Id,
+		imageVersion1ObjId, _, execEvent1Id = testContext.TryAddAndExecDockerfile(realmXRepo1Id,
 			"My first image", "myimage1", dockerfile1Path, []string{}, []string{})
+		testContext.AssertThat(imageVersion1ObjId != "", "Failed to create image")
+		
+		imageId = ....
+		
+		var event1Map map[string]interface{}
+		event1Map = testContext.TryGetEventDesc(execEvent1Id)
+		testContext.AssertThat(event1Map != nil, "Unable to get EventDesc for image")
+		var obj = event1Map["DockerfileId"]
+		testContext.AssertThat(obj != nil, "nil value for DockerfileId")
+		var isType, bool
+		dockerfile1Id, isType = obj.(string)
+		testContext.AssertThat(isType, "DockerfileId is not a string")
+
+		imageVersion2ObjId, execEvent2Id = testContext.TryExecDockerfile(realmXRepo1Id,
+			dockerfile1Id, "myimage1", []string{}, []string{})
+		testContext.AssertThat(imageVersion2ObjId != "", "Failed to create image")
 	}
 	
 	// -------------------------------------
@@ -1421,10 +1442,52 @@ func TestDelete(testContext *utils.TestContext) {
 		}
 	}
 	
+	// Test ability to delete a docker image version
+	{
+		// Delete an image version.
+		if testContext.TryRemImageVersion(imageVersion1ObjId) {
+			
+			// Verify that the image now has the expected set of image versions.
+			var eltFieldMaps = make([]map[string]interface{}, 0)
+			eltFieldMaps = testContext.TryGetDockerImageVersions(imageId)
+			if testContext.AssertThat(eltFieldMaps != nil, "In TryGetDockerImageVersions") {
+				
+				/* Fields expected in each elt:
+				HTTPStatusCode int
+				HTTPReasonPhrase string
+				ObjId string
+				Version string
+				ImageObjId string
+				CreationDate string
+				Digest []byte
+				Signature []byte
+				ScanEventIds []string
+				DockerBuildOutput string
+				*/
+				
+				testContext.AssertThat(len(eltFieldMaps) == 1,
+					"TryGetDockerImageVersions: wrong number of elements returned")
+			}
+			
+			// Verify that events had their image version references nullified.
+			....testContext.TryGetDockerImageEvents(imageId)
+		}
+	}
+		
 	// Test ability to delete a docker image.
 	{
 		testContext.AssertThat(testContext.TryRemDockerImage(image1ObjId),
 			"Unable to remove docker image")
+	}
+	
+	// Test ability to delete a dockerfile.
+	{
+		if testContext.TryRemDockerfile(dockerfileId) {
+		
+			// Verify that image creation event's reference to the dockerfile has
+			// been nullified.
+			....TryGetDockerImageEvents
+		}
 	}
 	
 	// Test ability to delete a repo.
@@ -1642,11 +1705,11 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 	{
 		var eventIds []string
 		var paramMap map[string]string
-		eventIds, paramMap = testContext.TryGetDockerfileEvents(dockerfileId)
+		eventIds, paramMap = testContext.TryGetDockerfileEvents(dockerfileId, dockerfilePath)
 		testContext.AssertThat(len(eventIds) == 1, "Wrong number of image events")
 		testContext.AssertThat(len(paramMap) == 0, "Wrong number of build parameters")
 		
-		eventIds, paramMap = testContext.TryGetDockerfileEvents(dockerfileParamId)
+		eventIds, paramMap = testContext.TryGetDockerfileEvents(dockerfileParamId, dockerfileParamPath)
 		testContext.AssertThat(len(eventIds) == 1, "Wrong number of image events")
 		testContext.AssertThat(len(paramMap) == 1, "Wrong number of build parameters")
 	}
