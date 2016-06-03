@@ -2468,8 +2468,8 @@ func (testContext *TestContext) TryRemImageVersion(imageVersionId string) bool {
 
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendSessionGet("remImageVersion",
-		"",
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
+		"remImageVersion",
 		[]string{"Log", "ImageVersionId"},
 		[]string{testContext.TestDemarcation(), imageVersionId})
 	if ! testContext.AssertErrIsNil(err, "") { return false}
@@ -2487,8 +2487,8 @@ func (testContext *TestContext) TryGetDockerImageVersions(imageId string) []map[
 
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendSessionGet("getDockerImageVersions",
-		"",
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
+		"getDockerImageVersions",
 		[]string{"Log", "DockerImageId"},
 		[]string{testContext.TestDemarcation(), imageId})
 	if ! testContext.AssertErrIsNil(err, "") { return false}
@@ -2540,14 +2540,78 @@ func (testContext *TestContext) TryRemDockerImage(imageId string) bool {
 
 	var resp *http.Response
 	var err error
-	resp, err = testContext.SendSessionGet("remDockerImage",
-		"",
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
+		"remDockerImage",
 		[]string{"Log", "ImageId"},
 		[]string{testContext.TestDemarcation(), imageId})
 	if ! testContext.AssertErrIsNil(err, "") { return false}
 	
-	testContext.PassTestIfNoFailures()
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+
+	testContext.PassTestIfNoFailures()
+	return true
+}
+
+/*******************************************************************************
+ * 
+ */
+func (testContext *TestContext) TryUpdateUserInfo(expectSuccess bool, userId, userName, email string) {
+	testContext.StartTest("TryUpdateUserInfo")
+
+	var resp *http.Response
+	var err error
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
+		"updateUserInfo",
+		[]string{"Log", "UserId", "UserName", "EmailAddress"},
+		[]string{testContext.TestDemarcation(), userId, userName, email})
+	if ! testContext.AssertErrIsNil(err, "when calling updateUserInfo") { return }
+	
+	if expectSuccess {
+		if testContext.Verify200Response(resp) {
+		
+		// Check that changes actuall occurred.
+		resp, err = testContext.SendSessionPost(testContext.SessionId,
+			"getUserDesc",
+			[]string{},
+			[]string{}
+			)
+		if ! testContext.AssertErrIsNil(err, "when calling getUserDesc") { return }
+		var responseMap map[string]interface{}
+		responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
+		if ! testContext.AssertErrIsNil(err, "") { return false }
+		if retUserName, isType := responseMap["UserName"].(string); (! isType) || (retUserName != userName) { testContext.FailTest() }
+		if retEmail, isType := responseMap["EmailAddress"].(string); (! isType) || (retEmail != email) { testContext.FailTest() }
+		
+	} else {
+		if testContext.Verify200Response(resp) {
+			testContext.FailTest()
+		}
+	}
+	
+	testContext.PassTestIfNoFailures()
+}
+
+/*******************************************************************************
+ * 
+ */
+func (testContext *TestContext) TryUserExists(expectSuccess bool, userId string) {
+	testContext.StartTest("TryUserExists")
+
+	var resp *http.Response
+	var err error
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
+		"userExists",
+		[]string{"Log", "UserId"},
+		[]string{testContext.TestDemarcation(), userId})
+	if ! testContext.AssertErrIsNil(err, "") { return false}
+	
+	if expectSuccess {
+		if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	} else {
+		testContext.AssertThat(resp.Status == 404, "Incorrect status")
+	}
+	
+	testContext.PassTestIfNoFailures()
 	return true
 }
 

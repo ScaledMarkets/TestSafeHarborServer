@@ -625,6 +625,8 @@ func TestCreateRealmsAndUsers(testContext *utils.TestContext) {
 	var realm4AdminPswd = "RealmPswd"
 	var joeUserId = "jdoe"
 	var joePswd = "weakpswd"
+	//var highTrustClientUserId = "HighTrustClient"
+	//var highTrustClientPswd = "trustme"
 	
 	// -------------------------------------
 	// Tests
@@ -715,6 +717,12 @@ func TestCreateRealmsAndUsers(testContext *utils.TestContext) {
 		testContext.AssertThat(isType, "Wrong type for CanModifyTheseRealms")
 		testContext.AssertThat(userObjId == johnDoeUserObjId, "Looking up user by user id failed")
 		testContext.AssertThat(len(userAdminRealms) == 0, "Wrong number of admin realms")
+	}
+	
+	// Test ability to check if a user exists.
+	{
+		//testContext.TryAuthenticate(highTrustClientUserId, highTrustClientPswd, true)
+		testContext.TryUserExists(true, joeUserId)
 	}
 }
 
@@ -1185,6 +1193,16 @@ func TestAccessControl(testContext *utils.TestContext) {
 			}
 		}
 	}
+	
+	// Test can one cannot modify the user info for another user.
+	{
+		testContext.TryUpdateUserInfo(false, realmXJohnUserId, "John Baum", "jbaum@gmail.com")
+	}
+	
+	// Test that only the special user "HighTrustClient" can call userExists.
+	{
+		//testContext.TryUserExists(false, realmXAdminUserId)
+	}
 }
 
 /*******************************************************************************
@@ -1316,6 +1334,12 @@ func TestUpdateAndReplace(testContext *utils.TestContext) {
 			}
 		}
 	}
+	
+	// Test ability to update one's info.
+	{
+		testContext.TryUpdateUserInfo(true, realmXYAdminUserId, "realm 4 Admin",
+			"realm4admin@mycorp.com")
+	}
 }
 
 /*******************************************************************************
@@ -1383,8 +1407,6 @@ func TestDelete(testContext *utils.TestContext) {
 		imageVersion1ObjId, _, execEvent1Id = testContext.TryAddAndExecDockerfile(realmXRepo1Id,
 			"My first image", "myimage1", dockerfile1Path, []string{}, []string{})
 		testContext.AssertThat(imageVersion1ObjId != "", "Failed to create image")
-		
-		imageId = ....
 		
 		var event1Map map[string]interface{}
 		event1Map = testContext.TryGetEventDesc(execEvent1Id)
@@ -1524,7 +1546,39 @@ func TestDelete(testContext *utils.TestContext) {
 		
 			// Verify that image creation event's reference to the dockerfile has
 			// been nullified.
-			....TryGetDockerImageEvents
+			var eventIds []string = testContext.TryGetDockerImageEvents(imageVersion2ObjId)
+			if testContext.AssertThat(eventIds != nil, "") {
+				testContext.AssertThat(len(eventIds) == 1, "Wrong number of event Ids")
+				var int nofOfDockerfileExecEvents = 0
+				for _, eventId := range eventIds {
+					var eventMap map[string]interface
+					eventMap = testContext.TryGetEventDesc(eventId)
+					var obj interface{}
+					obj = eventMap["ObjectType"]
+					if testContext.AssertThat(obj != nil, "No ObjectType field") {
+						var objectType string
+						var isType bool
+						objectType, isType = obj.(string)
+						if testContext.AssertThat(isType, "ObjectType is not a string") {
+							if objectType == "DockerfileExecEventDesc" {
+								if testContext.AssertThat(nofOfDockerfileExecEvents == 0,
+										"More than one DockerfileExecEventDesc for image version") {
+									nofOfDockerfileExecEvents++
+									obj = eventMap["DockerfileId"]
+									if testContext.AssertThat(obj != nil, "No DockerfileId field") {
+										var dockerfileId string
+										dockerfileId, isType = obj.(string)
+										if testContext.AssertThat(isType, "DockerfileId is not a string") {
+											testContext.AssertThat(dockerfileId == "", "DockerfileId was not nullified")
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+			testContext.AssertThat(nofOfDockerfileExecEvents == 1, "Wrong number of nofOfDockerfileExecEvents")
 		}
 	}
 	
