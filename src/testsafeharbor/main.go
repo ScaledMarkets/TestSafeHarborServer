@@ -1373,7 +1373,6 @@ func TestDelete(testContext *utils.TestContext) {
 	var imageVersion1ObjId string
 	var imageVersion2ObjId string
 	var execEvent1Id string
-	var execEvent2Id string
 
 	{
 		realmXId, _, _ = testContext.TryCreateRealmAnon(
@@ -1413,11 +1412,11 @@ func TestDelete(testContext *utils.TestContext) {
 		testContext.AssertThat(event1Map != nil, "Unable to get EventDesc for image")
 		var obj = event1Map["DockerfileId"]
 		testContext.AssertThat(obj != nil, "nil value for DockerfileId")
-		var isType, bool
+		var isType bool
 		dockerfile1Id, isType = obj.(string)
 		testContext.AssertThat(isType, "DockerfileId is not a string")
 
-		imageVersion2ObjId, execEvent2Id = testContext.TryExecDockerfile(realmXRepo1Id,
+		imageVersion2ObjId, _ = testContext.TryExecDockerfile(realmXRepo1Id,
 			dockerfile1Id, "myimage1", []string{}, []string{})
 		testContext.AssertThat(imageVersion2ObjId != "", "Failed to create image")
 	}
@@ -1513,13 +1512,13 @@ func TestDelete(testContext *utils.TestContext) {
 								var versionObjId string
 								versionObjId, isType = obj.(string)
 								if testContext.AssertThat(isType, "ImageVersionObjId is not a string") {
-									if versionObjId == imageVersion1ObjId) {
+									if versionObjId == imageVersion1ObjId {
 										imageVersion1ObjIdCount++
 									}
-									if versionObjId == imageVersion2ObjId) {
+									if versionObjId == imageVersion2ObjId {
 										imageVersion2ObjIdCount++
 									}
-									if versionObjId == "") {
+									if versionObjId == "" {
 										imageVersionEmptyCount++
 									}
 								}
@@ -1536,22 +1535,35 @@ func TestDelete(testContext *utils.TestContext) {
 		
 	// Test ability to delete a docker image.
 	{
-		testContext.AssertThat(testContext.TryRemDockerImage(image1ObjId),
-			"Unable to remove docker image")
+		// Obtain the Id of the image that owns the remaining image version that we created.
+		var image1ObjId string
+		var dockerImageVersionDescMap map[string]interface{}
+		dockerImageVersionDescMap = testContext.TryGetDockerImageDesc(imageVersion2ObjId, true)
+		var obj interface{}
+		obj = dockerImageVersionDescMap["ImageObjId"]
+		var isType bool
+		image1ObjId, isType = obj.(string)
+		
+		// Attempt to delete the Image object.
+		if testContext.AssertThat(isType, "ImageObjId is not a string") {
+			testContext.AssertThat(testContext.TryRemDockerImage(image1ObjId),
+				"Unable to remove docker image")
+		}
 	}
 	
 	// Test ability to delete a dockerfile.
 	{
-		if testContext.TryRemDockerfile(dockerfileId) {
+		testContext.TryRemDockerfile(dockerfile1Id)
+		if ! testContext.TestHasFailed() {
 		
 			// Verify that image creation event's reference to the dockerfile has
 			// been nullified.
 			var eventIds []string = testContext.TryGetDockerImageEvents(imageVersion2ObjId)
 			if testContext.AssertThat(eventIds != nil, "") {
 				testContext.AssertThat(len(eventIds) == 1, "Wrong number of event Ids")
-				var int nofOfDockerfileExecEvents = 0
+				var noOfDockerfileExecEvents int = 0
 				for _, eventId := range eventIds {
-					var eventMap map[string]interface
+					var eventMap map[string]interface{}
 					eventMap = testContext.TryGetEventDesc(eventId)
 					var obj interface{}
 					obj = eventMap["ObjectType"]
@@ -1561,9 +1573,9 @@ func TestDelete(testContext *utils.TestContext) {
 						objectType, isType = obj.(string)
 						if testContext.AssertThat(isType, "ObjectType is not a string") {
 							if objectType == "DockerfileExecEventDesc" {
-								if testContext.AssertThat(nofOfDockerfileExecEvents == 0,
+								if testContext.AssertThat(noOfDockerfileExecEvents == 0,
 										"More than one DockerfileExecEventDesc for image version") {
-									nofOfDockerfileExecEvents++
+									noOfDockerfileExecEvents++
 									obj = eventMap["DockerfileId"]
 									if testContext.AssertThat(obj != nil, "No DockerfileId field") {
 										var dockerfileId string
@@ -1577,8 +1589,8 @@ func TestDelete(testContext *utils.TestContext) {
 						}
 					}
 				}
+				testContext.AssertThat(noOfDockerfileExecEvents == 1, "Wrong number of nofOfDockerfileExecEvents")
 			}
-			testContext.AssertThat(nofOfDockerfileExecEvents == 1, "Wrong number of nofOfDockerfileExecEvents")
 		}
 	}
 	
@@ -1732,7 +1744,7 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 	// Test ability to upload and exec a dockerfile in one command.
 	{
 		var dockerImage3ObjId string
-		dockerImage3ObjId, _ = testContext.TryAddAndExecDockerfile(realmXRepo1Id,
+		dockerImage3ObjId, _, _ = testContext.TryAddAndExecDockerfile(realmXRepo1Id,
 			"My third image", "myimage3", dockerfile3Path, []string{}, []string{})
 		fmt.Println(dockerImage3ObjId)
 	

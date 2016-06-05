@@ -136,6 +136,30 @@ func (testContext *TestContext) TryGetDockerImageDesc(dockerImageId string,
 	testContext.PassTestIfNoFailures()
 	return responseMap
 }
+
+/*******************************************************************************
+ * 
+ */
+func (testContext *TestContext) TryRemDockerfile(dockerfileId string) {
+	
+	testContext.StartTest("TryRemDockerfile")
+	var resp *http.Response
+	var err error
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
+		"remDockerfile",
+		[]string{"Log", "DockerfileId"},
+		[]string{testContext.TestDemarcation(), dockerfileId})
+	
+	defer resp.Body.Close()
+	if err != nil {
+		testContext.FailTest()
+		return
+	}
+
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	
+	testContext.PassTestIfNoFailures()
+}
 	
 /*******************************************************************************
  * 
@@ -564,7 +588,8 @@ func (testContext *TestContext) TryExecDockerfile(repoId string, dockerfileId st
  * and the object Id of the event pertaining to the creation of the image.
  */
 func (testContext *TestContext) TryAddAndExecDockerfile(repoId string, desc string,
-	imageName string, dockerfilePath string, paramNames, paramValues []string) (string, string) {
+	imageName string, dockerfilePath string, paramNames, paramValues []string) (string, string, string) {
+	
 	testContext.StartTest("TryAddAndExecDockerfile")
 	
 	if len(paramNames) != len(paramValues) { panic(
@@ -593,7 +618,7 @@ func (testContext *TestContext) TryAddAndExecDockerfile(repoId string, desc stri
 	// Get the repo Id that is returned in the response body.
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
-	if err != nil { fmt.Println(err.Error()); return "", "" }
+	if err != nil { fmt.Println(err.Error()); return "", "", "" }
 	var retObjId string = responseMap["ObjId"].(string)
 	var retDockerImageTag string = responseMap["Name"].(string)
 	var retDesc string = responseMap["Description"].(string)
@@ -614,7 +639,7 @@ func (testContext *TestContext) TryAddAndExecDockerfile(repoId string, desc stri
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryGetEventDesc(eventId string) map[string]interface {
+func (testContext *TestContext) TryGetEventDesc(eventId string) map[string]interface{} {
 	testContext.StartTest("TryGetEventDesc")
 	
 	var resp *http.Response
@@ -623,8 +648,11 @@ func (testContext *TestContext) TryGetEventDesc(eventId string) map[string]inter
 		"getEventDesc",
 		[]string{"Log", "EventId"},
 		[]string{testContext.TestDemarcation(), eventId})
-	
 	defer resp.Body.Close()
+	if err != nil {
+		testContext.FailTest()
+		return nil
+	}
 
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
@@ -646,6 +674,10 @@ func (testContext *TestContext) TryGetDockerImages(repoId string) []string {
 		[]string{testContext.TestDemarcation(), repoId})
 	
 	defer resp.Body.Close()
+	if err != nil {
+		testContext.FailTest()
+		return nil
+	}
 
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
@@ -2491,11 +2523,11 @@ func (testContext *TestContext) TryGetDockerImageVersions(imageId string) []map[
 		"getDockerImageVersions",
 		[]string{"Log", "DockerImageId"},
 		[]string{testContext.TestDemarcation(), imageId})
-	if ! testContext.AssertErrIsNil(err, "") { return false}
+	if ! testContext.AssertErrIsNil(err, "") { return nil}
 	
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
-	if ! testContext.AssertErrIsNil(err, "") { return false }
+	if ! testContext.AssertErrIsNil(err, "") { return nil }
 
 	if ! testContext.Verify200Response(resp) {
 		testContext.FailTest()
@@ -2507,7 +2539,7 @@ func (testContext *TestContext) TryGetDockerImageVersions(imageId string) []map[
 	var retMessage string
 	if retMessage, isType = responseMap["HTTPReasonPhrase"].(string); (! isType) || (retMessage == "") { testContext.FailTest() }
 
-	var payload []interface
+	var payload []interface{}
 	payload, isType = responseMap["payload"].([]interface{})
 	if testContext.AssertThat(isType, "payload is not a []interface{}") {
 		var eltFieldMaps = make([]map[string]interface{}, 0)
@@ -2535,26 +2567,6 @@ func (testContext *TestContext) TryGetDockerImageVersions(imageId string) []map[
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryRemDockerImage(imageId string) bool {
-	testContext.StartTest("TryRemDockerImage")
-
-	var resp *http.Response
-	var err error
-	resp, err = testContext.SendSessionPost(testContext.SessionId,
-		"remDockerImage",
-		[]string{"Log", "ImageId"},
-		[]string{testContext.TestDemarcation(), imageId})
-	if ! testContext.AssertErrIsNil(err, "") { return false}
-	
-	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
-
-	testContext.PassTestIfNoFailures()
-	return true
-}
-
-/*******************************************************************************
- * 
- */
 func (testContext *TestContext) TryUpdateUserInfo(expectSuccess bool, userId, userName, email string) {
 	testContext.StartTest("TryUpdateUserInfo")
 
@@ -2569,19 +2581,18 @@ func (testContext *TestContext) TryUpdateUserInfo(expectSuccess bool, userId, us
 	if expectSuccess {
 		if testContext.Verify200Response(resp) {
 		
-		// Check that changes actuall occurred.
-		resp, err = testContext.SendSessionPost(testContext.SessionId,
-			"getUserDesc",
-			[]string{},
-			[]string{}
-			)
-		if ! testContext.AssertErrIsNil(err, "when calling getUserDesc") { return }
-		var responseMap map[string]interface{}
-		responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
-		if ! testContext.AssertErrIsNil(err, "") { return false }
-		if retUserName, isType := responseMap["UserName"].(string); (! isType) || (retUserName != userName) { testContext.FailTest() }
-		if retEmail, isType := responseMap["EmailAddress"].(string); (! isType) || (retEmail != email) { testContext.FailTest() }
-		
+			// Check that changes actuall occurred.
+			resp, err = testContext.SendSessionPost(testContext.SessionId,
+				"getUserDesc", []string{}, []string{})
+			if ! testContext.AssertErrIsNil(err, "when calling getUserDesc") { return }
+			var responseMap map[string]interface{}
+			responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
+			if ! testContext.AssertErrIsNil(err, "") { return }
+			if retUserName, isType := responseMap["UserName"].(string); (! isType) || (retUserName != userName) { testContext.FailTest() }
+			if retEmail, isType := responseMap["EmailAddress"].(string); (! isType) || (retEmail != email) { testContext.FailTest() }
+		} else {
+			testContext.FailTest()
+		}
 	} else {
 		if testContext.Verify200Response(resp) {
 			testContext.FailTest()
@@ -2603,16 +2614,16 @@ func (testContext *TestContext) TryUserExists(expectSuccess bool, userId string)
 		"userExists",
 		[]string{"Log", "UserId"},
 		[]string{testContext.TestDemarcation(), userId})
-	if ! testContext.AssertErrIsNil(err, "") { return false}
+	if ! testContext.AssertErrIsNil(err, "") { return }
 	
 	if expectSuccess {
 		if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	} else {
-		testContext.AssertThat(resp.Status == 404, "Incorrect status")
+		testContext.AssertThat(resp.StatusCode == 404, "Incorrect status")
 	}
 	
 	testContext.PassTestIfNoFailures()
-	return true
+	return
 }
 
 /*******************************************************************************
