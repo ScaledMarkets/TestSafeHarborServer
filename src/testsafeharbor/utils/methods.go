@@ -120,18 +120,14 @@ func (testContext *TestContext) TryGetDockerImageDesc(dockerImageId string,
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
 	if ! testContext.AssertErrIsNil(err, "at ParseResponseBodyToMap") { return nil }
 	
-	// Expect a DockerImageDesc
+	// Expect a DockerImageDesc or a DockerImageVersionDesc.
 	var retObjId string = responseMap["ObjId"].(string)
-	var retRepoId string = responseMap["RepoId"].(string)
-	var retName string = responseMap["Name"].(string)
-	var retDescription string = responseMap["Description"].(string)
-	var retCreationDate string = responseMap["CreationDate"].(string)
+	var retObjectType string = responseMap["ObjectType"].(string)
 	
 	testContext.AssertThat(retObjId != "", "retObjId is empty")
-	testContext.AssertThat(retRepoId != "", "retRepoId is empty")
-	testContext.AssertThat(retName != "", "retName is empty")
-	testContext.AssertThat(retDescription != "", "retDescription is empty")
-	testContext.AssertThat(retCreationDate != "", "retCreationDate is empty")
+	testContext.AssertThat(retObjectType != "", "retObjectType is empty")
+	testContext.AssertThat((retObjectType == "DockerImageDesc") ||
+		(retObjectType == "DockerImageVersionDesc"), "Wrong object type: " + retObjectType)
 	
 	testContext.PassTestIfNoFailures()
 	return responseMap
@@ -532,8 +528,7 @@ func (testContext *TestContext) TryGetDockerfiles(repoId string) []string {
 /*******************************************************************************
  * Verify that we can build an image, from a dockerfile that has already been
  * uploaded into a repo and for which we have the SafeHarborServer image id.
- * The result is the object Id of image, and the event pertaining to the creation
- * of the image.
+ * The result is the object Id of the image version, and the image.
  */
 func (testContext *TestContext) TryExecDockerfile(repoId string, dockerfileId string,
 	imageName string, paramNames, paramValues []string) (string, string) {
@@ -562,29 +557,41 @@ func (testContext *TestContext) TryExecDockerfile(repoId string, dockerfileId st
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	// Get the repo Id that is returned in the response body.
+	/* DockerImageVersionDesc:
+	BaseType
+	ObjId string
+	Version string
+	ImageObjId string
+    ImageCreationEventId string
+    CreationDate string
+    Digest []byte
+    Signature []byte
+    ScanEventIds []string
+    DockerBuildOutput string
+	*/
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
 	if err != nil { fmt.Println(err.Error()); return "", "" }
 	var retObjId string = responseMap["ObjId"].(string)
-	var retDockerImageTag string = responseMap["Name"].(string)
-	var retDesc string = responseMap["Description"].(string)
-	var retImageCreationEventId = responseMap["ImageCreationEventId"].(string)
-	var retCreationDate = responseMap["CreationDate"].(string)
+	var retImageObjId string = responseMap["ImageObjId"].(string)
+	var retVersion string = responseMap["Version"].(string)
+	var retImageCreationEventId string = responseMap["ImageCreationEventId"].(string)
+	var retCreationDate string = responseMap["CreationDate"].(string)
 	rest.PrintMap(responseMap)
 	
 	testContext.AssertThat(retObjId != "", "ObjId is empty")
-	testContext.AssertThat(retDockerImageTag != "", "Name is empty")
-	testContext.AssertThat(retDesc != "", "Description is empty")
+	testContext.AssertThat(retImageObjId != "", "ImageObjId is empty")
+	testContext.AssertThat(retVersion != "", "Version is empty")
 	testContext.AssertThat(retImageCreationEventId != "", "ImageCreationEventId is empty")
 	testContext.AssertThat(retCreationDate != "", "CreationDate is empty")
 	
 	testContext.PassTestIfNoFailures()
-	return retObjId, retDockerImageTag
+	return retObjId, retImageObjId
 }
 
 /*******************************************************************************
  * Verify that we can upload a dockerfile and build an image from it.
- * The result is the object id and docker id of the image version that was built,
+ * The result is the object Id of the image version, and the image,
  * and the object Id of the event pertaining to the creation of the image.
  */
 func (testContext *TestContext) TryAddAndExecDockerfile(repoId string, desc string,
@@ -614,26 +621,24 @@ func (testContext *TestContext) TryAddAndExecDockerfile(repoId string, desc stri
 
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
-	// Response returns a DockerImageVersionDesc.
-	// Get the repo Id that is returned in the response body.
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
 	if err != nil { fmt.Println(err.Error()); return "", "", "" }
 	var retObjId string = responseMap["ObjId"].(string)
-	var retDockerImageTag string = responseMap["Name"].(string)
-	var retDesc string = responseMap["Description"].(string)
-	var retImageCreationEventId = responseMap["ImageCreationEventId"].(string)
-	var retCreationDate = responseMap["CreationDate"].(string)
+	var retImageObjId string = responseMap["ImageObjId"].(string)
+	var retVersion string = responseMap["Version"].(string)
+	var retImageCreationEventId string = responseMap["ImageCreationEventId"].(string)
+	var retCreationDate string = responseMap["CreationDate"].(string)
 	rest.PrintMap(responseMap)
 	
 	testContext.AssertThat(retObjId != "", "ObjId is empty")
-	testContext.AssertThat(retDockerImageTag != "", "Name is empty")
-	testContext.AssertThat(retDesc != "", "Description is empty")
+	testContext.AssertThat(retImageObjId != "", "ImageObjId is empty")
+	testContext.AssertThat(retVersion != "", "Version is empty")
 	testContext.AssertThat(retImageCreationEventId != "", "ImageCreationEventId is empty")
 	testContext.AssertThat(retCreationDate != "", "CreationDate is empty")
 	
 	testContext.PassTestIfNoFailures()
-	return retObjId, retDockerImageTag, retImageCreationEventId
+	return retObjId, retImageObjId, retImageCreationEventId
 }
 
 /*******************************************************************************
@@ -657,6 +662,8 @@ func (testContext *TestContext) TryGetEventDesc(eventId string) map[string]inter
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	var responseMap map[string]interface{}
+	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
+	if err != nil { fmt.Println(err.Error()); return nil }
 	return responseMap
 }
 
@@ -2074,7 +2081,7 @@ func (testContext *TestContext) TryGetDockerfileEvents(dockerfileId string,
 					name, isType = obj2.(string)
 					if testContext.AssertThat(isType, "type of Name is not a string") {
 						var value string
-						obj2 = objMap["StringValue"]
+						obj2 = objMap["Value"]
 						value, isType = obj2.(string)
 						if testContext.AssertThat(isType, "type of StringValue is not a string") {
 							paramValues[name] = value
@@ -2087,10 +2094,10 @@ func (testContext *TestContext) TryGetDockerfileEvents(dockerfileId string,
 		var dockerfileContent = responseMap["DockerfileContent"].(string)
 		var file *os.File
 		file, err = os.Open(dockerfilePath)
-		testContext.AssertThat(err == nil, err.Error())
+		testContext.AssertErrIsNil(err, "Open")
 		var actualDockerfileBytes []byte
 		actualDockerfileBytes, err = ioutil.ReadAll(file)
-		testContext.AssertThat(err == nil, err.Error())
+		testContext.AssertErrIsNil(err, "ReadAll")
 		testContext.AssertThat(dockerfileContent == string(actualDockerfileBytes),
 			"Dockerfile content from server does not matach actual dockerfile content")
 	}
@@ -2583,13 +2590,12 @@ func (testContext *TestContext) TryUpdateUserInfo(expectSuccess bool, userId, us
 		
 			// Check that changes actuall occurred.
 			resp, err = testContext.SendSessionPost(testContext.SessionId,
-				"getUserDesc", []string{}, []string{})
+				"getUserDesc", []string{"UserId"}, []string{userId})
 			if ! testContext.AssertErrIsNil(err, "when calling getUserDesc") { return }
 			var responseMap map[string]interface{}
 			responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
 			if ! testContext.AssertErrIsNil(err, "") { return }
-			if retUserName, isType := responseMap["UserName"].(string); (! isType) || (retUserName != userName) { testContext.FailTest() }
-			if retEmail, isType := responseMap["EmailAddress"].(string); (! isType) || (retEmail != email) { testContext.FailTest() }
+			if retUserName, isType := responseMap["Name"].(string); (! isType) || (retUserName != userName) { testContext.FailTest() }
 		} else {
 			testContext.FailTest()
 		}

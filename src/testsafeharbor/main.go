@@ -1369,7 +1369,6 @@ func TestDelete(testContext *utils.TestContext) {
 	var flagImagePath = "Seal.png"
 	var dockerfile1Path string
 	var dockerfile1Id string
-	var imageId string
 	var imageVersion1ObjId string
 	var imageVersion2ObjId string
 	var execEvent1Id string
@@ -1465,12 +1464,22 @@ func TestDelete(testContext *utils.TestContext) {
 	
 	// Test ability to delete a docker image version
 	{
+		// Obtain the Id of image1.
+		var image1ObjId string
+		var dockerImageVersionDescMap map[string]interface{}
+		dockerImageVersionDescMap = testContext.TryGetDockerImageDesc(imageVersion1ObjId, true)
+		var obj interface{}
+		obj = dockerImageVersionDescMap["ImageObjId"]
+		var isType bool
+		image1ObjId, isType = obj.(string)
+		testContext.AssertThat(isType, "ImageObjId is not a string")
+			
 		// Delete an image version.
 		if testContext.TryRemImageVersion(imageVersion1ObjId) {
 			
 			// Verify that the image now has the expected set of image versions.
 			var eltFieldMaps = make([]map[string]interface{}, 0)
-			eltFieldMaps = testContext.TryGetDockerImageVersions(imageId)
+			eltFieldMaps = testContext.TryGetDockerImageVersions(image1ObjId)
 			if testContext.AssertThat(eltFieldMaps != nil, "In TryGetDockerImageVersions") {
 				
 				/* Fields expected in each elt:
@@ -1491,7 +1500,7 @@ func TestDelete(testContext *utils.TestContext) {
 			}
 			
 			// Verify that events had their image version references nullified.
-			var eventIds []string = testContext.TryGetUserEvents(imageId)
+			var eventIds []string = testContext.TryGetUserEvents(image1ObjId)
 			var imageVersionEmptyCount = 0
 			var imageVersion1ObjIdCount = 0
 			var imageVersion2ObjIdCount = 0
@@ -1532,23 +1541,19 @@ func TestDelete(testContext *utils.TestContext) {
 			testContext.AssertThat(imageVersion2ObjIdCount == 1, "Version 2 count is not 1")
 		}
 	}
-		
+
+	var image1ObjId string
+
 	// Test ability to delete a docker image.
 	{
 		// Obtain the Id of the image that owns the remaining image version that we created.
-		var image1ObjId string
 		var dockerImageVersionDescMap map[string]interface{}
 		dockerImageVersionDescMap = testContext.TryGetDockerImageDesc(imageVersion2ObjId, true)
 		var obj interface{}
 		obj = dockerImageVersionDescMap["ImageObjId"]
 		var isType bool
 		image1ObjId, isType = obj.(string)
-		
-		// Attempt to delete the Image object.
-		if testContext.AssertThat(isType, "ImageObjId is not a string") {
-			testContext.AssertThat(testContext.TryRemDockerImage(image1ObjId),
-				"Unable to remove docker image")
-		}
+		testContext.AssertThat(isType, "ImageObjId is not a string")
 	}
 	
 	// Test ability to delete a dockerfile.
@@ -1560,7 +1565,8 @@ func TestDelete(testContext *utils.TestContext) {
 			// been nullified.
 			var eventIds []string = testContext.TryGetDockerImageEvents(imageVersion2ObjId)
 			if testContext.AssertThat(eventIds != nil, "") {
-				testContext.AssertThat(len(eventIds) == 1, "Wrong number of event Ids")
+				testContext.AssertThat(len(eventIds) == 1, fmt.Sprintf(
+					"Wrong number of event Ids (%d)", len(eventIds)))
 				var noOfDockerfileExecEvents int = 0
 				for _, eventId := range eventIds {
 					var eventMap map[string]interface{}
@@ -1592,6 +1598,12 @@ func TestDelete(testContext *utils.TestContext) {
 				testContext.AssertThat(noOfDockerfileExecEvents == 1, "Wrong number of nofOfDockerfileExecEvents")
 			}
 		}
+	}
+	
+	// Attempt to delete the Image object.
+	{
+		testContext.AssertThat(testContext.TryRemDockerImage(image1ObjId),
+				"Unable to remove docker image")
 	}
 	
 	// Test ability to delete a repo.
@@ -1643,6 +1655,7 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 	var realmXRepo1Id string
 	var dockerImage1ObjId string
 	var dockerImage2ObjId string
+	var dockerImage1Version1ObjId string
 	var scanConfigId string
 	var dockerfilePath string
 	var dockerfileParamPath string
@@ -1699,14 +1712,14 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 	
 	// Test ability to build image from a dockerfile.
 	{
-		dockerImage1ObjId, _ = testContext.TryExecDockerfile(realmXRepo1Id,
+		dockerImage1Version1ObjId, dockerImage1ObjId = testContext.TryExecDockerfile(realmXRepo1Id,
 			dockerfileId, "myimage", []string{}, []string{})
 		testContext.AssertThat(dockerImage1ObjId != "", "No image obj Id returned")
 	}
 	
 	// Test ability to build image from a parameterized dockerfile.
 	{
-		dockerImage2ObjId, _ = testContext.TryExecDockerfile(realmXRepo1Id,
+		_, dockerImage2ObjId = testContext.TryExecDockerfile(realmXRepo1Id,
 			dockerfileParamId, "myparamimage", []string{ "param1" }, []string{ "abc" })
 		if testContext.AssertThat(dockerImage2ObjId != "", "No image obj Id returned") {
 			var imageInfo map[string]interface{}
@@ -1738,13 +1751,13 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 	
 	// Test ability to scan a docker image.
 	{
-		testContext.TryScanImage(scanConfigId, dockerImage1ObjId)
+		testContext.TryScanImage(scanConfigId, dockerImage1Version1ObjId)
 	}
 	
 	// Test ability to upload and exec a dockerfile in one command.
 	{
 		var dockerImage3ObjId string
-		dockerImage3ObjId, _, _ = testContext.TryAddAndExecDockerfile(realmXRepo1Id,
+		_, dockerImage3ObjId, _ = testContext.TryAddAndExecDockerfile(realmXRepo1Id,
 			"My third image", "myimage3", dockerfile3Path, []string{}, []string{})
 		fmt.Println(dockerImage3ObjId)
 	
@@ -1791,6 +1804,11 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 		testContext.AssertThat(len(eventIds) == 1,
 			fmt.Sprintf("Wrong number of image events: it is %d", len(eventIds)))
 			// Should be one scan event.
+		
+		// Try for an image version.
+		eventIds = testContext.TryGetDockerImageEvents(dockerImage1Version1ObjId)
+		testContext.AssertThat(len(eventIds) == 1,
+			fmt.Sprintf("Wrong number of image events: it is %d", len(eventIds)))
 	}
 	
 	// Test ability to get the scan status of a docker image.
@@ -1818,10 +1836,10 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 		testContext.AssertThat(len(paramMap) == 1, "Wrong number of build parameters")
 	}
 	
-	// Test abilit to delete a specified docker image.
+	// Test abilit to delete a specified docker image version.
 	{
-		if testContext.TryRemDockerImage(dockerImage1ObjId) {
-			testContext.TryGetDockerImageDesc(dockerImage1ObjId, false)
+		if testContext.TryRemImageVersion(dockerImage1Version1ObjId) {
+			testContext.TryGetDockerImageDesc(dockerImage1Version1ObjId, false)
 		}
 	}
 }
