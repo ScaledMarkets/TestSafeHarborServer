@@ -1414,6 +1414,8 @@ func TestScanConfigs(testContext *utils.TestContext) {
 	// -------------------------------------
 	// Tests
 	//
+	
+	// Test that one can link DockerImages and ScanConfigs, and unlink them.
 	{
 		// Link Image1 to A and B.
 		testContext.TryUseScanConfigForImage(dockerImage1Id, scanConfigAId)
@@ -1461,6 +1463,20 @@ func TestScanConfigs(testContext *utils.TestContext) {
 		
 			testContext.AssertThat(utils.Contains(dockerImage1Id, ids), "Id not in image Id list")
 		}
+	}
+	
+	// Test that one can omit specifying the ScanConfigId.
+	{
+		var scanEventDescs []map[string]interface{}
+		scanEventDescs = testContext.TryScanImage("", dockerImage1Id)
+		testContext.AssertThat(len(scanEventDescs) == 2, "Wrong number of scan events")
+	}
+	
+	// Test that one can specify multiple ScanConfigIds.
+	{
+		var scanEventDescs []map[string]interface{}
+		scanEventDescs = testContext.TryScanImage(scanConfigAId + "," + scanConfigBId, dockerImage2Id)
+		testContext.AssertThat(len(scanEventDescs) == 2, "Wrong number of scan events")
 	}
 }
 
@@ -1875,8 +1891,6 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 		var scanEventDescs []map[string]interface{}
 		scanEventDescs = testContext.TryScanImage(scanConfigId, dockerImage1Version1ObjId)
 		testContext.AssertThat(len(scanEventDescs) == 1, "Wrong number of scan events")
-		
-		....Add more tests
 	}
 	
 	// Test ability to upload and exec a dockerfile in one command.

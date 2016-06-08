@@ -1556,6 +1556,7 @@ func (testContext *TestContext) TryScanImage(scriptId, imageObjId string) []map[
 	rest.PrintMap(responseMap)
 	
 	var payload []interface{}
+	var isType bool
 	payload, isType = responseMap["payload"].([]interface{})
 	if !testContext.AssertThat(isType, "payload is not a []interface{}") {
 		testContext.FailTest()
