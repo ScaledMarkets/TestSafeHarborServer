@@ -40,6 +40,7 @@ func main() {
 		"CreateRealmsAndUsers": TestCreateRealmsAndUsers,
 		"CreateResources": TestCreateResources,
 		"CreateGroups": TestCreateGroups,
+		"ScanConfigs": TestScanConfigs,
 		"GetMy": TestGetMy,
 		"AccessControl": TestAccessControl,
 		"UpdateAndReplace": TestUpdateAndReplace,
@@ -1343,8 +1344,102 @@ func TestUpdateAndReplace(testContext *utils.TestContext) {
 }
 
 /*******************************************************************************
+ * Test functions that link and unlink scan configs to DockerImages.
+ */
+func TestScanConfigs(testContext *utils.TestContext) {
+	
+	fmt.Println("\nTest suite TestScanConfigs------------------\n")
+
+	defer testContext.TryClearAll()
+
+	// -------------------------------------
+	// Test setup:
+	//
+	var dockerImage1Id, dockerImage2Id string
+	var scanConfigAId, scanConfigBId, scanConfigCId string
+	
+	{
+		var realmId string
+		var repoId string
+		var dockerfile1Id string
+		var dockerfile2Id string
+		var mrscanneruserid string = "mrscanner"
+		var mrscannerpswd string = "abc"
+		
+		realmId, _, _ = testContext.TryCreateRealmAnon(
+			"SecureRealm", "SecureRealm Org", mrscanneruserid, "Mr. Scanner",
+			"mrscanner@gmail.com", mrscannerpswd)
+		
+		testContext.TryAuthenticate(mrscanneruserid, mrscannerpswd, true)
+		
+		repoId = testContext.TryCreateRepo(realmId, "repo1", "Repo in SecureRealm", "")
+		
+		// Create two docker images.
+		_, dockerImage1Id = testContext.TryExecDockerfile(repoId,
+			dockerfile1Id, "image1", []string{}, []string{})
+		testContext.AssertThat(dockerImage1Id != "", "No image obj Id returned")
+		
+		_, dockerImage2Id = testContext.TryExecDockerfile(repoId,
+			dockerfile2Id, "image2", []string{}, []string{})
+		testContext.AssertThat(dockerImage1Id != "", "No image obj Id returned")
+		
+		// Create three scan configs.
+		scanConfigAId = testContext.TryDefineScanConfig("Config A",
+			"For scanning all images", repoId, "clair", "",
+			"", []string{}, []string{})
+
+		scanConfigBId = testContext.TryDefineScanConfig("Config B",
+			"For scanning image 1", repoId, "clair", "",
+			"", []string{}, []string{})
+		
+		scanConfigCId = testContext.TryDefineScanConfig("Config C",
+			"For scanning image 2", repoId, "clair", "",
+			"", []string{}, []string{})
+	}
+	
+	// -------------------------------------
+	// Tests
+	//
+	{
+		// Link Image1 to A and B.
+		TryUseScanConfigForImage(dockerImage1Id, scanConfigAId)
+		TryUseScanConfigForImage(dockerImage1Id, scanConfigBId)
+		
+		// Link Image2 to A and C.
+		TryUseScanConfigForImage(dockerImage2Id, scanConfigAId)
+		TryUseScanConfigForImage(dockerImage2Id, scanConfigCId)
+		
+		// Unlink C from Image2: now 1 uses A, B and 2 uses only A.
+		TryStopUsingScanConfigForImage(dockerImage2Id, scanConfigCId)
+		
+		var scanConfigDescMap map[string]interface{}
+		scanConfigDescMap = TryGetScanConfigDesc(scanConfigAId, true)  // should be 1, 2.
+		var obj []interface{] = scanConfigDescMap["DockerImagesIdsThatUse"]
+		var ids []string
+		var isType bool
+		ids, isType = obj.([]string)
+		testContext.AssertThat(isType, "DockerImagesIdsThatUse is not a string array")
+		if testContext.AssertThat(len(ids) == 2, fmt.Sprintf(
+			"Wrong number of image Ids returned: %d", len(ids))) {
+		
+			testContext.AssertThat(apitypes.Contains(dockerImage1Id, ids)
+			testContext.AssertThat(apitypes.Contains(dockerImage2Id, ids)
+		}
+		
+		scanConfigDescMap = TryGetScanConfigDesc(scanConfigBId, true)  // should be 1.
+		obj = scanConfigDescMap["DockerImagesIdsThatUse"]
+		ids, isType = obj.([]string)
+		testContext.AssertThat(isType, "DockerImagesIdsThatUse is not a string array")
+		if testContext.AssertThat(len(ids) == 1, fmt.Sprintf(
+			"Wrong number of image Ids returned: %d", len(ids))) {
+		
+			testContext.AssertThat(apitypes.Contains(dockerImage1Id, ids)
+		}
+	}
+}
+
+/*******************************************************************************
  * Test deletion, diabling, etc.
- * Creates/uses the following:
  */
 func TestDelete(testContext *utils.TestContext) {
 

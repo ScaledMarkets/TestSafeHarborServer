@@ -2635,6 +2635,42 @@ func (testContext *TestContext) TryUserExists(expectSuccess bool, userId string)
 /*******************************************************************************
  * 
  */
+func (testContext *TestContext) TryUseScanConfigForImage(dockerImageId, scanConfigId string) {
+	testContext.StartTest("TryUseScanConfigForImage")
+	
+	var resp *http.Response
+	var err error
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
+		"useScanConfigForImage",
+		[]string{"Log", "DockerImageId", "ScanConfigId"},
+		[]string{testContext.TestDemarcation(), dockerImageId, scanConfigId})
+	if ! testContext.AssertErrIsNil(err, "") { return }
+	
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	testContext.PassTestIfNoFailures()
+}
+
+/*******************************************************************************
+ * 
+ */
+func (testContext *TestContext) TryStopUsingScanConfigForImage(dockerImageId, scanConfigId string) {
+	testContext.StartTest("TryStopUsingScanConfigForImage")
+	
+	var resp *http.Response
+	var err error
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
+		"stopUsingScanConfigForImage",
+		[]string{"Log", "DockerImageId", "ScanConfigId"},
+		[]string{testContext.TestDemarcation(), dockerImageId, scanConfigId})
+	if ! testContext.AssertErrIsNil(err, "") { return }
+	
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	testContext.PassTestIfNoFailures()
+}
+
+/*******************************************************************************
+ * 
+ */
 func (testContext *TestContext) TryClearAll() {
 	testContext.StartTest("TryClearAll")
 	
@@ -2646,6 +2682,6 @@ func (testContext *TestContext) TryClearAll() {
 		[]string{testContext.TestDemarcation()})
 	if ! testContext.AssertErrIsNil(err, "") { return }
 	
-	testContext.PassTestIfNoFailures()
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	testContext.PassTestIfNoFailures()
 }
