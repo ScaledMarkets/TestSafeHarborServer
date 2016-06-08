@@ -139,6 +139,11 @@ dockertests:
 		-h=$(SHHOST) -p=$(SHPORT) \
 		-tests="DockerFunctions"
 
+scanconfigs:
+	bin/testsafeharbor -stop \
+		-h=$(SHHOST) -p=$(SHPORT) \
+		-tests="ScanConfigs"
+
 # Run a SafeHarborServer "smoke" test suite.
 basic:
 	bin/testsafeharbor -stop \

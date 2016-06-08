@@ -1534,9 +1534,9 @@ func (testContext *TestContext) TryUpdateScanConfig(scanConfigId, name, desc, pr
 }
 
 /*******************************************************************************
- * Returns output message.
+ * Returns array of maps, each containing the fields of a ScanEventDesc.
  */
-func (testContext *TestContext) TryScanImage(scriptId, imageObjId string) string {
+func (testContext *TestContext) TryScanImage(scriptId, imageObjId string) []map[string]interface{} {
 	testContext.StartTest("TryScanImage")
 	
 	var resp *http.Response
@@ -1552,37 +1552,60 @@ func (testContext *TestContext) TryScanImage(scriptId, imageObjId string) string
 	
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
-	if err != nil { fmt.Println(err.Error()); return "" }
+	if err != nil { fmt.Println(err.Error()); return nil }
 	rest.PrintMap(responseMap)
 	
-	var retId string = responseMap["Id"].(string)
-	var retWhen string = responseMap["When"].(string)
-	var retUserId string = responseMap["UserObjId"].(string)
-	var retScanConfigId string = responseMap["ScanConfigId"].(string)
-	var retScore string = responseMap["Score"].(string)
-	var retVulnerabilityDescs = responseMap["VulnerabilityDescs"].([]interface{})
-	//var retVulnerabilityDescs = responseMap["VulnerabilityDescs"].([]map[string]interface{})
+	var payload []interface{}
+	payload, isType = responseMap["payload"].([]interface{})
+	if !testContext.AssertThat(isType, "payload is not a []interface{}") {
+		testContext.FailTest()
+		return nil
+	}
 	
-	testContext.AssertThat(retId != "", "Returned Id is empty")
-	testContext.AssertThat(retWhen != "", "Returned When is empty")
-	testContext.AssertThat(retUserId != "", "Returned UserId is empty")
-	testContext.AssertThat(retScanConfigId != "", "Returned ScanConfigId is empty")
-	testContext.AssertThat(retScore != "", "Returned Score is empty")
-	if testContext.AssertThat(len(retVulnerabilityDescs) > 0, "No vulnerabilities found") {
+	var eltFieldMaps = make([]map[string]interface{}, 0)
+	for _, elt := range payload {
+		
+		var eltFieldMap map[string]interface{}
+		eltFieldMap, isType = elt.(map[string]interface{})
+		if testContext.AssertThat(isType, "element is not a map[string]interface{}") {
+			eltFieldMaps = append(eltFieldMaps, eltFieldMap)
+		} else {
+			testContext.FailTest()
+			return nil
+		}
+	}
 	
-		var obj = retVulnerabilityDescs[0]
-		var isType bool
-		var vulnDesc map[string]interface{}
-		vulnDesc, isType = obj.(map[string]interface{})
-		if testContext.AssertThat(isType,
-			"Vulnerability description is an unexpected type: " + reflect.TypeOf(obj).String()) {
-			testContext.AssertThat(vulnDesc["VCE_ID"] != "",
-				"No VCE_ID value found for vulnerability")
+	for _, eltFieldMap := range eltFieldMaps {
+	
+		var retId string = eltFieldMap["Id"].(string)
+		var retWhen string = eltFieldMap["When"].(string)
+		var retUserId string = eltFieldMap["UserObjId"].(string)
+		var retScanConfigId string = eltFieldMap["ScanConfigId"].(string)
+		var retScore string = eltFieldMap["Score"].(string)
+		var retVulnerabilityDescs = eltFieldMap["VulnerabilityDescs"].([]interface{})
+		//var retVulnerabilityDescs = responseMap["VulnerabilityDescs"].([]map[string]interface{})
+		
+		testContext.AssertThat(retId != "", "Returned Id is empty")
+		testContext.AssertThat(retWhen != "", "Returned When is empty")
+		testContext.AssertThat(retUserId != "", "Returned UserId is empty")
+		testContext.AssertThat(retScanConfigId != "", "Returned ScanConfigId is empty")
+		testContext.AssertThat(retScore != "", "Returned Score is empty")
+		if testContext.AssertThat(len(retVulnerabilityDescs) > 0, "No vulnerabilities found") {
+		
+			var obj = retVulnerabilityDescs[0]
+			var isType bool
+			var vulnDesc map[string]interface{}
+			vulnDesc, isType = obj.(map[string]interface{})
+			if testContext.AssertThat(isType,
+				"Vulnerability description is an unexpected type: " + reflect.TypeOf(obj).String()) {
+				testContext.AssertThat(vulnDesc["VCE_ID"] != "",
+					"No VCE_ID value found for vulnerability")
+			}
 		}
 	}
 	
 	testContext.PassTestIfNoFailures()
-	return retScore
+	return eltFieldMaps
 }
 
 /*******************************************************************************
@@ -2166,7 +2189,6 @@ func (testContext *TestContext) TryGetScanConfigDesc(scanConfigId string,
 	var scanConfigIdIsType bool
 	if retScanConfigId, scanConfigIdIsType = responseMap["Id"].(string); (! scanConfigIdIsType) || (retScanConfigId == "") { testContext.FailTest() }
 	if retProviderName, isType := responseMap["ProviderName"].(string); (! isType) || (retProviderName == "") { testContext.FailTest() }
-	if retFlagId, isType := responseMap["FlagId"].(string); (! isType) || (retFlagId == "") { testContext.FailTest() }
 	if retParameterValueDescs, isType := responseMap["ScanParameterValueDescs"].([]interface{}); (! isType) || (retParameterValueDescs == nil) { testContext.FailTest() }
 	
 	testContext.PassTestIfNoFailures()

@@ -1361,18 +1361,32 @@ func TestScanConfigs(testContext *utils.TestContext) {
 	{
 		var realmId string
 		var repoId string
-		var dockerfile1Id string
-		var dockerfile2Id string
+		var dockerfile1Path, dockerfile2Path string
+		var dockerfile1Id, dockerfile2Id string
 		var mrscanneruserid string = "mrscanner"
 		var mrscannerpswd string = "abc"
 		
 		realmId, _, _ = testContext.TryCreateRealmAnon(
-			"SecureRealm", "SecureRealm Org", mrscanneruserid, "Mr. Scanner",
+			"securerealm", "SecureRealm Org", mrscanneruserid, "Mr. Scanner",
 			"mrscanner@gmail.com", mrscannerpswd)
 		
 		testContext.TryAuthenticate(mrscanneruserid, mrscannerpswd, true)
 		
 		repoId = testContext.TryCreateRepo(realmId, "repo1", "Repo in SecureRealm", "")
+		
+		var tempdir string
+		var err error
+		tempdir, err = utils.CreateTempDir()
+		if err != nil { testContext.AbortAllTests(err.Error()) }
+		dockerfile1Path, err = utils.CreateTempFile(tempdir, "Dockerfile1", "FROM centos\nRUN echo goo > oink")
+		if err != nil { testContext.AbortAllTests(err.Error()) }
+		defer os.Remove(dockerfile1Path)
+		dockerfile1Id = testContext.TryAddDockerfile(repoId, dockerfile1Path, "A gooey dockerfile")
+		
+		dockerfile2Path, err = utils.CreateTempFile(tempdir, "Dockerfile2", "FROM centos\nRUN echo shoo > oink")
+		if err != nil { testContext.AbortAllTests(err.Error()) }
+		defer os.Remove(dockerfile2Path)
+		dockerfile2Id = testContext.TryAddDockerfile(repoId, dockerfile2Path, "A shooey dockerfile")
 		
 		// Create two docker images.
 		_, dockerImage1Id = testContext.TryExecDockerfile(repoId,
@@ -1402,38 +1416,50 @@ func TestScanConfigs(testContext *utils.TestContext) {
 	//
 	{
 		// Link Image1 to A and B.
-		TryUseScanConfigForImage(dockerImage1Id, scanConfigAId)
-		TryUseScanConfigForImage(dockerImage1Id, scanConfigBId)
+		testContext.TryUseScanConfigForImage(dockerImage1Id, scanConfigAId)
+		testContext.TryUseScanConfigForImage(dockerImage1Id, scanConfigBId)
 		
 		// Link Image2 to A and C.
-		TryUseScanConfigForImage(dockerImage2Id, scanConfigAId)
-		TryUseScanConfigForImage(dockerImage2Id, scanConfigCId)
+		testContext.TryUseScanConfigForImage(dockerImage2Id, scanConfigAId)
+		testContext.TryUseScanConfigForImage(dockerImage2Id, scanConfigCId)
 		
 		// Unlink C from Image2: now 1 uses A, B and 2 uses only A.
-		TryStopUsingScanConfigForImage(dockerImage2Id, scanConfigCId)
+		testContext.TryStopUsingScanConfigForImage(dockerImage2Id, scanConfigCId)
 		
 		var scanConfigDescMap map[string]interface{}
-		scanConfigDescMap = TryGetScanConfigDesc(scanConfigAId, true)  // should be 1, 2.
-		var obj []interface{] = scanConfigDescMap["DockerImagesIdsThatUse"]
-		var ids []string
+		scanConfigDescMap = testContext.TryGetScanConfigDesc(scanConfigAId, true)  // should be 1, 2.
+		var obj interface{} = scanConfigDescMap["DockerImagesIdsThatUse"]
+		var objAr []interface{}
 		var isType bool
-		ids, isType = obj.([]string)
-		testContext.AssertThat(isType, "DockerImagesIdsThatUse is not a string array")
+		objAr, isType = obj.([]interface{})
+		testContext.AssertThat(isType, "DockerImagesIdsThatUse is not an array")
+		var ids []string = make([]string, len(objAr))
+		for i, obj := range objAr {
+			var isType bool
+			ids[i], isType = obj.(string)
+			testContext.AssertThat(isType, "DockerImagesIdsThatUse contains non-strings")
+		}
 		if testContext.AssertThat(len(ids) == 2, fmt.Sprintf(
 			"Wrong number of image Ids returned: %d", len(ids))) {
 		
-			testContext.AssertThat(apitypes.Contains(dockerImage1Id, ids)
-			testContext.AssertThat(apitypes.Contains(dockerImage2Id, ids)
+			testContext.AssertThat(utils.Contains(dockerImage1Id, ids), "Id not in image Id list")
+			testContext.AssertThat(utils.Contains(dockerImage2Id, ids), "Id not in image Id list")
 		}
 		
-		scanConfigDescMap = TryGetScanConfigDesc(scanConfigBId, true)  // should be 1.
+		scanConfigDescMap = testContext.TryGetScanConfigDesc(scanConfigBId, true)  // should be 1.
 		obj = scanConfigDescMap["DockerImagesIdsThatUse"]
-		ids, isType = obj.([]string)
-		testContext.AssertThat(isType, "DockerImagesIdsThatUse is not a string array")
+		objAr, isType = obj.([]interface{})
+		testContext.AssertThat(isType, "DockerImagesIdsThatUse is not an array")
+		ids = make([]string, len(objAr))
+		for i, obj := range objAr {
+			var isType bool
+			ids[i], isType = obj.(string)
+			testContext.AssertThat(isType, "DockerImagesIdsThatUse contains non-strings")
+		}
 		if testContext.AssertThat(len(ids) == 1, fmt.Sprintf(
 			"Wrong number of image Ids returned: %d", len(ids))) {
 		
-			testContext.AssertThat(apitypes.Contains(dockerImage1Id, ids)
+			testContext.AssertThat(utils.Contains(dockerImage1Id, ids), "Id not in image Id list")
 		}
 	}
 }
@@ -1846,7 +1872,11 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 	
 	// Test ability to scan a docker image.
 	{
-		testContext.TryScanImage(scanConfigId, dockerImage1Version1ObjId)
+		var scanEventDescs []map[string]interface{}
+		scanEventDescs = testContext.TryScanImage(scanConfigId, dockerImage1Version1ObjId)
+		testContext.AssertThat(len(scanEventDescs) == 1, "Wrong number of scan events")
+		
+		....Add more tests
 	}
 	
 	// Test ability to upload and exec a dockerfile in one command.
