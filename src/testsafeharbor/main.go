@@ -7,6 +7,7 @@ package main
 import (
 	"fmt"
 	//"net/http"
+	"net/url"
 	"os"
 	"flag"
 	"time"
@@ -1026,7 +1027,7 @@ func TestGetMy(testContext *utils.TestContext) {
 		realmZRepo2Id = testContext.TryCreateRepo(realmZId, "repo2", "Repo in realm z", "")
 		testContext.TryAddPermission(realmXJohnObjId, realmZRepo2Id, permissions)
 		
-		realmZRepo2DockerfileId = testContext.TryAddDockerfile(realmZRepo2Id, dockerfilePath,
+		realmZRepo2DockerfileId, _ = testContext.TryAddDockerfile(realmZRepo2Id, dockerfilePath,
 			"A dockerfile")
 		testContext.TryAddPermission(realmXJohnObjId, realmZRepo2DockerfileId, permissions)
 		
@@ -1141,7 +1142,7 @@ func TestAccessControl(testContext *utils.TestContext) {
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfilePath)
 		
-		dockerfileId = testContext.TryAddDockerfile(realmXRepo1Id, dockerfilePath,
+		dockerfileId, _ = testContext.TryAddDockerfile(realmXRepo1Id, dockerfilePath,
 			"A first dockerfile")
 	}
 	
@@ -1267,7 +1268,7 @@ func TestUpdateAndReplace(testContext *utils.TestContext) {
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfilePath)
 		
-		dockerfileId = testContext.TryAddDockerfile(realmXRepo1Id, dockerfilePath,
+		dockerfileId, _ = testContext.TryAddDockerfile(realmXRepo1Id, dockerfilePath,
 			"A first dockerfile")
 		
 		err = utils.DownloadFile(SealURL, flagImagePath, true)
@@ -1381,12 +1382,12 @@ func TestScanConfigs(testContext *utils.TestContext) {
 		dockerfile1Path, err = utils.CreateTempFile(tempdir, "Dockerfile1", "FROM centos\nRUN echo goo > oink")
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfile1Path)
-		dockerfile1Id = testContext.TryAddDockerfile(repoId, dockerfile1Path, "A gooey dockerfile")
+		dockerfile1Id, _ = testContext.TryAddDockerfile(repoId, dockerfile1Path, "A gooey dockerfile")
 		
 		dockerfile2Path, err = utils.CreateTempFile(tempdir, "Dockerfile2", "FROM centos\nRUN echo shoo > oink")
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfile2Path)
-		dockerfile2Id = testContext.TryAddDockerfile(repoId, dockerfile2Path, "A shooey dockerfile")
+		dockerfile2Id, _ = testContext.TryAddDockerfile(repoId, dockerfile2Path, "A shooey dockerfile")
 		
 		// Create two docker images.
 		_, dockerImage1Id = testContext.TryExecDockerfile(repoId,
@@ -1475,7 +1476,8 @@ func TestScanConfigs(testContext *utils.TestContext) {
 	// Test that one can specify multiple ScanConfigIds.
 	{
 		var scanEventDescs []map[string]interface{}
-		scanEventDescs = testContext.TryScanImage(scanConfigAId + "," + scanConfigBId, dockerImage2Id)
+		scanEventDescs = testContext.TryScanImage(
+			url.QueryEscape(scanConfigAId + "," + scanConfigBId), dockerImage2Id)
 		testContext.AssertThat(len(scanEventDescs) == 2, "Wrong number of scan events")
 	}
 }
@@ -1822,13 +1824,41 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 		dockerfilePath, err = utils.CreateTempFile(tempdir, "Dockerfile", "FROM centos\nRUN echo moo > oink")
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfilePath)
-		dockerfileId = testContext.TryAddDockerfile(realmXRepo1Id, dockerfilePath, "A fine dockerfile")
+		dockerfileId, _ = testContext.TryAddDockerfile(realmXRepo1Id, dockerfilePath, "A fine dockerfile")
 		
 		dockerfileParamPath, err = utils.CreateTempFile(tempdir, "DockerfileP",
-			"FROM centos\nARG param1\nRUN echo moo > $param1")
+			"FROM centos\nARG param1\nARG param2=abc def\nRUN echo $param2 > $param1")
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfileParamPath)
-		dockerfileParamId = testContext.TryAddDockerfile(realmXRepo1Id, dockerfileParamPath, "A parameterized dockerfile")
+		var dockerfileDescMap map[string]interface{}
+		dockerfileParamId, dockerfileDescMap = testContext.TryAddDockerfile(
+			realmXRepo1Id, dockerfileParamPath, "A parameterized dockerfile")
+		
+		// Check params that were returned.
+		// Should be an array of objects, each containing a Name and Value string field.
+		var objAr []interface{}
+		var isType bool
+		objAr, isType = dockerfileDescMap["ParameterValueDescs"].([]interface{})
+		testContext.AssertThat(isType, "ParameterValueDescs is not an array of interface")
+		var params = make(map[string]string)
+		for i, obj := range objAr {
+			var param = obj.(map[string]interface{})
+			if ! testContext.AssertThat(isType, fmt.Sprintf("Element %d is not a map[string]interface", i)) { continue }
+			var name = param["Name"].(string)
+			if testContext.AssertThat(name != "", "No Name for parameter") {
+				var value = param["Value"]
+				if testContext.AssertThat(value != "", "No Value for parameter") {
+					params[name] = value.(string)
+				}
+			}
+		}
+		var contains bool
+		_, contains = params["param1"]
+		testContext.AssertThat(contains, "Parameter param1 was not returned")
+		var param2Value string
+		param2Value, contains = params["param2"]
+		testContext.AssertThat(contains, "Parameter param2 was not returned")
+		testContext.AssertThat(param2Value == "abc def", "Parameter param2 had wrong value: '" + param2Value + "'")
 		
 		dockerfile2Path, err = utils.CreateTempFile(tempdir, "Dockerfile2", "FROM centos\nRUN echo boo > ploink")
 		if err != nil { testContext.AbortAllTests(err.Error()) }

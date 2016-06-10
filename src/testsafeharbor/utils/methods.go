@@ -446,10 +446,11 @@ func (testContext *TestContext) TryCreateRepo(realmId string, name string,
 
 /*******************************************************************************
  * Verify that we can upload a dockerfile. This requries that we first created
- * a repo to uplaod it into.
+ * a repo to uplaod it into. Returns the Id of the dockerfile, and a map of the
+ * fields of the DockerfileDesc.
  */
 func (testContext *TestContext) TryAddDockerfile(repoId string, dockerfilePath string,
-	desc string) string {
+	desc string) (string, map[string]interface{}) {
 	
 	testContext.StartTest("TryAddDockerfile")
 	fmt.Println("\t", dockerfilePath)
@@ -460,7 +461,7 @@ func (testContext *TestContext) TryAddDockerfile(repoId string, dockerfilePath s
 		[]string{"Log", "RepoId", "Description"},
 		[]string{testContext.TestDemarcation(), repoId, desc},
 		dockerfilePath)
-	if ! testContext.AssertErrIsNil(err, "") { return "" }
+	if ! testContext.AssertErrIsNil(err, "") { return "", nil }
 	
 	defer resp.Body.Close()
 
@@ -469,7 +470,7 @@ func (testContext *TestContext) TryAddDockerfile(repoId string, dockerfilePath s
 	// Get the DockerfileDesc that is returned.
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
-	if err != nil { fmt.Println(err.Error()); return "" }
+	if err != nil { fmt.Println(err.Error()); return "", nil }
 	var dockerfileId string = responseMap["Id"].(string)
 	var dockerfileName string = responseMap["Name"].(string)
 	rest.PrintMap(responseMap)
@@ -477,7 +478,7 @@ func (testContext *TestContext) TryAddDockerfile(repoId string, dockerfilePath s
 	testContext.AssertThat(dockerfileName != "", "Dockerfile Name not found in response body")
 	
 	testContext.PassTestIfNoFailures()
-	return dockerfileId
+	return dockerfileId, responseMap
 }
 
 /*******************************************************************************
