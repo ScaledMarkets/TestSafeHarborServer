@@ -1800,7 +1800,7 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 	var dockerfile2ParamPath string
 	var dockerfileId string
 	var dockerfileParamId string
-	//var dockerfile2ParamId string
+	var dockerfile2ParamId string
 	var dockerfile2Path string
 	var dockerfile3Path string
 	//var dockerfile2Id string
@@ -1840,7 +1840,7 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfile2ParamPath)
 		var dockerfile2ParamDescMap map[string]interface{}
-		_, dockerfile2ParamDescMap = testContext.TryAddDockerfile(
+		dockerfile2ParamId, dockerfile2ParamDescMap = testContext.TryAddDockerfile(
 			realmXRepo1Id, dockerfile2ParamPath, "A dockerfile with two params")
 		
 		// Check params that were returned.
@@ -1867,7 +1867,7 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 		var param2Value string
 		param2Value, contains = params["param2"]
 		testContext.AssertThat(contains, "Parameter param2 was not returned")
-		testContext.AssertThat(param2Value == "abc def", "Parameter param2 had wrong value: '" + param2Value + "'")
+		testContext.AssertThat(param2Value == "\"abc def\"", "Parameter param2 had wrong value: '" + param2Value + "'")
 		
 		dockerfile2Path, err = utils.CreateTempFile(tempdir, "Dockerfile2", "FROM centos\nRUN echo boo > ploink")
 		if err != nil { testContext.AbortAllTests(err.Error()) }
@@ -1919,7 +1919,7 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 	{
 		var imageObjId string
 		_, imageObjId = testContext.TryExecDockerfile(realmXRepo1Id,
-			dockerfileParamId, "my2paramimage", []string{ "param1", "param2" },
+			dockerfile2ParamId, "my2paramimage", []string{ "param1", "param2" },
 			[]string{ "abc", "def" })
 		if testContext.AssertThat(imageObjId != "", "No image obj Id returned") {
 			var imageInfo map[string]interface{}
@@ -1940,13 +1940,14 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 	// Test ability to list the images in a repo.
 	{
 		var imageNames []string = testContext.TryGetDockerImages(realmXRepo1Id)
-		testContext.AssertThat(len(imageNames) == 2, "Wrong number of images")
+		testContext.AssertThat(len(imageNames) == 3, fmt.Sprintf(
+			"Wrong number of images: %d", len(imageNames)))
 	}
 	
 	// Test abilty to get the current logged in user's docker images.
 	{
 		var myDockerImageIds []string = testContext.TryGetMyDockerImages()
-		testContext.AssertThat(len(myDockerImageIds) == 2, "Wrong number of docker images")
+		testContext.AssertThat(len(myDockerImageIds) == 3, "Wrong number of docker images")
 	}
 	
 	// Test ability to scan a docker image.
@@ -1990,26 +1991,26 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 	// Test ability of a user to to retrieve the user's docker images.
 	{
 		var imageIds []string = testContext.TryGetMyDockerImages()
-		testContext.AssertThat(len(imageIds) == 3, "Wrong number of docker images")
+		testContext.AssertThat(len(imageIds) == 4, "Wrong number of docker images")
 	}
 
 	// Test ability to get the events for a specified user, including docker build events.
 	{
 		var eventIds []string = testContext.TryGetUserEvents(realmXAdminObjId)
-		testContext.AssertThat(len(eventIds) == 4, "Wrong number of user events")
+		testContext.AssertThat(len(eventIds) == 5, "Wrong number of user events")
 			// Should be one scan event and two dockerfile exec events.
 	}
 	
 	// Test ability to get the events for a specified docker image.
 	{
 		var eventIds []string = testContext.TryGetDockerImageEvents(dockerImage1ObjId)
-		testContext.AssertThat(len(eventIds) == 1,
+		testContext.AssertThat(len(eventIds) == 2,
 			fmt.Sprintf("Wrong number of image events: it is %d", len(eventIds)))
 			// Should be one scan event.
 		
 		// Try for an image version.
 		eventIds = testContext.TryGetDockerImageEvents(dockerImage1Version1ObjId)
-		testContext.AssertThat(len(eventIds) == 1,
+		testContext.AssertThat(len(eventIds) == 2,
 			fmt.Sprintf("Wrong number of image events: it is %d", len(eventIds)))
 	}
 	
