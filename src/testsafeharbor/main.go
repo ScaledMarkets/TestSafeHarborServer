@@ -1793,13 +1793,14 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 	var realmXAdminObjId string
 	var realmXRepo1Id string
 	var dockerImage1ObjId string
-	var dockerImage2ObjId string
 	var dockerImage1Version1ObjId string
 	var scanConfigId string
 	var dockerfilePath string
 	var dockerfileParamPath string
+	var dockerfile2ParamPath string
 	var dockerfileId string
 	var dockerfileParamId string
+	//var dockerfile2ParamId string
 	var dockerfile2Path string
 	var dockerfile3Path string
 	//var dockerfile2Id string
@@ -1827,19 +1828,29 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 		dockerfileId, _ = testContext.TryAddDockerfile(realmXRepo1Id, dockerfilePath, "A fine dockerfile")
 		
 		dockerfileParamPath, err = utils.CreateTempFile(tempdir, "DockerfileP",
-			"FROM centos\nARG param1\nARG param2=abc def\nRUN echo $param2 > $param1")
+			"FROM centos\nARG param1=\"good doggy\"\nRUN echo $param1 > doggy.txt")
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfileParamPath)
-		var dockerfileDescMap map[string]interface{}
-		dockerfileParamId, dockerfileDescMap = testContext.TryAddDockerfile(
+		//var dockerfileParamDescMap map[string]interface{}
+		dockerfileParamId, _ = testContext.TryAddDockerfile(
 			realmXRepo1Id, dockerfileParamPath, "A parameterized dockerfile")
+		
+		dockerfile2ParamPath, err = utils.CreateTempFile(tempdir, "Dockerfile2P",
+			"FROM centos\nARG param1\nARG param2=\"abc def\"\nRUN echo $param2 > $param1")
+		if err != nil { testContext.AbortAllTests(err.Error()) }
+		defer os.Remove(dockerfile2ParamPath)
+		var dockerfile2ParamDescMap map[string]interface{}
+		_, dockerfile2ParamDescMap = testContext.TryAddDockerfile(
+			realmXRepo1Id, dockerfile2ParamPath, "A dockerfile with two params")
 		
 		// Check params that were returned.
 		// Should be an array of objects, each containing a Name and Value string field.
 		var objAr []interface{}
 		var isType bool
-		objAr, isType = dockerfileDescMap["ParameterValueDescs"].([]interface{})
-		testContext.AssertThat(isType, "ParameterValueDescs is not an array of interface")
+		objAr, isType = dockerfile2ParamDescMap["ParameterValueDescs"].([]interface{})
+		testContext.AssertThat(isType,
+			"ParameterValueDescs is not an array of interface: it is a " +
+			reflect.TypeOf(dockerfile2ParamDescMap["ParameterValueDescs"]).String())
 		var params = make(map[string]string)
 		for i, obj := range objAr {
 			var param = obj.(map[string]interface{})
@@ -1847,9 +1858,7 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 			var name = param["Name"].(string)
 			if testContext.AssertThat(name != "", "No Name for parameter") {
 				var value = param["Value"]
-				if testContext.AssertThat(value != "", "No Value for parameter") {
-					params[name] = value.(string)
-				}
+				params[name] = value.(string)
 			}
 		}
 		var contains bool
@@ -1884,13 +1893,15 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 		testContext.AssertThat(dockerImage1ObjId != "", "No image obj Id returned")
 	}
 	
-	// Test ability to build image from a parameterized dockerfile.
+	// Test ability to build image from a dockerfile that takes one parameter.
 	{
-		_, dockerImage2ObjId = testContext.TryExecDockerfile(realmXRepo1Id,
-			dockerfileParamId, "myparamimage", []string{ "param1" }, []string{ "abc" })
-		if testContext.AssertThat(dockerImage2ObjId != "", "No image obj Id returned") {
+		var imageObjId string
+		_, imageObjId = testContext.TryExecDockerfile(realmXRepo1Id,
+			dockerfileParamId, "myparamimage", []string{ "param1" },
+			[]string{ "abc" })
+		if testContext.AssertThat(imageObjId != "", "No image obj Id returned") {
 			var imageInfo map[string]interface{}
-			imageInfo = testContext.TryGetDockerImageDesc(dockerImage2ObjId, true)
+			imageInfo = testContext.TryGetDockerImageDesc(imageObjId, true)
 			if testContext.AssertThat(imageInfo != nil, "No image info") {
 				var obj = imageInfo["Name"]
 				var name string
@@ -1898,6 +1909,28 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 				name, isType = obj.(string)
 				if testContext.AssertThat(isType, "No string value for Name in image desc") {
 					testContext.AssertThat(name == "myparamimage",
+						"Image has wrong name: " + name)
+				}
+			}
+		}
+	}
+	
+	// Test ability to build image from a dockerfile that takes two parameters.
+	{
+		var imageObjId string
+		_, imageObjId = testContext.TryExecDockerfile(realmXRepo1Id,
+			dockerfileParamId, "my2paramimage", []string{ "param1", "param2" },
+			[]string{ "abc", "def" })
+		if testContext.AssertThat(imageObjId != "", "No image obj Id returned") {
+			var imageInfo map[string]interface{}
+			imageInfo = testContext.TryGetDockerImageDesc(imageObjId, true)
+			if testContext.AssertThat(imageInfo != nil, "No image info") {
+				var obj = imageInfo["Name"]
+				var name string
+				var isType bool
+				name, isType = obj.(string)
+				if testContext.AssertThat(isType, "No string value for Name in image desc") {
+					testContext.AssertThat(name == "my2paramimage",
 						"Image has wrong name: " + name)
 				}
 			}
