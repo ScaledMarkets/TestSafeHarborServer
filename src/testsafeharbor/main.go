@@ -44,6 +44,7 @@ func main() {
 		"ScanConfigs": TestScanConfigs,
 		"GetMy": TestGetMy,
 		"AccessControl": TestAccessControl,
+		"EmailVerification": TestEmailIdentityVerification, 
 		"UpdateAndReplace": TestUpdateAndReplace,
 		"Delete": TestDelete,
 		"DockerFunctions": TestDockerFunctions,
@@ -1204,6 +1205,26 @@ func TestAccessControl(testContext *utils.TestContext) {
 	// Test that only the special user "HighTrustClient" can call userExists.
 	{
 		//testContext.TryUserExists(false, realmXAdminUserId)
+	}
+}
+
+/*******************************************************************************
+ * Test email based identity verification.
+ * This test must be completed manually, via the user checking email and
+ * clicking on the link in the email.
+ */
+func TestEmailIdentityVerification(testContext *utils.TestContext) {
+
+	fmt.Println("\nTest suite TestEmailIdentityVerification------------------\n")
+
+	defer testContext.TryClearAll()
+
+	// Test email based identity verification.
+	{
+		testContext.TryEnableEmailVerification(true)
+		var userObjId string
+		userObjId, _ = testContext.TryCreateUser(realmXJohnUserId, "Cromarti",
+			"cromarti@gmail.com", "cromartiPswd", realmXId)
 	}
 }
 

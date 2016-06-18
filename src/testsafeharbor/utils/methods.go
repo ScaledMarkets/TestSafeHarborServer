@@ -2695,6 +2695,55 @@ func (testContext *TestContext) TryStopUsingScanConfigForImage(dockerImageId, sc
 /*******************************************************************************
  * 
  */
+func (testContext *TestContext) TryEnableEmailVerification(enabled bool) {
+	testContext.StartTest("TryEnableEmailVerification")
+	
+	var resp *http.Response
+	var err error
+	var flag string
+	if enabled {
+		flag = "true"
+	} else {
+		flag = "false"
+	}
+	
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
+		"enableEmailVerification",
+		[]string{"Log", "VerificationEnabled"},
+		[]string{testContext.TestDemarcation(), flag})
+	if ! testContext.AssertErrIsNil(err, "") { return }
+	
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	testContext.PassTestIfNoFailures()
+}
+
+/*******************************************************************************
+ * 
+ */
+func (testContext *TestContext) TryValidateAccountVerificationToken(token string,
+	expectSuccess bool) {
+	testContext.StartTest("TryValidateAccountVerificationToken")
+	
+	var resp *http.Response
+	var err error
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
+		"validateAccountVerificationToken",
+		[]string{"Log", "AccountVerificationToken"},
+		[]string{testContext.TestDemarcation(), token})
+	if ! testContext.AssertErrIsNil(err, "") { return }
+	
+	if expectSuccess {
+		if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	} else {
+		testContext.AssertThat(resp.StatusCode == 404, "Incorrect status")
+	}
+	
+	testContext.PassTestIfNoFailures()
+}
+
+/*******************************************************************************
+ * 
+ */
 func (testContext *TestContext) TryClearAll() {
 	testContext.StartTest("TryClearAll")
 	
