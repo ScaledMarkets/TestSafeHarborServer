@@ -1227,6 +1227,38 @@ func (testContext *TestContext) TryCreateRealmAnon(realmName, orgFullName, admin
 }
 
 /*******************************************************************************
+ * 
+ */
+func (testContext *TestContext) TryGetRealmByName(realmName string) map[string]interface{} {
+
+	testContext.StartTest("TryGetRealmByName")
+	
+	var resp *http.Response
+	var err error
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
+		"getRealmByName",
+		[]string{"Log", "RealmName"},
+		[]string{testContext.TestDemarcation(), realmName})
+	
+	defer resp.Body.Close()
+
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	
+	var responseMap map[string]interface{}
+	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
+	if err != nil { fmt.Println(err.Error()); return nil }
+	rest.PrintMap(responseMap)
+	
+	var retId string
+	var isType bool
+	retId, isType = responseMap["Id"].(string)
+	testContext.AssertThat(isType, "Id is not a string")
+	testContext.AssertThat(retId != "", "Id is empty")
+	
+	return responseMap
+}
+
+/*******************************************************************************
  * Returns the permissions that resulted.
  */
 func (testContext *TestContext) TrySetPermission(partyId, resourceId string,

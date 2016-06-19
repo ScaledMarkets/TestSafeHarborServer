@@ -44,7 +44,8 @@ func main() {
 		"ScanConfigs": TestScanConfigs,
 		"GetMy": TestGetMy,
 		"AccessControl": TestAccessControl,
-		"EmailVerification": TestEmailIdentityVerification, 
+		"EmailVerificationStep1": TestEmailIdentityVerificationStep1, 
+		"EmailVerificationStep2": TestEmailIdentityVerificationStep2, 
 		"UpdateAndReplace": TestUpdateAndReplace,
 		"Delete": TestDelete,
 		"DockerFunctions": TestDockerFunctions,
@@ -1209,22 +1210,104 @@ func TestAccessControl(testContext *utils.TestContext) {
 }
 
 /*******************************************************************************
- * Test email based identity verification.
- * This test must be completed manually, via the user checking email and
- * clicking on the link in the email.
+ * Test email based identity verification - step 1.
  */
-func TestEmailIdentityVerification(testContext *utils.TestContext) {
+var TestEmailIdentityVerificationStep1Explanation = `
+Test email based identity verification.
+This test must be completed manually, via the user checking email and
+clicking on the link in the email. To run this test,
+	1. Make sure that server has been started with the -toggleemail option and
+		without the -noauthorization option.
+	2. Run the test.
+	3. Check the email account "cliff_cromarti@cliffberg.com". (If no email, then fail.)
+	4. Click on the link in the email.
+	5. Perform test TestEmailIdentityVerificationStep2. (Do not restart the server
+		inbetween steps 1 and 2.)
 
-	fmt.Println("\nTest suite TestEmailIdentityVerification------------------\n")
+`
+func TestEmailIdentityVerificationStep1(testContext *utils.TestContext) {
 
-	defer testContext.TryClearAll()
+	fmt.Println("\nTest suite TestEmailIdentityVerificationStep1------------------\n")
+	fmt.Println(TestEmailIdentityVerificationStep1Explanation)
 
+	// -------------------------------------
+	// Test setup:
+
+	var realmXId string
+	var realmXAdminUserId = "realmXadmin"
+	var realmXAdminPswd = "fluffy"
+	
+	{
+		realmXId, _, _ = testContext.TryCreateRealmAnon(
+			"verifrealm", "Email Verification Realm", realmXAdminUserId,
+			"verifrealm Admin Full Name", "admin_verifrealm@cliffberg.com", realmXAdminPswd)
+		
+		testContext.TryAuthenticate(realmXAdminUserId, realmXAdminPswd, true)
+		
+		// Give 
+	}
+	
 	// Test email based identity verification.
 	{
 		testContext.TryEnableEmailVerification(true)
+		defer testContext.TryEnableEmailVerification(false)
+		
 		var userObjId string
-		userObjId, _ = testContext.TryCreateUser(realmXJohnUserId, "Cromarti",
-			"cromarti@gmail.com", "cromartiPswd", realmXId)
+		userObjId, _ = testContext.TryCreateUser("cromarti", "Cromarti",
+			"cromarti_verifrealm@cliffberg.com", "cromartiPswd", realmXId)
+		
+		// Give the user permission to modify the realm.
+		var perms []bool = []bool{true, true, true, true, true}
+		var retPerms []bool = testContext.TryAddPermission(userObjId, realmXId, perms)
+		if retPerms != nil {
+			var expectedPerms []bool = []bool{true, true, true, true, true}
+			for i, p := range retPerms {
+				testContext.AssertThat(p == expectedPerms[i], "Returned permission does not match")
+			}
+		}
+	}
+}
+
+/*******************************************************************************
+ * Test email based identity verification - step 2.
+ */
+func TestEmailIdentityVerificationStep2(testContext *utils.TestContext) {
+	
+	fmt.Println("\nTest suite TestEmailIdentityVerificationStep2------------------\n")
+	
+	defer testContext.TryClearAll()
+	
+	// -------------------------------------
+	// Test setup:
+
+	var realmXId string
+
+	{
+		// Identify the realm.
+		var realmDescMap map[string]interface{}
+		realmDescMap = testContext.TryGetRealmByName("verifrealm")
+		var isType bool
+		realmXId, isType = realmDescMap["Id"].(string)
+		testContext.AssertThat(isType, "Id is not a string")
+	}
+	
+	// Test that the user created by TestEmailIdentityVerificationStep1 can perform
+	// actions that only a verified user can perform.
+	{
+		testContext.TryAuthenticate("cromarti", "cromartiPswd", true)
+		
+		var userDesc map[string]interface{}
+		userDesc = testContext.TryGetUserDesc("cromarti")
+		var obj interface{} = userDesc["EmailIsVerified"]
+		var isVerified bool
+		var isType bool
+		isVerified, isType = obj.(bool)
+		if testContext.AssertThat(isType, "Field EmailIsVerified is not bool") {
+			testContext.AssertThat(isVerified, "EmailIsVerified is false")
+		}
+		
+		testContext.TryCreateRepo(realmXId, "arepo",
+			"a fine repo for email verification", "")
 	}
 }
 
