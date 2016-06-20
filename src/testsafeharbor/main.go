@@ -138,15 +138,19 @@ func TestEmail(testContext *utils.TestContext) {
 	}
 	
 	{
+		fmt.Println("Creating EmailService...")
 		emailService, err = utils.CreateEmailService(emailConfigMap)
 		testContext.AssertErrIsNil(err, "When instantiating email service")
 	}
 	
 	// Tests
 	{
+		fmt.Println("sending message...")
 		err = emailService.SendEmail("cliff@cliffberg.com", "This is a message")
 		testContext.AssertErrIsNil(err, "When calling SendMail")
 	}
+	
+	fmt.Println("Done")
 }
 
 /*******************************************************************************
