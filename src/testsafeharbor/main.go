@@ -129,7 +129,7 @@ func TestEmail(testContext *utils.TestContext) {
 	
 	var emailService *utils.EmailService
 	var err error
-	var emailConfigMap = map[string]interface{
+	var emailConfigMap = map[string]interface{}{
 		"SES_SMTP_hostname": "email-smtp.us-west-2.amazonaws.com",
 		"SES_SMTP_Port": 465,
 		"SenderAddress": "cliff_test@cliffberg.com",
@@ -144,7 +144,7 @@ func TestEmail(testContext *utils.TestContext) {
 	
 	// Tests
 	{
-		err = emailSvc.SendEmail("cliff@cliffberg.com", "This is a message")
+		err = emailService.SendEmail("cliff@cliffberg.com", "This is a message")
 		testContext.AssertErrIsNil(err, "When calling SendMail")
 	}
 }
