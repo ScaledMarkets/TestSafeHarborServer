@@ -1,6 +1,6 @@
 # Makefile for building the tests for Safe Harbor Server.
 
-SHHOST=52.25.12.224
+SHHOST=52.35.175.80
 SHPORT=6000
 
 PRODUCTNAME=Safe Harbor Server
@@ -98,6 +98,11 @@ runall:
 		-h=$(SHHOST) -p=$(SHPORT) \
 		-tests="CreateRealmsAndUsers,CreateResources,CreateGroups,GetMy,AccessControl,UpdateAndReplace,Delete"
 #		-tests="CreateRealmsAndUsers,CreateResources,CreateGroups,GetMy,AccessControl,UpdateAndReplace,Delete,DockerFunctions"
+
+# Test email service.
+testemail:
+	bin/testsafeharbor -stop \
+		-tests="Email"
 
 # Run redis tests.
 runredis:
