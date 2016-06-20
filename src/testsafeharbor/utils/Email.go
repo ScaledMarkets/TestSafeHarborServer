@@ -13,12 +13,17 @@ import (
 func (emailSvc *EmailService) SendEmail(emailAddress string, message string) error {
 	
 	var tLSServerName = emailSvc.SES_SMTP_hostname
+	fmt.Println("SendEmail: A")  // debug
 	var auth smtp.Auth = smtp.PlainAuth("", emailSvc.SenderUserId, emailSvc.SenderPassword, tLSServerName)
+	fmt.Println("SendEmail: B")  // debug
 
 	var serverHost = emailSvc.SES_SMTP_hostname
 	var toAddress = []string{ emailAddress }
-	return smtp.SendMail(serverHost + ":" + fmt.Sprintf("%d", emailSvc.SES_SMTP_Port),
+	fmt.Println("SendEmail: C")  // debug
+	var err = smtp.SendMail(serverHost + ":" + fmt.Sprintf("%d", emailSvc.SES_SMTP_Port),
 		auth, emailSvc.SenderAddress, toAddress, []byte(message))
+	fmt.Println("SendEmail: D")  // debug
+	return err
 }
 
 func CreateEmailService(emailConfig map[string]interface{}) (*EmailService, error) {
