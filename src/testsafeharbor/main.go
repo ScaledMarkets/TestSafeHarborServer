@@ -131,7 +131,7 @@ func TestEmail(testContext *utils.TestContext) {
 	var err error
 	var emailConfigMap = map[string]interface{}{
 		"SES_SMTP_hostname": "email-smtp.us-west-2.amazonaws.com",
-		"SES_SMTP_Port": 465,
+		"SES_SMTP_Port": 465.0,
 		"SenderAddress": "cliff_test@cliffberg.com",
 		"SenderUserId": "AKIAI2FOYVEKGEZXKX6A",
 		"SenderPassword": "Amcjxs1E9+mFH06zM38SoyeOMfmG5sy77OC3y6ifhSJ3",
