@@ -19,9 +19,9 @@ func (emailSvc *EmailService) SendEmail(emailAddress string, message string) err
 
 	var serverHost = emailSvc.SES_SMTP_hostname
 	var toAddress = []string{ emailAddress }
-	fmt.Println("SendEmail: C")  // debug
-	var err = smtp.SendMail(serverHost + ":" + fmt.Sprintf("%d", emailSvc.SES_SMTP_Port),
-		auth, emailSvc.SenderAddress, toAddress, []byte(message))
+	var hostAndPort = serverHost + ":" + fmt.Sprintf("%d", emailSvc.SES_SMTP_Port)
+	fmt.Println("SendEmail: C; hostAndPort=" + hostAndPort)  // debug
+	var err = smtp.SendMail(hostAndPort, auth, emailSvc.SenderAddress, toAddress, []byte(message))
 	fmt.Println("SendEmail: D")  // debug
 	return err
 }
