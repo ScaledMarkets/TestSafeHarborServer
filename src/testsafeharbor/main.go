@@ -32,6 +32,7 @@ const (
 func main() {
 	
 	var testSuite = map[string]func(*utils.TestContext) {
+		"Email": TestEmail,
 		"DockSvcs": TestDockerServices,
 		"Registry": TestDockerRegistry,
 		"Engine": TestDockerEngine,
@@ -114,6 +115,38 @@ func main() {
 		fmt.Print(testName)
 	}
 	fmt.Println()
+}
+
+/*******************************************************************************
+ * 
+ */
+func TestEmail(testContext *utils.TestContext) {
+	
+	fmt.Println("\nTest suite TestEmail------------------\n")
+
+	// -------------------------------------
+	// Test setup:
+	
+	var emailService *utils.EmailService
+	var err error
+	var emailConfigMap = map[string]interface{
+		"SES_SMTP_hostname": "email-smtp.us-west-2.amazonaws.com",
+		"SES_SMTP_Port": 465,
+		"SenderAddress": "cliff_test@cliffberg.com",
+		"SenderUserId": "AKIAI2FOYVEKGEZXKX6A",
+		"SenderPassword": "Amcjxs1E9+mFH06zM38SoyeOMfmG5sy77OC3y6ifhSJ3",
+	}
+	
+	{
+		emailService, err = utils.CreateEmailService(emailConfigMap)
+		testContext.AssertErrIsNil(err, "When instantiating email service")
+	}
+	
+	// Tests
+	{
+		err = emailSvc.SendEmail("cliff@cliffberg.com", "This is a message")
+		testContext.AssertErrIsNil(err, "When calling SendMail")
+	}
 }
 
 /*******************************************************************************
