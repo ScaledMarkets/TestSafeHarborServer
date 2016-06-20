@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/smtp"
 	"math"
+	"reflect"
 	
 	// SafeHarbor packages:
 )
@@ -36,7 +37,8 @@ func CreateEmailService(emailConfig map[string]interface{}) (*EmailService, erro
 	obj, exists = emailConfig["SES_SMTP_Port"]
 	if ! exists { return nil, ConstructUserError("No SES_SMTP_Port") }
 	fport, isType = obj.(float64)
-	if ! isType { return nil, ConstructUserError("SES_SMTP_Port is not a number") }
+	if ! isType { return nil, ConstructUserError(
+		"SES_SMTP_Port is not a number: it is a " + reflect.TypeOf(obj).String()) }
 	if math.Ceil(fport) != fport { return nil, ConstructUserError("Fractional number for SES_SMTP_Port") }
 	var port int = int(fport)
 	
