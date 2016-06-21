@@ -10,7 +10,7 @@ import (
 )
 
 // http://docs.aws.amazon.com/ses/latest/DeveloperGuide/smtp-connect.html
-func (emailSvc *EmailService) SendEmail(emailAddress string, message string) error {
+func (emailSvc *EmailService) SendEmail(emailAddress string, subject, message string) error {
 	
 	var tLSServerName = emailSvc.SES_SMTP_hostname
 	fmt.Println("SendEmail: A")  // debug
@@ -21,7 +21,11 @@ func (emailSvc *EmailService) SendEmail(emailAddress string, message string) err
 	var toAddress = []string{ emailAddress }
 	var hostAndPort = serverHost + ":" + fmt.Sprintf("%d", emailSvc.SES_SMTP_Port)
 	fmt.Println("SendEmail: C; hostAndPort=" + hostAndPort)  // debug
-	var err = smtp.SendMail(hostAndPort, auth, emailSvc.SenderAddress, toAddress, []byte(message))
+	
+	var fullMsg = []byte("To: " + emailAddress + "\r\n" +
+		"Subject: " + subject + "\r\n\r\n" + message + "\r\n")
+	
+	var err = smtp.SendMail(hostAndPort, auth, emailSvc.SenderAddress, toAddress, fullMsg)
 	fmt.Println("SendEmail: D")  // debug
 	return err
 }

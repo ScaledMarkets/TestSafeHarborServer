@@ -146,7 +146,7 @@ func TestEmail(testContext *utils.TestContext) {
 	// Tests
 	{
 		fmt.Println("Sending message...")
-		err = emailService.SendEmail("cliff@cliffberg.com", "This is a message")
+		err = emailService.SendEmail("cliff@cliffberg.com", "a message", "This is a message")
 		fmt.Println("...message sent.")
 		testContext.AssertErrIsNil(err, "When calling SendMail")
 	}
