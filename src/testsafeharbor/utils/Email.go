@@ -22,7 +22,12 @@ func (emailSvc *EmailService) SendEmail(emailAddress string, subject, message st
 	var hostAndPort = serverHost + ":" + fmt.Sprintf("%d", emailSvc.SES_SMTP_Port)
 	fmt.Println("SendEmail: C; hostAndPort=" + hostAndPort)  // debug
 	
-	var fullMsg = []byte("To: " + emailAddress + "\r\n" +
+	var fullMsg = []byte(
+		"To: " + emailAddress + "\r\n" +
+		"From " + emailSvc.SenderAddress + "\r\n" +
+		"Source" + emailSvc.SenderAddress + "\r\n" +
+		"Sender" + emailSvc.SenderAddress + "\r\n" +
+		"Return-Path" + emailSvc.SenderAddress + "\r\n" +
 		"Subject: " + subject + "\r\n\r\n" + message + "\r\n")
 	
 	var err = smtp.SendMail(hostAndPort, auth, emailSvc.SenderAddress, toAddress, fullMsg)
