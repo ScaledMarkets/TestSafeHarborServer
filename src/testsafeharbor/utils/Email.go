@@ -13,22 +13,32 @@ import (
 // For limit increase: https://console.aws.amazon.com/support/home?region=us-east-1#/case/create?issueType=service-limit-increase&limitType=service-code-ses
 func (emailSvc *EmailService) SendEmail(emailAddress string, subject, message string) error {
 	
+	fmt.Println("SendEmail: A")  // debug
+	
 	var tLSServerName = emailSvc.SES_SMTP_hostname
 	var auth smtp.Auth = smtp.PlainAuth("", emailSvc.SenderUserId, emailSvc.SenderPassword, tLSServerName)
+	fmt.Println("SendEmail: B")  // debug
 
 	var serverHost = emailSvc.SES_SMTP_hostname
 	var toAddress = []string{ emailAddress }
 	var hostAndPort = serverHost + ":" + fmt.Sprintf("%d", emailSvc.SES_SMTP_Port)
+	fmt.Println("SendEmail: C")  // debug
 	
 	var fullMsg = []byte(
 		"To: " + emailAddress + "\r\n" +
-		"From " + emailSvc.SenderAddress + "\r\n" +
-		"Source" + emailSvc.SenderAddress + "\r\n" +
-		"Sender" + emailSvc.SenderAddress + "\r\n" +
-		"Return-Path" + emailSvc.SenderAddress + "\r\n" +
+		"From: " + emailSvc.SenderAddress + "\r\n" +
+		"Source: " + emailSvc.SenderAddress + "\r\n" +
+		"Sender: " + emailSvc.SenderAddress + "\r\n" +
+		"Return-Path: " + emailSvc.SenderAddress + "\r\n" +
 		"Subject: " + subject + "\r\n\r\n" + message + "\r\n")
 	
+	fmt.Println("SendEmail: D")  // debug
 	var err = smtp.SendMail(hostAndPort, auth, emailSvc.SenderAddress, toAddress, fullMsg)
+	fmt.Println("SendEmail: E")  // debug
+	if err == nil { fmt.Println(
+		"Sent email from " + emailSvc.SenderAddress + " to " + emailAddress +
+		" on host/port " + hostAndPort) } // debug
+	if err != nil { fmt.Println("SendEmail: when calling SendMail: " + err.Error()) } // debug
 	return err
 }
 
