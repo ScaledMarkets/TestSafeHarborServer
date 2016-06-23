@@ -145,8 +145,10 @@ func TestEmail(testContext *utils.TestContext) {
 	
 	// Tests
 	{
+		testContext.StartTest("Calling SendEmail...")
 		fmt.Println("Sending message...")
-		err = emailService.SendEmail("cliff@cliffberg.com", "a message", "This is a message")
+		err = emailService.SendEmail("cliff_cromarti@cliffberg.com",
+			"testing email service", "This is a test of the email service")
 		fmt.Println("...message sent.")
 		testContext.AssertErrIsNil(err, "When calling SendMail")
 	}
@@ -1257,7 +1259,7 @@ clicking on the link in the email. To run this test,
 	1. Make sure that server has been started with the -toggleemail option and
 		without the -noauthorization option.
 	2. Run the test.
-	3. Check the email account "cliff_cromarti@cliffberg.com". (If no email, then fail.)
+	3. Check the email account "cromarti_verifrealm@cliffberg.com". (If no email, then fail.)
 	4. Click on the link in the email.
 	5. Perform test TestEmailIdentityVerificationStep2. (Do not restart the server
 		inbetween steps 1 and 2.)
@@ -1292,7 +1294,8 @@ func TestEmailIdentityVerificationStep1(testContext *utils.TestContext) {
 		
 		var userObjId string
 		userObjId, _ = testContext.TryCreateUser("cromarti", "Cromarti",
-			"cromarti_verifrealm@cliffberg.com", "cromartiPswd", realmXId)
+			"cliff@cliffberg.com", "cromartiPswd", realmXId)
+			//"cromarti_verifrealm@cliffberg.com", "cromartiPswd", realmXId)
 		
 		// Give the user permission to modify the realm.
 		var perms []bool = []bool{true, true, true, true, true}

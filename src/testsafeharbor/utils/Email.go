@@ -10,17 +10,15 @@ import (
 )
 
 // http://docs.aws.amazon.com/ses/latest/DeveloperGuide/smtp-connect.html
+// For limit increase: https://console.aws.amazon.com/support/home?region=us-east-1#/case/create?issueType=service-limit-increase&limitType=service-code-ses
 func (emailSvc *EmailService) SendEmail(emailAddress string, subject, message string) error {
 	
 	var tLSServerName = emailSvc.SES_SMTP_hostname
-	fmt.Println("SendEmail: A")  // debug
 	var auth smtp.Auth = smtp.PlainAuth("", emailSvc.SenderUserId, emailSvc.SenderPassword, tLSServerName)
-	fmt.Println("SendEmail: B")  // debug
 
 	var serverHost = emailSvc.SES_SMTP_hostname
 	var toAddress = []string{ emailAddress }
 	var hostAndPort = serverHost + ":" + fmt.Sprintf("%d", emailSvc.SES_SMTP_Port)
-	fmt.Println("SendEmail: C; hostAndPort=" + hostAndPort)  // debug
 	
 	var fullMsg = []byte(
 		"To: " + emailAddress + "\r\n" +
@@ -31,7 +29,6 @@ func (emailSvc *EmailService) SendEmail(emailAddress string, subject, message st
 		"Subject: " + subject + "\r\n\r\n" + message + "\r\n")
 	
 	var err = smtp.SendMail(hostAndPort, auth, emailSvc.SenderAddress, toAddress, fullMsg)
-	fmt.Println("SendEmail: D")  // debug
 	return err
 }
 
