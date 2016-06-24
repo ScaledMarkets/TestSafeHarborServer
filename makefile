@@ -1,6 +1,6 @@
 # Makefile for building the tests for Safe Harbor Server.
 
-SHHOST=52.41.180.75
+SHHOST=52.41.186.76
 SHPORT=6000
 
 PRODUCTNAME=Safe Harbor Server
@@ -113,6 +113,11 @@ ever2:
 	bin/testsafeharbor -stop \
 		-h=$(SHHOST) -p=$(SHPORT) \
 		-tests="EmailVerificationStep2"
+
+optionals:
+	bin/testsafeharbor -stop \
+		-h=$(SHHOST) -p=$(SHPORT) \
+		-tests="OptionalParams"
 
 # Run redis tests.
 runredis:

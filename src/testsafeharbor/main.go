@@ -41,6 +41,7 @@ func main() {
 		"redis": TestRedis,
 		"CreateRealmsAndUsers": TestCreateRealmsAndUsers,
 		"CreateResources": TestCreateResources,
+		"OptionalParams": TestOptionalParams,
 		"CreateGroups": TestCreateGroups,
 		"ScanConfigs": TestScanConfigs,
 		"GetMy": TestGetMy,
@@ -712,7 +713,13 @@ func TestCreateRealmsAndUsers(testContext *utils.TestContext) {
 	
 	// Test ability to create a realm while logged in.
 	{
-		testContext.TryCreateRealm("my2ndrealm", "A Big Company", "bigshotadmin")
+		testContext.TryCreateRealm("my2ndrealm", "A Big Company",
+			"A second realm for a really big company")
+	}
+	
+	// Test ability to look up a realm by its name.
+	{
+		testContext.TestGetRealmByName("my2ndrealm")
 	}
 	
 	var johnDoeUserObjId string
@@ -910,7 +917,29 @@ func TestCreateResources(testContext *utils.TestContext) {
 		testContext.AssertThat(configId == config1Id, "Did not find scan config")
 	}
 }
+
+/*******************************************************************************
+ * Test the ability to not specify parameters that are optional:
+ * RepoId may be omitted for addDockerfile, addAndExecDockerfile, defineScanConfig,
+ * and defineFlag.
+ * ImageName and Desc may be omitted for ....
+ */
+func TestOptionalParams(testContext *utils.TestContext) {
 	
+	fmt.Println("\nTest suite TestOptionalParams------------------\n")
+
+	defer testContext.TryClearAll()
+	
+	// -------------------------------------
+	// Test setup:
+	
+	....
+	// -------------------------------------
+	// Tests
+	//
+	.....
+}
+
 /*******************************************************************************
  * Test ability to create groups, and use them.
  * Creates/uses the following:
@@ -1321,9 +1350,13 @@ func TestEmailIdentityVerificationStep2(testContext *utils.TestContext) {
 	// -------------------------------------
 	// Test setup:
 
+	var realmXAdminUserId = "realmXadmin"
+	var realmXAdminPswd = "fluffy"
 	var realmXId string
 
 	{
+		testContext.TryAuthenticate(realmXAdminUserId, realmXAdminPswd, true)
+
 		// Identify the realm.
 		var realmDescMap map[string]interface{}
 		realmDescMap = testContext.TryGetRealmByName("verifrealm")

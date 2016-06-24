@@ -227,6 +227,57 @@ func (testContext *TestContext) TryCreateRealm(realmName, orgFullName,
 }
 
 /*******************************************************************************
+ * Verify that we can look up a realm by its name.
+ */
+func (testContext *TestContext) TestGetRealmByName(realmName string) map[string]interface{} {
+	
+	testContext.StartTest("TestGetRealmByName")
+	var resp *http.Response
+	var err error
+	resp, err = testContext.SendSessionPost(testContext.SessionId,
+		"getRealmByName",
+		[]string{"Log", "RealmName"},
+		[]string{testContext.TestDemarcation(), realmName})
+	
+	defer resp.Body.Close()
+	
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	
+	// Get the realm Id that is returned in the response body.
+	var responseMap map[string]interface{}
+	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
+	if err != nil { fmt.Println(err.Error()); return nil }
+	
+	// Should return a RealmDesc:
+	//	HTTPStatusCode int
+	//	HTTPReasonPhrase string
+	//	ObjectType string
+	//	Id string
+	//	RealmName string
+	//	OrgFullName string
+	//	AdminUserId string
+
+	var obj interface{} = responseMap["ObjectType"]
+	var retObjectType string
+	var isType bool
+	retObjectType, isType = obj.(string)
+	if testContext.AssertThat(isType, "ObjectType is not a string") {
+		if testContext.AssertThat(retObjectType == "RealmDesc",
+			"ObjectType is not a RealmDesc") {
+			obj = responseMap["Name"]
+			var retName string
+			retName, isType = obj.(string)
+			if testContext.AssertThat(isType, "Name is not a string") {
+				testContext.AssertThat(retName == realmName,
+					"Name returned does not matched expected value")
+			}
+		}
+	}
+	
+	return responseMap
+}
+
+/*******************************************************************************
  * Return the object Id of the new user.
  */
 func (testContext *TestContext) TryCreateUser(userId string, userName string,
