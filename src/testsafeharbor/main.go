@@ -857,7 +857,8 @@ func TestCreateResources(testContext *utils.TestContext) {
 	
 	// Test ability to list the repos in a realm.
 	{
-		var repoIds []string = testContext.TryGetRealmRepos(realm4Id, true)
+		var repoIds []string
+		repoIds, _ = testContext.TryGetRealmRepos(realm4Id, true)
 		testContext.AssertThat(len(repoIds) == 2, "Number of repo Ids returned was " +
 			string(len(repoIds)) + ", expected 2")
 	}
@@ -937,6 +938,10 @@ func TestOptionalParams(testContext *utils.TestContext) {
 	var dockerfile1Path, dockerfile2Path string
 	var flagImagePath = "Seal.png"
 	var repoId string
+	var realmId string
+	var userObjId
+	var dockerfile1DescMap map[string]interface{}
+	var dockerfile2Id string
 	
 	{
 		var err error
@@ -948,6 +953,12 @@ func TestOptionalParams(testContext *utils.TestContext) {
 		dockerfile2Path, err = utils.CreateTempFile(tempdir, "Dockerfile", "FROM centos\nRUN echo hoo > pink")
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfile2Path)
+		
+		realmId, userObjId, _ = testContext.TryCreateRealmAnon(
+			"realm", "realm Org", "realmadmin", "realm Admin Full Name",
+			"realmadmin@gmail.com", "realmadminpswd")
+		
+		testContext.TryAuthenticate("realmadmin", "realmadminpswd", true)
 	}
 		
 	// -------------------------------------
@@ -956,16 +967,36 @@ func TestOptionalParams(testContext *utils.TestContext) {
 	
 	// Call addDockerfile with an empty RepoId.
 	{
-		_, _ = testContext.TryAddDockerfile("", dockerfile1Path,
+		// Determine how many repos there are now.
+		var repoIds []string
+		repoIds, _ = testContext.TryGetRealmRepos(realmId, true)
+
+		// Add a dockerfile, without providing the repo Id.
+		_, dockerfile1Desc = testContext.TryAddDockerfile("", dockerfile1Path,
 			"A dockerfile")
 		
 		// Verify that a Repo was created.
-		....
+		var repoIds2 []string
+		repoIds2, _ = testContext.TryGetRealmRepos(realmId, true)
+		testContext.AssertThat(len(repoIds) + 1 == len(repoIds2), "Repo was not created")
 		
 		// Verify that the User's default Repo now references the new Repo.
-		....
-		
-		repoId = ....
+		var obj interface{}
+		obj = dockerfile1DescMap["RepoId"]
+		var repoId string
+		var isType bool
+		repoId, isType = obj.(string)
+		if testContext.AssertThat(isType, "RepoId is not a string") {
+
+			var userDescMap map[string]interface{} = testContext.TryGetUserDesc(userObjId)
+			obj = userDescMap["DefaultRepoId"]
+			var defaultRepoId string
+			defaultRepoId, isType = obj.(string)
+			if testContext.AssertThat(isType, "DefaultRepoId is not a string") {
+				testContext.AssertThat(defaultRepoId == repoId,
+					"User's default repo Id is incorrect")
+			}
+		}
 	}
 	
 	// Call addAndExecDockerfile with an empty RepoId.
@@ -974,7 +1005,17 @@ func TestOptionalParams(testContext *utils.TestContext) {
 			"My first image", "myimage1", dockerfile2Path, []string{}, []string{})
 		
 		// Verify that the user's default Repo was used.
-		....
+		dockerfile2Id = ....need to add RepoId to ImageVersionDesc
+		var dockerfile2DescMap map[string]interface{}
+		dockerfile2DescMap = testContext.TryGetDockerfileDesc(dockerfile2Id)
+		var obj interface{}
+		obj = dockerfile2DescMap["RepoId"]
+		var retRepoId string
+		var isType bool
+		retRepoId, isType = obj.(string)
+		if testContext.AssertThat(isType, "Id is not a string") {
+			testContext.AssertThat(retRepoId == repoId, "User's default repo was not used")
+		}
 	}
 	
 	// Call defineScanConfig with an empty RepoId

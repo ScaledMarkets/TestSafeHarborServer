@@ -160,7 +160,7 @@ func (testContext *TestContext) TryRemDockerfile(dockerfileId string) {
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryGetDockerfileDesc(dockerfileId string) {
+func (testContext *TestContext) TryGetDockerfileDesc(dockerfileId string) map[string]interface{} {
 	
 	testContext.StartTest("getDockerfileDesc")
 	var resp *http.Response
@@ -188,6 +188,8 @@ func (testContext *TestContext) TryGetDockerfileDesc(dockerfileId string) {
 	testContext.AssertThat(retDescription != "", "retDescription is empty")
 	testContext.AssertThat(retDockerfileName != "", "retDockerfileName is empty")
 	testContext.PassTestIfNoFailures()
+	
+	return responseMap
 }
 
 /*******************************************************************************
@@ -991,7 +993,9 @@ func (testContext *TestContext) TryGetRealmGroups(realmId string) []string {
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryGetRealmRepos(realmId string, expectSuccess bool) []string {
+func (testContext *TestContext) TryGetRealmRepos(realmId string, expectSuccess bool)
+	([]string, []map[string]interface{})  {
+	
 	testContext.StartTest("TryGetRealmRepos")
 	
 	var resp *http.Response
@@ -1011,14 +1015,14 @@ func (testContext *TestContext) TryGetRealmRepos(realmId string, expectSuccess b
 		} else {
 			testContext.PassTestIfNoFailures()
 		}
-		return nil
+		return nil, nil
 	}
 	
 	defer resp.Body.Close()
 	
 	var responseMaps []map[string]interface{}
 	responseMaps, err = rest.ParseResponseBodyToPayloadMaps(resp.Body)
-	if err != nil { fmt.Println(err.Error()); return nil }
+	if err != nil { fmt.Println(err.Error()); return nil, nil }
 	var result []string = make([]string, 0)
 	for _, responseMap := range responseMaps {
 		rest.PrintMap(responseMap)
@@ -1033,7 +1037,7 @@ func (testContext *TestContext) TryGetRealmRepos(realmId string, expectSuccess b
 		result = append(result, retRepoId)
 	}
 	testContext.PassTestIfNoFailures()
-	return result
+	return result, responseMaps
 }
 
 /*******************************************************************************
