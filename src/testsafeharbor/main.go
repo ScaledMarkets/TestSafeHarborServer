@@ -149,7 +149,8 @@ func TestEmail(testContext *utils.TestContext) {
 		testContext.StartTest("Calling SendEmail...")
 		fmt.Println("Sending message...")
 		err = emailService.SendEmail("cliff_cromarti@cliffberg.com",
-			"testing email service", "This is a test of the email service")
+			"testing email service", "This is a test of the email service",
+			"This is a <i><b>test</b></i> of the email service")
 		fmt.Println("...message sent.")
 		testContext.AssertErrIsNil(err, "When calling SendMail")
 	}
@@ -933,11 +934,74 @@ func TestOptionalParams(testContext *utils.TestContext) {
 	// -------------------------------------
 	// Test setup:
 	
-	....
+	var dockerfile1Path, dockerfile2Path string
+	var flagImagePath = "Seal.png"
+	var repoId string
+	
+	{
+		var err error
+		
+		dockerfile1Path, err = utils.CreateTempFile(tempdir, "Dockerfile", "FROM centos\nRUN echo gloo > stink")
+		if err != nil { testContext.AbortAllTests(err.Error()) }
+		defer os.Remove(dockerfile1Path)
+		
+		dockerfile2Path, err = utils.CreateTempFile(tempdir, "Dockerfile", "FROM centos\nRUN echo hoo > pink")
+		if err != nil { testContext.AbortAllTests(err.Error()) }
+		defer os.Remove(dockerfile2Path)
+	}
+		
 	// -------------------------------------
 	// Tests
 	//
-	.....
+	
+	// Call addDockerfile with an empty RepoId.
+	{
+		_, _ = testContext.TryAddDockerfile("", dockerfile1Path,
+			"A dockerfile")
+		
+		// Verify that a Repo was created.
+		....
+		
+		// Verify that the User's default Repo now references the new Repo.
+		....
+		
+		repoId = ....
+	}
+	
+	// Call addAndExecDockerfile with an empty RepoId.
+	{
+		_, _, _ = testContext.TryAddAndExecDockerfile("",
+			"My first image", "myimage1", dockerfile2Path, []string{}, []string{})
+		
+		// Verify that the user's default Repo was used.
+		....
+	}
+	
+	// Call defineScanConfig with an empty RepoId
+	{
+		_ = testContext.TryDefineScanConfig("Security Scan",
+			"Show that scans passed", "", "clair", "", "", nil, nil)
+		
+		// Verify that the user's default Repo was used.
+		....
+	}
+	
+	// Call defineFlag with an empty RepoId
+	{
+		_ = testContext.TryDefineFlag("", "SuperSuccessFlag",
+			"Show much better", flagImagePath)
+		
+		// Verify that the user's default Repo was used.
+		....
+	}
+	
+	// Test that when one removes the Repo, the user's default Repo is cleared.
+	{
+		testContext.TryDeleteRepo(repoId)
+		
+		// Verify that the User's default Repo is now "".
+		....
+	}
 }
 
 /*******************************************************************************
