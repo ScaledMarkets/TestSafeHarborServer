@@ -890,7 +890,8 @@ func TestCreateResources(testContext *utils.TestContext) {
 	// Test ability to define a scan config and then get info about it.
 	{
 		testContext.TryGetScanProviders()
-		var config1Id string = testContext.TryDefineScanConfig("My Config 1",
+		var config1Id string
+		config1Id, _ = testContext.TryDefineScanConfig("My Config 1",
 			"A very find config", johnsRepoId, "clair", "", flagImagePath, []string{}, []string{})
 		
 		var responseMap = testContext.TryGetScanConfigDesc(config1Id, true)
@@ -939,12 +940,15 @@ func TestOptionalParams(testContext *utils.TestContext) {
 	var flagImagePath = "Seal.png"
 	var repoId string
 	var realmId string
-	var userObjId
+	var userId = "realmadmin"
+	var userObjId string
 	var dockerfile1DescMap map[string]interface{}
-	var dockerfile2Id string
+	var tempdir string
 	
 	{
 		var err error
+		tempdir, err = utils.CreateTempDir()
+		if err != nil { testContext.AbortAllTests(err.Error()) }
 		
 		dockerfile1Path, err = utils.CreateTempFile(tempdir, "Dockerfile", "FROM centos\nRUN echo gloo > stink")
 		if err != nil { testContext.AbortAllTests(err.Error()) }
@@ -955,10 +959,10 @@ func TestOptionalParams(testContext *utils.TestContext) {
 		defer os.Remove(dockerfile2Path)
 		
 		realmId, userObjId, _ = testContext.TryCreateRealmAnon(
-			"realm", "realm Org", "realmadmin", "realm Admin Full Name",
+			"realm", "realm Org", userId, "realm Admin Full Name",
 			"realmadmin@gmail.com", "realmadminpswd")
 		
-		testContext.TryAuthenticate("realmadmin", "realmadminpswd", true)
+		testContext.TryAuthenticate(userId, "realmadminpswd", true)
 	}
 		
 	// -------------------------------------
@@ -972,7 +976,7 @@ func TestOptionalParams(testContext *utils.TestContext) {
 		repoIds, _ = testContext.TryGetRealmRepos(realmId, true)
 
 		// Add a dockerfile, without providing the repo Id.
-		_, dockerfile1Desc = testContext.TryAddDockerfile("", dockerfile1Path,
+		_, dockerfile1DescMap = testContext.TryAddDockerfile("", dockerfile1Path,
 			"A dockerfile")
 		
 		// Verify that a Repo was created.
@@ -1001,39 +1005,51 @@ func TestOptionalParams(testContext *utils.TestContext) {
 	
 	// Call addAndExecDockerfile with an empty RepoId.
 	{
-		_, _, _ = testContext.TryAddAndExecDockerfile("",
+		var dockerImageVersionDescMap map[string]interface{}
+		_, _, _, dockerImageVersionDescMap = testContext.TryAddAndExecDockerfile("",
 			"My first image", "myimage1", dockerfile2Path, []string{}, []string{})
 		
 		// Verify that the user's default Repo was used.
-		dockerfile2Id = ....need to add RepoId to ImageVersionDesc
-		var dockerfile2DescMap map[string]interface{}
-		dockerfile2DescMap = testContext.TryGetDockerfileDesc(dockerfile2Id)
-		var obj interface{}
-		obj = dockerfile2DescMap["RepoId"]
+		var obj interface{} = dockerImageVersionDescMap["RepoId"]
 		var retRepoId string
 		var isType bool
 		retRepoId, isType = obj.(string)
-		if testContext.AssertThat(isType, "Id is not a string") {
-			testContext.AssertThat(retRepoId == repoId, "User's default repo was not used")
+		if testContext.AssertThat(isType, "RepoId is not a string") {
+			testContext.AssertThat(retRepoId == repoId, "Did not use the user's default Repo")
 		}
 	}
 	
 	// Call defineScanConfig with an empty RepoId
 	{
-		_ = testContext.TryDefineScanConfig("Security Scan",
+		var scanConfigDescMap map[string]interface{}
+		_, scanConfigDescMap = testContext.TryDefineScanConfig("Security Scan",
 			"Show that scans passed", "", "clair", "", "", nil, nil)
 		
 		// Verify that the user's default Repo was used.
-		....
+		var obj interface{} = scanConfigDescMap["RepoId"]
+		var retRepoId string
+		var isType bool
+		retRepoId, isType = obj.(string)
+		if testContext.AssertThat(isType, "RepoId is not a string") {
+			testContext.AssertThat(retRepoId == repoId, "Default Repo not used")
+		}
 	}
 	
 	// Call defineFlag with an empty RepoId
 	{
-		_ = testContext.TryDefineFlag("", "SuperSuccessFlag",
+		var flagDescMap map[string]interface{}
+		flagDescMap = testContext.TryDefineFlag("", "SuperSuccessFlag",
 			"Show much better", flagImagePath)
 		
 		// Verify that the user's default Repo was used.
-		....
+		var obj interface{}
+		obj = flagDescMap["RepoId"]
+		var retRepoId string
+		var isType bool
+		retRepoId, isType = obj.(string)
+		if testContext.AssertThat(isType, "RepoId is not a string") {
+			testContext.AssertThat(retRepoId == repoId, "Default Repo not used")
+		}
 	}
 	
 	// Test that when one removes the Repo, the user's default Repo is cleared.
@@ -1041,7 +1057,14 @@ func TestOptionalParams(testContext *utils.TestContext) {
 		testContext.TryDeleteRepo(repoId)
 		
 		// Verify that the User's default Repo is now "".
-		....
+		var userDescMap map[string]interface{} = testContext.TryGetUserDesc(userId)
+		var obj interface{} = userDescMap["DefaultRepoId"]
+		var retRepoId string
+		var isType bool
+		retRepoId, isType = obj.(string)
+		if testContext.AssertThat(isType, "RepoId is not a string") {
+			testContext.AssertThat(retRepoId == repoId, "Default Repo not used")
+		}
 	}
 }
 
@@ -1207,7 +1230,7 @@ func TestGetMy(testContext *utils.TestContext) {
 			"A dockerfile")
 		testContext.TryAddPermission(realmXJohnObjId, realmZRepo2DockerfileId, permissions)
 		
-		realmZRepo2ScanConfigId = testContext.TryDefineScanConfig("Security Scan",
+		realmZRepo2ScanConfigId, _ = testContext.TryDefineScanConfig("Security Scan",
 			"Show that scans passed", realmZRepo2Id, "clair", "", "", nil, nil)
 		testContext.TryAddPermission(realmXJohnObjId, realmZRepo2ScanConfigId, permissions)
 		
@@ -1541,7 +1564,7 @@ func TestUpdateAndReplace(testContext *utils.TestContext) {
 		
 		realmXRepo1Id = testContext.TryCreateRepo(realmXId, "repo1", "Repo in realm x", "")
 		
-		scanConfigId = testContext.TryDefineScanConfig("My Config 1",
+		scanConfigId, _ = testContext.TryDefineScanConfig("My Config 1",
 			"A very find config", realmXRepo1Id, "clair", "", flagImagePath, []string{}, []string{})
 
 		realmXJohnObjId, _ = testContext.TryCreateUser(realmXJohnUserId, "John Connor",
@@ -1682,15 +1705,15 @@ func TestScanConfigs(testContext *utils.TestContext) {
 		testContext.AssertThat(dockerImage1Id != "", "No image obj Id returned")
 		
 		// Create three scan configs.
-		scanConfigAId = testContext.TryDefineScanConfig("Config A",
+		scanConfigAId, _ = testContext.TryDefineScanConfig("Config A",
 			"For scanning all images", repoId, "clair", "",
 			"", []string{}, []string{})
 
-		scanConfigBId = testContext.TryDefineScanConfig("Config B",
+		scanConfigBId, _ = testContext.TryDefineScanConfig("Config B",
 			"For scanning image 1", repoId, "clair", "",
 			"", []string{}, []string{})
 		
-		scanConfigCId = testContext.TryDefineScanConfig("Config C",
+		scanConfigCId, _ = testContext.TryDefineScanConfig("Config C",
 			"For scanning image 2", repoId, "clair", "",
 			"", []string{}, []string{})
 	}
@@ -1807,7 +1830,7 @@ func TestDelete(testContext *utils.TestContext) {
 		realmXJohnObjId, _ = testContext.TryCreateUser(realmXJohnUserId, "John Connor",
 			"johnc@gmail.com", realmXJohnPswd, realmXId)
 		
-		realmXScanConfigId = testContext.TryDefineScanConfig("My Config 1",
+		realmXScanConfigId, _ = testContext.TryDefineScanConfig("My Config 1",
 			"A very fine config", realmXRepo1Id, "clair", "", flagImagePath, []string{}, []string{})
 
 		realmXGroupId = testContext.TryCreateGroup(realmXId, "mygroup",
@@ -1824,7 +1847,7 @@ func TestDelete(testContext *utils.TestContext) {
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfile1Path)
 
-		imageVersion1ObjId, _, execEvent1Id = testContext.TryAddAndExecDockerfile(realmXRepo1Id,
+		imageVersion1ObjId, _, execEvent1Id, _ = testContext.TryAddAndExecDockerfile(realmXRepo1Id,
 			"My first image", "myimage1", dockerfile1Path, []string{}, []string{})
 		testContext.AssertThat(imageVersion1ObjId != "", "Failed to create image")
 		
@@ -2102,7 +2125,7 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 		
 		realmXRepo1Id = testContext.TryCreateRepo(realmXId, "repo1", "Repo in realm x", "")
 		
-		scanConfigId = testContext.TryDefineScanConfig("My Config 1",
+		scanConfigId, _ = testContext.TryDefineScanConfig("My Config 1",
 			"A very fine config", realmXRepo1Id, "clair", "", flagImagePath, []string{}, []string{})
 
 		dockerfilePath, err = utils.CreateTempFile(tempdir, "Dockerfile", "FROM centos\nRUN echo moo > oink")
@@ -2243,7 +2266,7 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 	// Test ability to upload and exec a dockerfile in one command.
 	{
 		var dockerImage3ObjId string
-		_, dockerImage3ObjId, _ = testContext.TryAddAndExecDockerfile(realmXRepo1Id,
+		_, dockerImage3ObjId, _, _ = testContext.TryAddAndExecDockerfile(realmXRepo1Id,
 			"My third image", "myimage3", dockerfile3Path, []string{}, []string{})
 		fmt.Println(dockerImage3ObjId)
 	

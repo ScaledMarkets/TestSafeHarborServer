@@ -175,7 +175,7 @@ func (testContext *TestContext) TryGetDockerfileDesc(dockerfileId string) map[st
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
-	if ! testContext.AssertErrIsNil(err, "at ParseResponseBodyToMap") { return }
+	if ! testContext.AssertErrIsNil(err, "at ParseResponseBodyToMap") { return nil }
 	
 	// Expect a DockerfileDesc
 	var retId string = responseMap["Id"].(string)
@@ -649,7 +649,8 @@ func (testContext *TestContext) TryExecDockerfile(repoId string, dockerfileId st
  * and the object Id of the event pertaining to the creation of the image.
  */
 func (testContext *TestContext) TryAddAndExecDockerfile(repoId string, desc string,
-	imageName string, dockerfilePath string, paramNames, paramValues []string) (string, string, string) {
+	imageName string, dockerfilePath string, paramNames, paramValues []string) (
+	string, string, string, map[string]interface{}) {
 	
 	testContext.StartTest("TryAddAndExecDockerfile")
 	
@@ -675,9 +676,10 @@ func (testContext *TestContext) TryAddAndExecDockerfile(repoId string, desc stri
 
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
+	// Returns a DockerImageVersionDesc.
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
-	if err != nil { fmt.Println(err.Error()); return "", "", "" }
+	if err != nil { fmt.Println(err.Error()); return "", "", "", nil }
 	var retObjId string = responseMap["ObjId"].(string)
 	var retImageObjId string = responseMap["ImageObjId"].(string)
 	var retVersion string = responseMap["Version"].(string)
@@ -692,7 +694,7 @@ func (testContext *TestContext) TryAddAndExecDockerfile(repoId string, desc stri
 	testContext.AssertThat(retCreationDate != "", "CreationDate is empty")
 	
 	testContext.PassTestIfNoFailures()
-	return retObjId, retImageObjId, retImageCreationEventId
+	return retObjId, retImageObjId, retImageCreationEventId, responseMap
 }
 
 /*******************************************************************************
@@ -993,8 +995,8 @@ func (testContext *TestContext) TryGetRealmGroups(realmId string) []string {
 /*******************************************************************************
  * 
  */
-func (testContext *TestContext) TryGetRealmRepos(realmId string, expectSuccess bool)
-	([]string, []map[string]interface{})  {
+func (testContext *TestContext) TryGetRealmRepos(realmId string, expectSuccess bool) (
+	[]string, []map[string]interface{})  {
 	
 	testContext.StartTest("TryGetRealmRepos")
 	
@@ -1475,7 +1477,7 @@ func (testContext *TestContext) TryGetScanProviders() {
  */
 func (testContext *TestContext) TryDefineScanConfig(name, desc, repoId, providerName,
 	successExpr, successGraphicFilePath string, providerParamNames []string,
-	providerParamValues []string) string {
+	providerParamValues []string) (string, map[string]interface{}) {
 
 	testContext.StartTest("TryDefineScanConfig")
 	
@@ -1543,7 +1545,7 @@ func (testContext *TestContext) TryDefineScanConfig(name, desc, repoId, provider
 	}
 	
 	testContext.PassTestIfNoFailures()
-	return retId
+	return retId, responseMap
 }
 
 /*******************************************************************************
