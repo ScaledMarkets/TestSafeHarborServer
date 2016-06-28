@@ -941,7 +941,6 @@ func TestOptionalParams(testContext *utils.TestContext) {
 	var repoId string
 	var realmId string
 	var userId = "realmadmin"
-	var userObjId string
 	var dockerfile1DescMap map[string]interface{}
 	var tempdir string
 	
@@ -954,11 +953,11 @@ func TestOptionalParams(testContext *utils.TestContext) {
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfile1Path)
 		
-		dockerfile2Path, err = utils.CreateTempFile(tempdir, "Dockerfile", "FROM centos\nRUN echo hoo > pink")
+		dockerfile2Path, err = utils.CreateTempFile(tempdir, "Dockerfile2", "FROM centos\nRUN echo hoo > pink")
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfile2Path)
 		
-		realmId, userObjId, _ = testContext.TryCreateRealmAnon(
+		realmId, _, _ = testContext.TryCreateRealmAnon(
 			"realm", "realm Org", userId, "realm Admin Full Name",
 			"realmadmin@gmail.com", "realmadminpswd")
 		
@@ -987,12 +986,11 @@ func TestOptionalParams(testContext *utils.TestContext) {
 		// Verify that the User's default Repo now references the new Repo.
 		var obj interface{}
 		obj = dockerfile1DescMap["RepoId"]
-		var repoId string
 		var isType bool
 		repoId, isType = obj.(string)
 		if testContext.AssertThat(isType, "RepoId is not a string") {
 
-			var userDescMap map[string]interface{} = testContext.TryGetUserDesc(userObjId)
+			var userDescMap map[string]interface{} = testContext.TryGetUserDesc(userId)
 			obj = userDescMap["DefaultRepoId"]
 			var defaultRepoId string
 			defaultRepoId, isType = obj.(string)
@@ -1015,7 +1013,8 @@ func TestOptionalParams(testContext *utils.TestContext) {
 		var isType bool
 		retRepoId, isType = obj.(string)
 		if testContext.AssertThat(isType, "RepoId is not a string") {
-			testContext.AssertThat(retRepoId == repoId, "Did not use the user's default Repo")
+			testContext.AssertThat(retRepoId == repoId,
+				fmt.Sprintf("retRepoId != repoId: %s != %s", retRepoId, repoId))
 		}
 	}
 	
@@ -1031,7 +1030,8 @@ func TestOptionalParams(testContext *utils.TestContext) {
 		var isType bool
 		retRepoId, isType = obj.(string)
 		if testContext.AssertThat(isType, "RepoId is not a string") {
-			testContext.AssertThat(retRepoId == repoId, "Default Repo not used")
+			testContext.AssertThat(retRepoId == repoId,
+				fmt.Sprintf("retRepoId != repoId: %s != %s", retRepoId, repoId))
 		}
 	}
 	
@@ -1048,7 +1048,8 @@ func TestOptionalParams(testContext *utils.TestContext) {
 		var isType bool
 		retRepoId, isType = obj.(string)
 		if testContext.AssertThat(isType, "RepoId is not a string") {
-			testContext.AssertThat(retRepoId == repoId, "Default Repo not used")
+			testContext.AssertThat(retRepoId == repoId,
+				fmt.Sprintf("retRepoId != repoId: %s != %s", retRepoId, repoId))
 		}
 	}
 	
@@ -1063,7 +1064,8 @@ func TestOptionalParams(testContext *utils.TestContext) {
 		var isType bool
 		retRepoId, isType = obj.(string)
 		if testContext.AssertThat(isType, "RepoId is not a string") {
-			testContext.AssertThat(retRepoId == repoId, "Default Repo not used")
+			testContext.AssertThat(retRepoId == repoId,
+				fmt.Sprintf("retRepoId != repoId: %s != %s", retRepoId, repoId))
 		}
 	}
 }
