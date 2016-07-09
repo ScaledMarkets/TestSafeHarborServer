@@ -1,6 +1,6 @@
 # Makefile for building the tests for Safe Harbor Server.
 
-SHHOST=52.10.11.61
+SHHOST=52.40.181.19
 SHPORT=6000
 
 PRODUCTNAME=Safe Harbor Server
@@ -101,21 +101,21 @@ runall:
 
 # Test email service.
 testemail:
-	bin/testsafeharbor -stop \
+	bin/testsafeharbor -stop -nolarge \
 		-tests="Email"
 
 ever1:
-	bin/testsafeharbor -stop \
+	bin/testsafeharbor -stop -nolarge \
 		-h=$(SHHOST) -p=$(SHPORT) \
 		-tests="EmailVerificationStep1"
 
 ever2:
-	bin/testsafeharbor -stop \
+	bin/testsafeharbor -stop -nolarge \
 		-h=$(SHHOST) -p=$(SHPORT) \
 		-tests="EmailVerificationStep2"
 
 optionals:
-	bin/testsafeharbor -stop \
+	bin/testsafeharbor -stop -nolarge \
 		-h=$(SHHOST) -p=$(SHPORT) \
 		-tests="OptionalParams"
 
@@ -144,18 +144,18 @@ engtests:
 	export RegistryPort=$(RegistryPort)
 	export registryUser=testuser
 	export registryPassword=testpassword
-	bin/testsafeharbor -stop \
+	bin/testsafeharbor -stop -nolarge \
 		-tests="Engine"
 
 # Unit test the DockerServices module.
 svctests:
-	bin/testsafeharbor -stop \
+	bin/testsafeharbor -stop -nolarge \
 		-h=$(SHHOST) -p=$(SHPORT) \
 		-tests="DockSvcs"
 
 # Run SafeHarborServer docker related tests.
 dockertests:
-	bin/testsafeharbor -stop \
+	bin/testsafeharbor -stop -nolarge \
 		-h=$(SHHOST) -p=$(SHPORT) \
 		-tests="DockerFunctions"
 

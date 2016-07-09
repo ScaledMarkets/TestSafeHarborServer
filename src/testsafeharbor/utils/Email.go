@@ -13,16 +13,12 @@ import (
 // For limit increase: https://console.aws.amazon.com/support/home?region=us-east-1#/case/create?issueType=service-limit-increase&limitType=service-code-ses
 func (emailSvc *EmailService) SendEmail(emailAddress, subject, textMessage, htmlMessage string) error {
 	
-	fmt.Println("SendEmail: A")  // debug
-	
 	var tLSServerName = emailSvc.SES_SMTP_hostname
 	var auth smtp.Auth = smtp.PlainAuth("", emailSvc.SenderUserId, emailSvc.SenderPassword, tLSServerName)
-	fmt.Println("SendEmail: B")  // debug
 
 	var serverHost = emailSvc.SES_SMTP_hostname
 	var toAddress = []string{ emailAddress }
 	var hostAndPort = serverHost + ":" + fmt.Sprintf("%d", emailSvc.SES_SMTP_Port)
-	fmt.Println("SendEmail: C")  // debug
 	
 	var fullMsg = []byte(
 		"Subject: " + subject + "\r\n" +
@@ -34,25 +30,20 @@ func (emailSvc *EmailService) SendEmail(emailAddress, subject, textMessage, html
 		"Content-Type: multipart/alternative; boundary=bcaec520ea5d6918e204a8cea3b4" + "\r\n" +
 		"\r\n" +
 		"--bcaec520ea5d6918e204a8cea3b4" + "\r\n" +
-		"Content-Type: text/plain; charset=utf-8" + "\r\n" +
+		"Content-Type: text/plain; charset=ascii" + "\r\n" +
+		//"Content-Type: text/plain; charset=utf-8" + "\r\n" +
 		"\r\n" +
 		textMessage + "\r\n" +
 		"\r\n" +
 		"--bcaec520ea5d6918e204a8cea3b4" + "\r\n" +
-		"Content-Type: text/html; charset=utf-8" + "\r\n" +
-		"Content-Transfer-Encoding: quoted-printable" + "\r\n" +
+		"Content-Type: text/html; charset=ascii" + "\r\n" +
+		//"Content-Type: text/html; charset=utf-8" + "\r\n" +
 		"\r\n" +
 		htmlMessage + "\r\n" +
 		"\r\n" +
 		"--bcaec520ea5d6918e204a8cea3b4")
 
-	fmt.Println("SendEmail: D")  // debug
 	var err = smtp.SendMail(hostAndPort, auth, emailSvc.SenderAddress, toAddress, fullMsg)
-	fmt.Println("SendEmail: E")  // debug
-	if err == nil { fmt.Println(
-		"Sent email from " + emailSvc.SenderAddress + " to " + emailAddress +
-		" on host/port " + hostAndPort) } // debug
-	if err != nil { fmt.Println("SendEmail: when calling SendMail: " + err.Error()) } // debug
 	return err
 }
 

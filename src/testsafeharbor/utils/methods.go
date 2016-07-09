@@ -585,7 +585,7 @@ func (testContext *TestContext) TryGetDockerfiles(repoId string) []string {
  * The result is the object Id of the image version, and the image.
  */
 func (testContext *TestContext) TryExecDockerfile(repoId string, dockerfileId string,
-	imageName string, paramNames, paramValues []string) (string, string) {
+	imageName string, paramNames, paramValues []string) (string, string, map[string]interface{}) {
 	testContext.StartTest("TryExecDockerfile")
 	
 	if len(paramNames) != len(paramValues) { panic(
@@ -625,7 +625,7 @@ func (testContext *TestContext) TryExecDockerfile(repoId string, dockerfileId st
 	*/
 	var responseMap map[string]interface{}
 	responseMap, err = rest.ParseResponseBodyToMap(resp.Body)
-	if err != nil { fmt.Println(err.Error()); return "", "" }
+	if err != nil { fmt.Println(err.Error()); return "", "", nil }
 	var retObjId string = responseMap["ObjId"].(string)
 	var retImageObjId string = responseMap["ImageObjId"].(string)
 	var retVersion string = responseMap["Version"].(string)
@@ -640,7 +640,7 @@ func (testContext *TestContext) TryExecDockerfile(repoId string, dockerfileId st
 	testContext.AssertThat(retCreationDate != "", "CreationDate is empty")
 	
 	testContext.PassTestIfNoFailures()
-	return retObjId, retImageObjId
+	return retObjId, retImageObjId, responseMap
 }
 
 /*******************************************************************************

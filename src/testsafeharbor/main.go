@@ -57,6 +57,7 @@ func main() {
 	var scheme *string = flag.String("s", "http", "Protocol scheme (one of http, https, unix)")
 	var hostname *string = flag.String("h", "localhost", "Internet address of server.")
 	var port *int = flag.Int("p", 80, "Port server is on.")
+	var nolargefiles *bool = flag.Bool("nolarge", false, "Do not perform any large file transfers")
 	var stopOnFirstError *bool = flag.Bool("stop", false, "Stop after the first error.")
 	var redisPswd *string = flag.String("redispswd", "ahdal8934k383898&*kdu&^", "Redis password")
 	
@@ -94,7 +95,7 @@ func main() {
 	
 	// Prepare to run tests.
 	var testContext = utils.NewTestContext(*scheme, *hostname, *port, utils.SetSessionId,
-		*stopOnFirstError, *redisPswd)
+		*stopOnFirstError, *redisPswd, *nolargefiles)
 	testContext.Print()
 	if strings.Contains(*tests, "DockerFunctions") {
 		fmt.Println("Note: Ensure that the docker daemon is running on the server.",
@@ -242,7 +243,8 @@ func TestDockerEngine(testContext *utils.TestContext) {
 		testContext.StartTest("BuildImage")
 		fmt.Println("Building image '" + imageFullName + "' in directory '" + buildDirPath + "'")
 		var responseStr string
-		responseStr, err = engine.BuildImage(buildDirPath, imageFullName, "Dockerfile")
+		responseStr, err = engine.BuildImage(buildDirPath, imageFullName, "Dockerfile",
+			[]string{}, []string{} )
 		testContext.AssertErrIsNil(err, "In building image")
 		fmt.Println("Response from BuildImage:")
 		fmt.Println(responseStr)
@@ -925,7 +927,7 @@ func TestCreateResources(testContext *utils.TestContext) {
  * Test the ability to not specify parameters that are optional:
  * RepoId may be omitted for addDockerfile, addAndExecDockerfile, defineScanConfig,
  * and defineFlag.
- * ImageName and Desc may be omitted for ....
+ * ImageName and Description may be omitted for ....
  */
 func TestOptionalParams(testContext *utils.TestContext) {
 	
@@ -936,7 +938,7 @@ func TestOptionalParams(testContext *utils.TestContext) {
 	// -------------------------------------
 	// Test setup:
 	
-	var dockerfile1Path, dockerfile2Path string
+	var dockerfile1Path, dockerfile2Path, dockerfile3Path string
 	var flagImagePath = "Seal.png"
 	var repoId string
 	var realmId string
@@ -956,6 +958,10 @@ func TestOptionalParams(testContext *utils.TestContext) {
 		dockerfile2Path, err = utils.CreateTempFile(tempdir, "Dockerfile2", "FROM centos\nRUN echo hoo > pink")
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfile2Path)
+		
+		dockerfile3Path, err = utils.CreateTempFile(tempdir, "Dockerfile3", "FROM centos\nRUN echo shoo > blink")
+		if err != nil { testContext.AbortAllTests(err.Error()) }
+		defer os.Remove(dockerfile3Path)
 		
 		realmId, _, _ = testContext.TryCreateRealmAnon(
 			"realm", "realm Org", userId, "realm Admin Full Name",
@@ -1053,6 +1059,22 @@ func TestOptionalParams(testContext *utils.TestContext) {
 		}
 	}
 	
+	// Test that the image name and description can be omitted.
+	{
+		var dockerImageVersionDescMap map[string]interface{}
+		_, _, _, dockerImageVersionDescMap = testContext.TryAddAndExecDockerfile("",
+			"", "", dockerfile3Path, []string{}, []string{})
+		
+		// Verify that the image was created and has a name.
+		var obj interface{} = dockerImageVersionDescMap["ImageName"]
+		var retImageName string
+		var isType bool
+		retImageName, isType = obj.(string)
+		if testContext.AssertThat(isType, "ImageName is not a string") {
+			testContext.AssertThat(retImageName != "", fmt.Sprintf("retImageName is empty"))
+		}
+	}
+	
 	// Test that when one removes the Repo, the user's default Repo is cleared.
 	{
 		testContext.TryDeleteRepo(repoId)
@@ -1064,8 +1086,8 @@ func TestOptionalParams(testContext *utils.TestContext) {
 		var isType bool
 		retRepoId, isType = obj.(string)
 		if testContext.AssertThat(isType, "RepoId is not a string") {
-			testContext.AssertThat(retRepoId == repoId,
-				fmt.Sprintf("retRepoId != repoId: %s != %s", retRepoId, repoId))
+			testContext.AssertThat(retRepoId == "",
+				fmt.Sprintf("retRepoId != repoId: %s is not empty", retRepoId))
 		}
 	}
 }
@@ -1453,8 +1475,8 @@ func TestEmailIdentityVerificationStep1(testContext *utils.TestContext) {
 		
 		var userObjId string
 		userObjId, _ = testContext.TryCreateUser("cromarti", "Cromarti",
-			"cliff@cliffberg.com", "cromartiPswd", realmXId)
-			//"cromarti_verifrealm@cliffberg.com", "cromartiPswd", realmXId)
+			//"cliffbdf@gmail.com", "cromartiPswd", realmXId)
+			"cromarti_verifrealm@cliffberg.com", "cromartiPswd", realmXId)
 		
 		// Give the user permission to modify the realm.
 		var perms []bool = []bool{true, true, true, true, true}
@@ -1698,11 +1720,11 @@ func TestScanConfigs(testContext *utils.TestContext) {
 		dockerfile2Id, _ = testContext.TryAddDockerfile(repoId, dockerfile2Path, "A shooey dockerfile")
 		
 		// Create two docker images.
-		_, dockerImage1Id = testContext.TryExecDockerfile(repoId,
+		_, dockerImage1Id, _ = testContext.TryExecDockerfile(repoId,
 			dockerfile1Id, "image1", []string{}, []string{})
 		testContext.AssertThat(dockerImage1Id != "", "No image obj Id returned")
 		
-		_, dockerImage2Id = testContext.TryExecDockerfile(repoId,
+		_, dockerImage2Id, _ = testContext.TryExecDockerfile(repoId,
 			dockerfile2Id, "image2", []string{}, []string{})
 		testContext.AssertThat(dockerImage1Id != "", "No image obj Id returned")
 		
@@ -1862,7 +1884,7 @@ func TestDelete(testContext *utils.TestContext) {
 		dockerfile1Id, isType = obj.(string)
 		testContext.AssertThat(isType, "DockerfileId is not a string")
 
-		imageVersion2ObjId, _ = testContext.TryExecDockerfile(realmXRepo1Id,
+		imageVersion2ObjId, _, _ = testContext.TryExecDockerfile(realmXRepo1Id,
 			dockerfile1Id, "myimage1", []string{}, []string{})
 		testContext.AssertThat(imageVersion2ObjId != "", "Failed to create image")
 	}
@@ -2196,7 +2218,7 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 	
 	// Test ability to build image from a dockerfile.
 	{
-		dockerImage1Version1ObjId, dockerImage1ObjId = testContext.TryExecDockerfile(realmXRepo1Id,
+		dockerImage1Version1ObjId, dockerImage1ObjId, _ = testContext.TryExecDockerfile(realmXRepo1Id,
 			dockerfileId, "myimage", []string{}, []string{})
 		testContext.AssertThat(dockerImage1ObjId != "", "No image obj Id returned")
 	}
@@ -2204,7 +2226,7 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 	// Test ability to build image from a dockerfile that takes one parameter.
 	{
 		var imageObjId string
-		_, imageObjId = testContext.TryExecDockerfile(realmXRepo1Id,
+		_, imageObjId, _ = testContext.TryExecDockerfile(realmXRepo1Id,
 			dockerfileParamId, "myparamimage", []string{ "param1" },
 			[]string{ "abc" })
 		if testContext.AssertThat(imageObjId != "", "No image obj Id returned") {
@@ -2226,7 +2248,7 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 	// Test ability to build image from a dockerfile that takes two parameters.
 	{
 		var imageObjId string
-		_, imageObjId = testContext.TryExecDockerfile(realmXRepo1Id,
+		_, imageObjId, _ = testContext.TryExecDockerfile(realmXRepo1Id,
 			dockerfile2ParamId, "my2paramimage", []string{ "param1", "param2" },
 			[]string{ "abc", "def" })
 		if testContext.AssertThat(imageObjId != "", "No image obj Id returned") {
@@ -2272,28 +2294,28 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 			"My third image", "myimage3", dockerfile3Path, []string{}, []string{})
 		fmt.Println(dockerImage3ObjId)
 	
-		/*
-		testContext.TryDownloadImage(dockerImage3ObjId, "BooPloinkImage")
-		var responseMap = testContext.TryGetDockerImageDesc(dockerImage3ObjId, true)
-		if testContext.CurrentTestPassed {
-			// Check image signature.
-			var image2Signature []byte
-			var err error
-			image2Signature, err = utils.ComputeSHA512FileSignature("BooPloinkImage")
-			if testContext.AssertErrIsNil(err, "Unable to compute signature") {
-				var obj interface{} = responseMap["Signature"]
-				var sig, isType = obj.([]interface{})
-				if testContext.AssertThat(isType, "Wrong type: " + reflect.TypeOf(sig).String()) {
-					for i, sigi := range sig {
-						var b = uint8(sigi.(float64))
-						if ! testContext.AssertThat(
-							b == image2Signature[i],
-							fmt.Sprintf("Wrong signature: %d != %d", b, image2Signature[i])) { break }
+		if ! testContext.NoLargeFileTransfers {
+			testContext.TryDownloadImage(dockerImage3ObjId, "BooPloinkImage")
+			var responseMap = testContext.TryGetDockerImageDesc(dockerImage3ObjId, true)
+			if testContext.CurrentTestPassed {
+				// Check image digest.
+				var image2Digest []byte
+				var err error
+				image2Digest, err = utils.ComputeSHA512FileDigest("BooPloinkImage")
+				if testContext.AssertErrIsNil(err, "Unable to compute signature") {
+					var obj interface{} = responseMap["Signature"]
+					var sig, isType = obj.([]interface{})
+					if testContext.AssertThat(isType, "Wrong type: " + reflect.TypeOf(sig).String()) {
+						for i, sigi := range sig {
+							var b = uint8(sigi.(float64))
+							if ! testContext.AssertThat(
+								b == image2Digest[i],
+								fmt.Sprintf("Wrong signature: %d != %d", b, image2Digest[i])) { break }
+						}
 					}
 				}
 			}
 		}
-		*/
 	}
 	
 	// Test ability of a user to to retrieve the user's docker images.

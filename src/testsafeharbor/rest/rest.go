@@ -404,6 +404,10 @@ func ParseResponseBodyToMap(body io.ReadCloser) (map[string]interface{}, error) 
 	var obj map[string]interface{}
 	err = json.Unmarshal(value, &obj)
 	if err != nil { return nil, err }
+	
+	fmt.Println("ParseResponseBodyToMap Map:" + string(value))
+	fmt.Println("endof map")
+	
 	return obj, nil
 }
 
@@ -577,4 +581,16 @@ func DecodeStringFromJSON(encodedValue string) string {
 	decodedValue = strings.Replace(decodedValue, "\\\"", "\"", -1)
 	decodedValue = strings.Replace(decodedValue, "\\\\", "\\", -1)
 	return decodedValue
+}
+
+/*******************************************************************************
+ * Write the specified byte array in JSON format.
+ */
+func ByteArrayAsJSON(bytes []byte) string {
+	var s = "["
+	for i, b := range bytes {
+		if i > 0 { s = s + ", " }
+		s = s + fmt.Sprintf("%d", b)
+	}
+	return (s + "]")
 }

@@ -39,11 +39,12 @@ type TestContext struct {
 	NoOfTests int
 	NoOfTestsThatFailed int
 	RedisPswd string
+	NoLargeFileTransfers bool
 }
 
 func NewTestContext(scheme, hostname string, port int,
 	setSessionId func(req *http.Request, sessionId string),
-	stopOnFirstError bool, redisPswd string) *TestContext {
+	stopOnFirstError bool, redisPswd string, nolargefiles bool) *TestContext {
 
 	return &TestContext{
 		RestContext: *rest.CreateTCPRestContext(scheme, hostname, port, "", "", setSessionId),
@@ -53,6 +54,7 @@ func NewTestContext(scheme, hostname string, port int,
 		NoOfTests:  0,
 		NoOfTestsThatFailed: 0,
 		RedisPswd: redisPswd,
+		NoLargeFileTransfers: nolargefiles,
 	}
 }
 
@@ -205,17 +207,17 @@ func ContainsString(ar []string, val string) bool {
 /*******************************************************************************
  * 
  */
-func ComputeSHA256FileSignature(filepath string) ([]byte, error) {
+func ComputeSHA256FileDigest(filepath string) ([]byte, error) {
 	
-	return ComputeFileSignature(sha256.New(), filepath)
+	return ComputeFileDigest(sha256.New(), filepath)
 }
 
 /*******************************************************************************
  * 
  */
-func ComputeSHA512FileSignature(filepath string) ([]byte, error) {
+func ComputeSHA512FileDigest(filepath string) ([]byte, error) {
 	
-	return ComputeFileSignature(sha512.New(), filepath)
+	return ComputeFileDigest(sha512.New(), filepath)
 }
 
 /*******************************************************************************
