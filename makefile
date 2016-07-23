@@ -1,6 +1,6 @@
 # Makefile for building the tests for Safe Harbor Server.
 
-SHHOST=52.40.181.19
+SHHOST=52.34.66.91
 SHPORT=6000
 
 PRODUCTNAME=Safe Harbor Server
@@ -185,7 +185,7 @@ checkimage:
 	curl http://$(registryUser):$(registryPassword)@$(RegistryHost):$(RegistryPort)/v2/$(TestImageRepoName)/tags/list
 
 # Remove compilation artifacts.
-clean:
+clean: $(build_dir)/$(PACKAGENAME)
 	rm -r -f $(build_dir)/$(PACKAGENAME)
 
 info:
