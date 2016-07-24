@@ -2057,28 +2057,41 @@ func (testContext *TestContext) TryGetUserEvents(userId string) []string {
 	
 	testContext.StartTest("TryGetUserEvents")
 	
+	fmt.Println("TryGetUserEvents: A")  // debug
+	
 	var resp *http.Response
 	var err error
 	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"getUserEvents",
 		[]string{"Log", "UserId"},
 		[]string{testContext.TestDemarcation(), userId})
+	fmt.Println("TryGetUserEvents: B")  // debug
 	
 	defer resp.Body.Close()
 
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	fmt.Println("TryGetUserEvents: C")  // debug
 	
 	var responseMaps []map[string]interface{}
 	responseMaps, err = rest.ParseResponseBodyToPayloadMaps(resp.Body)
+	fmt.Println("TryGetUserEvents: D")  // debug
 	if err != nil { fmt.Println(err.Error()); return nil }
+	fmt.Println("TryGetUserEvents: E")  // debug
 	var result []string = make([]string, 0)
 	for _, responseMap := range responseMaps {
+		fmt.Println("TryGetUserEvents: E.1")  // debug
 		rest.PrintMap(responseMap)
+		fmt.Println("TryGetUserEvents: E.2")  // debug
 		var retId string = responseMap["Id"].(string)
+		fmt.Println("TryGetUserEvents: E.3")  // debug
 		testContext.AssertThat(retId != "", "Returned Id is empty string")
+		fmt.Println("TryGetUserEvents: E.4")  // debug
 		result = append(result, retId)
+		fmt.Println("TryGetUserEvents: E.5")  // debug
 	}
+	fmt.Println("TryGetUserEvents: F")  // debug
 	testContext.PassTestIfNoFailures()
+	fmt.Println("TryGetUserEvents: G")  // debug
 	return result
 }
 

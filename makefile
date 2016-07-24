@@ -1,6 +1,6 @@
 # Makefile for building the tests for Safe Harbor Server.
 
-SHHOST=52.34.66.91
+SHHOST=50.112.194.191
 SHPORT=6000
 
 PRODUCTNAME=Safe Harbor Server

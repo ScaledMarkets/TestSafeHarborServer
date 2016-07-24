@@ -2,6 +2,23 @@
 <body>
 <b><a href="http://52.11.24.124/ping">Ping</a></b> (Check if server is up)<br />
 <b><a href="http://52.11.24.124/clearAll">Clear All</a></b> <i>(Warning: deletes all data on server, including docker containers and images)</i><br />
+
+
+<b><a href="http://50.112.194.191:6000/acknowledge">Acknowledge</a></b> (Tell me what I sent)<br />
+
+
+<b>Acknowledge</b>
+<form method="POST" action="http://50.112.194.191:6000/acknowledge"
+	enctype="multipart/form-data" >
+	Repo Id: <input type="text" name="RepoId">
+	Description: <input type="text" name="Description"><br />
+	(Note: Image names may be of the form <i>name</i> or <i>name:tag</i>)<br />
+	ImageName (an image with this name or name:tag will be created): <input type="text" name="ImageName">
+	Dockerfile: <input type="file" name="filename" filename="Filename" size="40">
+	<input type="submit" value="Submit">
+</form>
+
+
 <!--<b><a href="http://52.11.24.124/printDatabase">Print Database (On Server stdout)</a></b><br /><br />-->
 <b>Create Realm</b>
 <form method="POST" action="http://52.11.24.124/createRealmAnon">

@@ -452,13 +452,33 @@ func ParseResponseBodyToMaps(body io.ReadCloser) ([]map[string]interface{}, erro
  *	"payload" - json array (this is what is converted to a golang array of maps).
  */
 func ParseResponseBodyToPayloadMaps(body io.ReadCloser) ([]map[string]interface{}, error) {
+	
+	fmt.Println("ParseResponseBodyToPayloadMaps: A")  // debug
 	var value []byte
 	var err error
 	value, err = ioutil.ReadAll(body)
+	fmt.Println("ParseResponseBodyToPayloadMaps: B")  // debug
 	if err != nil { return nil, err }
+	fmt.Println("ParseResponseBodyToPayloadMaps: C")  // debug
 	var obj map[string]interface{}
+	
+	var s = string(value)
+	var pos = strings.Index(s, "\x00")
+	if pos >= 0 {
+		fmt.Println(fmt.Sprintf("null char occurs at pos %d", pos))
+		s = s[0:pos]
+	}
+	value = []byte(s)
+	
 	err = json.Unmarshal(value, &obj)
-	if err != nil { return nil, err }
+	fmt.Println("ParseResponseBodyToPayloadMaps: D")  // debug
+	if err != nil {
+		fmt.Print("ParseResponseBodyToPayloadMaps: D.1; value='")  // debug
+		fmt.Print(string(value))
+		fmt.Println("'")
+		return nil, err
+	}
+	fmt.Println("ParseResponseBodyToPayloadMaps: E")  // debug
 	
 	var isType bool
 	var httpStatusCode int
@@ -466,28 +486,43 @@ func ParseResponseBodyToPayloadMaps(body io.ReadCloser) ([]map[string]interface{
 
 	var f64 float64
 	f64, isType = obj["HTTPStatusCode"].(float64)
+	fmt.Println("ParseResponseBodyToPayloadMaps: F")  // debug
 	if ! isType { return nil, errors.New("HTTPStatusCode is not an int: it is a " +
 		reflect.TypeOf(obj["HTTPStatusCode"]).String()) }
+	fmt.Println("ParseResponseBodyToPayloadMaps: G")  // debug
 	httpStatusCode = int(f64)
+	fmt.Println("ParseResponseBodyToPayloadMaps: H")  // debug
 	if httpStatusCode != 200 {
 		return nil, errors.New(fmt.Sprintf("HTTP status %s returned", httpStatusCode))
 	}
+	fmt.Println("ParseResponseBodyToPayloadMaps: I")  // debug
 
 	httpReasonPhrase, isType = obj["HTTPReasonPhrase"].(string)
+	fmt.Println("ParseResponseBodyToPayloadMaps: J")  // debug
 	if httpReasonPhrase == "" { return nil, errors.New("No HTTPReasonPhrase") }
+	fmt.Println("ParseResponseBodyToPayloadMaps: K")  // debug
 	if ! isType { return nil, errors.New("HTTPReasonPhrase is not a string") }
+	fmt.Println("ParseResponseBodyToPayloadMaps: L")  // debug
 
 	var iar []interface{}
 	iar, isType = obj["payload"].([]interface{})
+	fmt.Println("ParseResponseBodyToPayloadMaps: M")  // debug
 	if ! isType { return nil, errors.New("payload is not an array of interface") }
+	fmt.Println("ParseResponseBodyToPayloadMaps: N")  // debug
 	
 	var maps = make([]map[string]interface{}, 0)
+	fmt.Println("ParseResponseBodyToPayloadMaps: O")  // debug
 	for _, elt := range iar {
+		fmt.Println("ParseResponseBodyToPayloadMaps: O.1")  // debug
 		var m map[string]interface{}
 		m, isType = elt.(map[string]interface{})
+		fmt.Println("ParseResponseBodyToPayloadMaps: O.2")  // debug
 		if ! isType { return nil, errors.New("Element is not a map[string]interface") }
+		fmt.Println("ParseResponseBodyToPayloadMaps: O.3")  // debug
 		maps = append(maps, m)
+		fmt.Println("ParseResponseBodyToPayloadMaps: O.4")  // debug
 	}
+	fmt.Println("ParseResponseBodyToPayloadMaps: P")  // debug
 	
 	return maps, nil
 }

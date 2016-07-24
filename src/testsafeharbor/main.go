@@ -2327,7 +2327,7 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 	// Test ability to get the events for a specified user, including docker build events.
 	{
 		var eventIds []string = testContext.TryGetUserEvents(realmXAdminObjId)
-		testContext.AssertThat(len(eventIds) == 5, "Wrong number of user events")
+		testContext.AssertThat(len(eventIds) == 5, fmt.Sprintf("Wrong number of user events: %d", len(eventIds)))
 			// Should be one scan event and two dockerfile exec events.
 	}
 	
