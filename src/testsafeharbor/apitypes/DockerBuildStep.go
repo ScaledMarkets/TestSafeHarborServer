@@ -4,7 +4,7 @@ import (
 	"fmt"
 	
 	// SafeHarbor packages:
-	"testsafeharbor/rest"
+	"utilities/rest"
 )
 
 /*******************************************************************************

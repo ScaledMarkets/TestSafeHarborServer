@@ -55,7 +55,7 @@ $(build_dir)/$(EXECNAME): $(build_dir) $(src_dir)/$(PACKAGENAME)/*.go
 # 'make compile' builds the executable, which is placed in <build_dir>.
 compile: $(build_dir)/$(EXECNAME)
 	@echo "UTILITIESDIR=$(UTILITIESDIR)"
-	@GOPATH=$(CURDIR):$(UTILITIESDIR) go install $(PACKAGENAME) -o $(EXECNAME)
+	@GOPATH=$(CURDIR):$(UTILITIESDIR) go install $(PACKAGENAME)
 
 # This target can only be run on a Linux system that has docker-engine installed.
 prepregistry:

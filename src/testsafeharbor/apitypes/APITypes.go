@@ -29,7 +29,7 @@ import (
 	"runtime/debug"
 	
 	// SafeHarbor packages:
-	"testsafeharbor/rest"
+	"utilities/rest"
 	"testsafeharbor/utils"
 )
 

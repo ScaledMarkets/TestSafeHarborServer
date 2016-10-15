@@ -20,7 +20,7 @@ import (
 	
 	// SafeHarbor packages:
 	"testsafeharbor/utils"
-	"testsafeharbor/rest"
+	"utilities/rest"
 	"testsafeharbor/apitypes"
 )
 

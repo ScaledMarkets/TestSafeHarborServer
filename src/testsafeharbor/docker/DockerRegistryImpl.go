@@ -56,7 +56,7 @@ import (
 	"strings"
 	
 	"testsafeharbor/utils"
-	"testsafeharbor/rest"
+	"utilities/rest"
 )
 
 type DockerRegistryImpl struct {
