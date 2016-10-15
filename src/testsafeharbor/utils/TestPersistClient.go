@@ -3,7 +3,6 @@ package utils
 import (
 	"fmt"
 	
-	//"testsafeharbor/rest"
 )
 
 type TestPersistClient interface {

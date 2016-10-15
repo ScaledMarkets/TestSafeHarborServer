@@ -1,6 +1,6 @@
 # Makefile for building the tests for Safe Harbor Server.
 
-SHHOST=50.112.194.191
+SHHOST=54.71.85.235
 SHPORT=6000
 
 PRODUCTNAME=Safe Harbor Server
@@ -35,8 +35,8 @@ CURDIR=$(shell pwd)
 .DEFAULT: all
 
 src_dir = $(CURDIR)/src
-
 build_dir = $(CURDIR)/bin
+UTILITIESDIR:=$(realpath $(CURDIR)/../Utilities)
 
 all: compile
 
@@ -47,13 +47,17 @@ testprep: stopregistry cleanregistry prepregistry startregistry
 $(build_dir):
 	mkdir $(build_dir)
 
-$(build_dir)/$(EXECNAME): $(build_dir) $(src_dir)
+# Main executable depends on source files.
+$(build_dir)/$(EXECNAME): $(build_dir) $(src_dir)/$(PACKAGENAME)/*.go
 
+# Main executable depends on external packages.
+$(build_dir)/$(EXECNAME): $(UTILITIESDIR)/$(CPU_ARCH)/$(PACKAGENAME)/*.a
+
+# The compile target depends on the main executable.
 # 'make compile' builds the executable, which is placed in <build_dir>.
-compile: $(build_dir)/$(PACKAGENAME)
-
-$(build_dir)/$(PACKAGENAME): $(build_dir)
-	@GOPATH=$(CURDIR) go install $(PACKAGENAME)
+compile: $(build_dir)/$(EXECNAME)
+	@echo "UTILITIESDIR=$(UTILITIESDIR)"
+	@GOPATH=$(CURDIR):$(UTILITIESDIR) go install $(PACKAGENAME) -o $(EXECNAME)
 
 # This target can only be run on a Linux system that has docker-engine installed.
 prepregistry:

@@ -21,7 +21,8 @@ import (
 	// SafeHarbor packages:
 	"testsafeharbor/docker"
 	"testsafeharbor/utils"
-	"testsafeharbor/rest"
+	
+	"utilities/rest"
 )
 
 const (
