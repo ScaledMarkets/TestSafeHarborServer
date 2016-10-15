@@ -7,6 +7,7 @@ PRODUCTNAME=Safe Harbor Server
 ORG=Scaled Markets
 PACKAGENAME=testsafeharbor
 EXECNAME=$(PACKAGENAME)
+CPU_ARCH:=$(shell uname -s | tr '[:upper:]' '[:lower:]')_amd64
 
 # These are needed by the registry tests:
 RegistryHost=localhost
@@ -36,7 +37,7 @@ CURDIR=$(shell pwd)
 
 src_dir = $(CURDIR)/src
 build_dir = $(CURDIR)/bin
-UTILITIESDIR:=$(realpath $(CURDIR)/../Utilities)
+UTILITIESDIR:=$(realpath $(CURDIR)/../utilities)
 
 all: compile
 
@@ -49,9 +50,6 @@ $(build_dir):
 
 # Main executable depends on source files.
 $(build_dir)/$(EXECNAME): $(build_dir) $(src_dir)/$(PACKAGENAME)/*.go
-
-# Main executable depends on external packages.
-$(build_dir)/$(EXECNAME): $(UTILITIESDIR)/$(CPU_ARCH)/$(PACKAGENAME)/*.a
 
 # The compile target depends on the main executable.
 # 'make compile' builds the executable, which is placed in <build_dir>.
