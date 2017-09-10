@@ -1,5 +1,7 @@
 /*******************************************************************************
  * Perform independent end-to-end ("behavioral") tests on the SafeHarbor server.
+ * 
+ * To do: migrate this to godog - https://github.com/DATA-DOG/godog
  */
 
 package main
@@ -2404,13 +2406,15 @@ func TestTwistlock(testContext *utils.TestContext) {
 	var dockerfileId string
 	var dockerImage1Version1ObjId string
 	var dockerImage1ObjId string
+	var scanConfigId string
+	var flagImagePath = "Seal.png"
 	var err error
 	{
 		var tempdir string
 		tempdir, err = utils.CreateTempDir()
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		
-		realmXId, realmXAdminObjId, _ = testContext.TryCreateRealmAnon(
+		realmXId, _, _ = testContext.TryCreateRealmAnon(
 			"realm4", "realm 4 Org", realmXAdminUserId, "realm 4 Admin Full Name",
 			"realm4admin@gmail.com", realmXAdminPswd)
 		
@@ -2439,3 +2443,4 @@ func TestTwistlock(testContext *utils.TestContext) {
 		scanEventDescs = testContext.TryScanImage(scanConfigId, dockerImage1Version1ObjId)
 		testContext.AssertThat(len(scanEventDescs) == 1, "Wrong number of scan events")
 	}
+}

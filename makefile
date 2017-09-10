@@ -166,6 +166,11 @@ scanconfigs:
 		-h=$(SHHOST) -p=$(SHPORT) \
 		-tests="ScanConfigs"
 
+twistlocok:
+	bin/testsafeharbor -stop \
+		-h=$(SHHOST) -p=$(SHPORT) \
+		-tests="Twistlock"
+
 # Run a SafeHarborServer "smoke" test suite.
 basic:
 	bin/testsafeharbor -stop \
