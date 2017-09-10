@@ -52,6 +52,7 @@ func main() {
 		"UpdateAndReplace": TestUpdateAndReplace,
 		"Delete": TestDelete,
 		"DockerFunctions": TestDockerFunctions,
+		"Twistlock": TestTwistlock,
 	}
 
 	var help *bool = flag.Bool("help", false, "Provide help instructions.")
@@ -2377,3 +2378,64 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 		}
 	}
 }
+	
+/*******************************************************************************
+ * Test integration with Twistlock.
+ * Creates/uses the following:
+ */
+func TestTwistlock(testContext *utils.TestContext) {
+
+	fmt.Println("\nTest suite TestTwistlock------------------\n")
+
+	defer testContext.TryClearAll()
+	
+	// -------------------------------------
+	// Test setup:
+	// Create a realm and an admin user for the realm, and then log in as that user.
+	// Create a repo.
+	// Create a ScanConfig.
+	// Perform a scan.
+
+	var realmXId string
+	var realmXAdminUserId = "admin"
+	var realmXAdminPswd = "fluffy"
+	var realmXRepo1Id string
+	var dockerfilePath string
+	var dockerfileId string
+	var dockerImage1Version1ObjId string
+	var dockerImage1ObjId string
+	var err error
+	{
+		var tempdir string
+		tempdir, err = utils.CreateTempDir()
+		if err != nil { testContext.AbortAllTests(err.Error()) }
+		
+		realmXId, realmXAdminObjId, _ = testContext.TryCreateRealmAnon(
+			"realm4", "realm 4 Org", realmXAdminUserId, "realm 4 Admin Full Name",
+			"realm4admin@gmail.com", realmXAdminPswd)
+		
+		testContext.TryAuthenticate(realmXAdminUserId, realmXAdminPswd, true)
+		
+		realmXRepo1Id = testContext.TryCreateRepo(realmXId, "repo1", "Repo in realm x", "")
+		
+		scanConfigId, _ = testContext.TryDefineScanConfig("My Config 1",
+			"A very fine config", realmXRepo1Id, "twistlock", "", flagImagePath, []string{}, []string{})
+
+		// Build docker image that we will scan.
+		dockerfilePath, err = utils.CreateTempFile(tempdir, "Dockerfile", "FROM alpine\nRUN echo goo > stink")
+		if err != nil { testContext.AbortAllTests(err.Error()) }
+		defer os.Remove(dockerfilePath)
+		dockerfileId, _ = testContext.TryAddDockerfile(realmXRepo1Id, dockerfilePath, "A fine dockerfile")
+		
+		dockerImage1Version1ObjId, dockerImage1ObjId, _ = testContext.TryExecDockerfile(realmXRepo1Id,
+			dockerfileId, "myimage", []string{}, []string{})
+		testContext.AssertThat(dockerImage1ObjId != "", "No image obj Id returned")
+	}
+	
+	
+	// Test ability to scan a docker image.
+	{
+		var scanEventDescs []map[string]interface{}
+		scanEventDescs = testContext.TryScanImage(scanConfigId, dockerImage1Version1ObjId)
+		testContext.AssertThat(len(scanEventDescs) == 1, "Wrong number of scan events")
+	}
