@@ -23,6 +23,7 @@ import (
 	// SafeHarbor packages:
 	"testsafeharbor/docker"
 	"testsafeharbor/utils"
+	"safeharbor/providers"
 	
 	"utilities/rest"
 )
@@ -54,6 +55,7 @@ func main() {
 		"UpdateAndReplace": TestUpdateAndReplace,
 		"Delete": TestDelete,
 		"DockerFunctions": TestDockerFunctions,
+		"TwistlockStandalone": TestTwistlockStandalone,
 		"Twistlock": TestTwistlock,
 	}
 
@@ -2382,6 +2384,38 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 }
 	
 /*******************************************************************************
+ * Test REST access to Twistlock.
+ */
+func TestTwistlockStandalone(testContext *utils.TestContext) {
+
+	fmt.Println("\nTest suite TestTwistlock------------------\n")
+
+	defer testContext.TryClearAll()
+	
+	// Test connectivity to Twistlock.
+	{
+		// Get a ScanContext.
+		var scanService ScanService
+		var err error
+		var params = map[string]interface{
+			"Host": "127.0.0.1",
+			"Port": "8083",
+			"UserId": "admin",
+			"Password": "admin",
+		}
+		
+		scanService, err = CreateTwistlockService(params)
+		testContext.AssertErrIsNil(err == nil, "")
+		var scanContext ScanContext
+		scanContext, err = scanService.CreateScanContext(map[string]string{})
+		testContext.AssertErrIsNil(err == nil, "")
+		
+		// Attempt to contact Twistlock server.
+		*apitypes.Result result = scanContext.PingService()
+		testContext.AssertThat(result.HTTPStatusCode <= 300, result.HTTPReasonPhrase)
+	}
+	
+/*******************************************************************************
  * Test integration with Twistlock.
  * Creates/uses the following:
  */
@@ -2390,7 +2424,7 @@ func TestTwistlock(testContext *utils.TestContext) {
 	fmt.Println("\nTest suite TestTwistlock------------------\n")
 
 	defer testContext.TryClearAll()
-	
+		
 	// -------------------------------------
 	// Test setup:
 	// Create a realm and an admin user for the realm, and then log in as that user.
@@ -2409,6 +2443,8 @@ func TestTwistlock(testContext *utils.TestContext) {
 	var scanConfigId string
 	var flagImagePath = "Seal.png"
 	var err error
+
+	// Set up for SafeHarbor scanning tests using Twistlock.
 	{
 		var tempdir string
 		tempdir, err = utils.CreateTempDir()
@@ -2435,7 +2471,6 @@ func TestTwistlock(testContext *utils.TestContext) {
 			dockerfileId, "myimage", []string{}, []string{})
 		testContext.AssertThat(dockerImage1ObjId != "", "No image obj Id returned")
 	}
-	
 	
 	// Test ability to scan a docker image.
 	{

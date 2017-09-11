@@ -166,7 +166,12 @@ scanconfigs:
 		-h=$(SHHOST) -p=$(SHPORT) \
 		-tests="ScanConfigs"
 
-twistlocok:
+twistlockalone:
+	bin/testsafeharbor -stop \
+		-h=$(SHHOST) -p=$(SHPORT) \
+		-tests="TwistlockStandalone"
+
+twistlock:
 	bin/testsafeharbor -stop \
 		-h=$(SHHOST) -p=$(SHPORT) \
 		-tests="Twistlock"
