@@ -2,7 +2,7 @@
  * Functions requried by main.go.
  */
 
-package utils
+package helpers
 
 import (
 	"flag"

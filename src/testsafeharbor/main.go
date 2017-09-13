@@ -21,10 +21,10 @@ import (
 	"goredis"
 	
 	// SafeHarbor packages:
-	"testsafeharbor/docker"
-	"testsafeharbor/utils"
-	"safeharbor/providers"
-	
+	"testsafeharbor/helpers"
+	"safeharbor/docker"
+	"scanners/providers"
+	"utilities/utils"
 	"utilities/rest"
 )
 
