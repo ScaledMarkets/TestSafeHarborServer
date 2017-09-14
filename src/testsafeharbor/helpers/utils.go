@@ -26,6 +26,7 @@ import (
 	
 	// My packages:
 	"utilities/rest"
+	"utilities/utils"
 )
 
 type TestContext struct {
@@ -209,7 +210,7 @@ func ContainsString(ar []string, val string) bool {
  */
 func ComputeSHA256FileDigest(filepath string) ([]byte, error) {
 	
-	return ComputeFileDigest(sha256.New(), filepath)
+	return utils.ComputeFileDigest(sha256.New(), filepath)
 }
 
 /*******************************************************************************
@@ -217,7 +218,7 @@ func ComputeSHA256FileDigest(filepath string) ([]byte, error) {
  */
 func ComputeSHA512FileDigest(filepath string) ([]byte, error) {
 	
-	return ComputeFileDigest(sha512.New(), filepath)
+	return utils.ComputeFileDigest(sha512.New(), filepath)
 }
 
 /*******************************************************************************

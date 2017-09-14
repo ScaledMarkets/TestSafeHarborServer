@@ -1441,7 +1441,7 @@ func (testContext *TestContext) TryGetPermission(partyId, resourceId string) []b
 }
 
 /*******************************************************************************
- * Return an array of the names of the available providers.
+ * Return an array of the names of the available scanners.
  */
 func (testContext *TestContext) TryGetScanProviders() {
 	testContext.StartTest("TryGetScanProviders")

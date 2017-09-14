@@ -22,8 +22,8 @@ import (
 	
 	// SafeHarbor packages:
 	"testsafeharbor/helpers"
-	"safeharbor/docker"
-	"scanners/providers"
+	"docker"
+	"scanners"
 	"utilities/utils"
 	"utilities/rest"
 )
@@ -35,7 +35,7 @@ const (
 
 func main() {
 	
-	var testSuite = map[string]func(*utils.TestContext) {
+	var testSuite = map[string]func(*helpers.TestContext) {
 		"Email": TestEmail,
 		"DockSvcs": TestDockerServices,
 		"Registry": TestDockerRegistry,
@@ -80,13 +80,13 @@ func main() {
 
 	if *help {
 		fmt.Println("Help:")
-		utils.Usage()
+		helpers.Usage()
 		os.Exit(0)
 	}
 	
 	// Parse the 'tests' option to determine which tests to run.
 	var testsToRun []string = strings.Split(*tests, ",")
-	var testFunctionsToRun = make([]func(*utils.TestContext), 0)
+	var testFunctionsToRun = make([]func(*helpers.TestContext), 0)
 	fmt.Println("tests: " + *tests)
 	fmt.Println("Test suites that will be run:")
 	for _, testName := range testsToRun {
@@ -100,7 +100,7 @@ func main() {
 	}
 	
 	// Prepare to run tests.
-	var testContext = utils.NewTestContext(*scheme, *hostname, *port, utils.SetSessionId,
+	var testContext = helpers.NewTestContext(*scheme, *hostname, *port, helpers.SetSessionId,
 		*stopOnFirstError, *redisPswd, *nolargefiles)
 	testContext.Print()
 	if strings.Contains(*tests, "DockerFunctions") {
@@ -128,7 +128,7 @@ func main() {
 /*******************************************************************************
  * 
  */
-func TestEmail(testContext *utils.TestContext) {
+func TestEmail(testContext *helpers.TestContext) {
 	
 	fmt.Println("\nTest suite TestEmail------------------\n")
 
@@ -168,7 +168,7 @@ func TestEmail(testContext *utils.TestContext) {
 /*******************************************************************************
  * 
  */
-func TestDockerServices(testContext *utils.TestContext) {
+func TestDockerServices(testContext *helpers.TestContext) {
 	
 	fmt.Println("\nTest suite TestDockerServices------------------\n")
 
@@ -188,7 +188,7 @@ func TestDockerServices(testContext *utils.TestContext) {
 /*******************************************************************************
  * 
  */
-func TestDockerEngine(testContext *utils.TestContext) {
+func TestDockerEngine(testContext *helpers.TestContext) {
 	
 	fmt.Println("\nTest suite TestDockerEngine------------------\n")
 
@@ -213,11 +213,11 @@ func TestDockerEngine(testContext *utils.TestContext) {
 	
 	{
 		// Create a build directory.
-		buildDirPath, err = utils.CreateTempDir()
+		buildDirPath, err = helpers.CreateTempDir()
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		
 		// Create a dockerfile.
-		_, err = utils.CreateTempFile(buildDirPath, "Dockerfile", dockerfileContent)
+		_, err = helpers.CreateTempFile(buildDirPath, "Dockerfile", dockerfileContent)
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 	}
 	
@@ -329,7 +329,7 @@ func TestDockerEngine(testContext *utils.TestContext) {
 /*******************************************************************************
  * 
  */
-func TestDockerRegistry(testContext *utils.TestContext) {
+func TestDockerRegistry(testContext *helpers.TestContext) {
 	
 	fmt.Println("\nTest suite TestDockerRegistry------------------\n")
 
@@ -446,7 +446,7 @@ func TestDockerRegistry(testContext *utils.TestContext) {
 /*******************************************************************************
  * Test the goredis API to verify understanding of it.
  */
-func TestGoRedis(testContext *utils.TestContext) {
+func TestGoRedis(testContext *helpers.TestContext) {
 	
 	fmt.Println("\nTest suite TestGoRedis------------------\n")
 
@@ -493,7 +493,7 @@ func TestGoRedis(testContext *utils.TestContext) {
  * Chosen binding: https://github.com/alphazero/Go-Redis
  * Alternative binding: https://github.com/hoisie/redis
  */
-func TestRedis(testContext *utils.TestContext) {
+func TestRedis(testContext *helpers.TestContext) {
 
 	fmt.Println("\nTest suite TestRedis------------------\n")
 
@@ -532,7 +532,7 @@ func TestRedis(testContext *utils.TestContext) {
 /*******************************************************************************
  * 
  */
-func TestJSONDeserialization(testContext *utils.TestContext) {
+func TestJSONDeserialization(testContext *helpers.TestContext) {
 
 	fmt.Println("\nTest suite TestJSONDeserialization------------------\n")
 
@@ -666,7 +666,7 @@ func TestJSONDeserialization(testContext *utils.TestContext) {
  *	realm4
  *	realm4admin
  */
-func TestCreateRealmsAndUsers(testContext *utils.TestContext) {
+func TestCreateRealmsAndUsers(testContext *helpers.TestContext) {
 	
 	fmt.Println("\nTest suite TestCreateRealmsAndUsers------------------\n")
 
@@ -791,7 +791,7 @@ func TestCreateRealmsAndUsers(testContext *utils.TestContext) {
  * Test ability to create resources within a realm, and retrieve info about them.
  * Creates/uses the following:
  */
-func TestCreateResources(testContext *utils.TestContext) {
+func TestCreateResources(testContext *helpers.TestContext) {
 	
 	fmt.Println("\nTest suite TestCreateResources------------------\n")
 
@@ -812,7 +812,7 @@ func TestCreateResources(testContext *utils.TestContext) {
 	
 	{
 		var err error
-		tempdir, err = utils.CreateTempDir()
+		tempdir, err = helpers.CreateTempDir()
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		
 		realm4Id, _, _ = testContext.TryCreateRealmAnon(
@@ -821,14 +821,14 @@ func TestCreateResources(testContext *utils.TestContext) {
 		
 		testContext.TryAuthenticate("realm4admin", "realm4adminpswd", true)
 		
-		dockerfilePath, err = utils.CreateTempFile(tempdir, "Dockerfile", "FROM centos\nRUN echo moo > oink")
+		dockerfilePath, err = helpers.CreateTempFile(tempdir, "Dockerfile", "FROM centos\nRUN echo moo > oink")
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfilePath)
 		
-		err = utils.DownloadFile(SealURL, flagImagePath, true)
+		err = helpers.DownloadFile(SealURL, flagImagePath, true)
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		
-		err = utils.DownloadFile(Seal2URL, flag2ImagePath, true)
+		err = helpers.DownloadFile(Seal2URL, flag2ImagePath, true)
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 	}
 	
@@ -886,7 +886,7 @@ func TestCreateResources(testContext *utils.TestContext) {
 				if flagName != "myflag" { testContext.FailTest() }
 				
 				var flagIds []string = testContext.TryGetMyFlags()
-				testContext.AssertThat(utils.ContainsString(flagIds, flagId),
+				testContext.AssertThat(helpers.ContainsString(flagIds, flagId),
 					"Flag Id " + flagId + " not returned")
 				
 				var fId string = testContext.TryGetFlagDescByName(johnsRepoId, "myflag")
@@ -935,7 +935,7 @@ func TestCreateResources(testContext *utils.TestContext) {
  * and defineFlag.
  * ImageName and Description may be omitted for ....
  */
-func TestOptionalParams(testContext *utils.TestContext) {
+func TestOptionalParams(testContext *helpers.TestContext) {
 	
 	fmt.Println("\nTest suite TestOptionalParams------------------\n")
 
@@ -954,18 +954,18 @@ func TestOptionalParams(testContext *utils.TestContext) {
 	
 	{
 		var err error
-		tempdir, err = utils.CreateTempDir()
+		tempdir, err = helpers.CreateTempDir()
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		
-		dockerfile1Path, err = utils.CreateTempFile(tempdir, "Dockerfile", "FROM centos\nRUN echo gloo > stink")
+		dockerfile1Path, err = helpers.CreateTempFile(tempdir, "Dockerfile", "FROM centos\nRUN echo gloo > stink")
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfile1Path)
 		
-		dockerfile2Path, err = utils.CreateTempFile(tempdir, "Dockerfile2", "FROM centos\nRUN echo hoo > pink")
+		dockerfile2Path, err = helpers.CreateTempFile(tempdir, "Dockerfile2", "FROM centos\nRUN echo hoo > pink")
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfile2Path)
 		
-		dockerfile3Path, err = utils.CreateTempFile(tempdir, "Dockerfile3", "FROM centos\nRUN echo shoo > blink")
+		dockerfile3Path, err = helpers.CreateTempFile(tempdir, "Dockerfile3", "FROM centos\nRUN echo shoo > blink")
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfile3Path)
 		
@@ -1102,7 +1102,7 @@ func TestOptionalParams(testContext *utils.TestContext) {
  * Test ability to create groups, and use them.
  * Creates/uses the following:
  */
-func TestCreateGroups(testContext *utils.TestContext) {
+func TestCreateGroups(testContext *helpers.TestContext) {
 	
 	fmt.Println("\nTest suite TestCreateGroups------------------\n")
 
@@ -1191,7 +1191,7 @@ func TestCreateGroups(testContext *utils.TestContext) {
  * Test the getMy... functions.
  * Creates/uses the following:
  */
-func TestGetMy(testContext *utils.TestContext) {
+func TestGetMy(testContext *helpers.TestContext) {
 		
 	fmt.Println("\nTest suite TestGetMy------------------\n")
 
@@ -1229,7 +1229,7 @@ func TestGetMy(testContext *utils.TestContext) {
 	var tempdir string
 	{
 		var err error
-		tempdir, err = utils.CreateTempDir()
+		tempdir, err = helpers.CreateTempDir()
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		
 		realmXId, _, _ = testContext.TryCreateRealmAnon(
@@ -1249,7 +1249,7 @@ func TestGetMy(testContext *utils.TestContext) {
 		realmZId = testContext.TryCreateRealm("cromardirealm", "Cromardis_Realm", "Beware in here")
 		testContext.TryCreateRepo(realmZId, "repo1", "A first repo", "")
 		
-		dockerfilePath, err = utils.CreateTempFile(tempdir, "Dockerfile", "FROM centos\nRUN echo moo > oink")
+		dockerfilePath, err = helpers.CreateTempFile(tempdir, "Dockerfile", "FROM centos\nRUN echo moo > oink")
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfilePath)
 		
@@ -1264,7 +1264,7 @@ func TestGetMy(testContext *utils.TestContext) {
 			"Show that scans passed", realmZRepo2Id, "clair", "", "", nil, nil)
 		testContext.TryAddPermission(realmXJohnObjId, realmZRepo2ScanConfigId, permissions)
 		
-		err = utils.DownloadFile(SealURL, flagImagePath, true)
+		err = helpers.DownloadFile(SealURL, flagImagePath, true)
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		
 		var responseMap = testContext.TryDefineFlag(realmZRepo2Id, "SuperSuccessFlag",
@@ -1315,7 +1315,7 @@ func TestGetMy(testContext *utils.TestContext) {
 	{
 		var configIds []string
 		_, configIds = testContext.TryGetMyScanConfigs()
-		testContext.AssertThat(utils.ContainsString(configIds, realmZRepo2ScanConfigId),
+		testContext.AssertThat(helpers.ContainsString(configIds, realmZRepo2ScanConfigId),
 			"Scan config not found")
 	}
 }
@@ -1324,7 +1324,7 @@ func TestGetMy(testContext *utils.TestContext) {
  * Test access control.
  * Creates/uses the following:
  */
-func TestAccessControl(testContext *utils.TestContext) {
+func TestAccessControl(testContext *helpers.TestContext) {
 	
 	fmt.Println("\nTest suite TestAccessControl------------------\n")
 
@@ -1353,7 +1353,7 @@ func TestAccessControl(testContext *utils.TestContext) {
 	
 	{
 		var err error
-		tempdir, err = utils.CreateTempDir()
+		tempdir, err = helpers.CreateTempDir()
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		
 		realmXId, _, _ = testContext.TryCreateRealmAnon(
@@ -1367,7 +1367,7 @@ func TestAccessControl(testContext *utils.TestContext) {
 		
 		realmXRepo1Id = testContext.TryCreateRepo(realmXId, "repo1", "Repo in realm x", "")
 		
-		dockerfilePath, err = utils.CreateTempFile(tempdir, "Dockerfile", "FROM centos\nRUN echo moo > oink")
+		dockerfilePath, err = helpers.CreateTempFile(tempdir, "Dockerfile", "FROM centos\nRUN echo moo > oink")
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfilePath)
 		
@@ -1452,7 +1452,7 @@ clicking on the link in the email. To run this test,
 		inbetween steps 1 and 2.)
 
 `
-func TestEmailIdentityVerificationStep1(testContext *utils.TestContext) {
+func TestEmailIdentityVerificationStep1(testContext *helpers.TestContext) {
 
 	fmt.Println("\nTest suite TestEmailIdentityVerificationStep1------------------\n")
 	fmt.Println(TestEmailIdentityVerificationStep1Explanation)
@@ -1499,7 +1499,7 @@ func TestEmailIdentityVerificationStep1(testContext *utils.TestContext) {
 /*******************************************************************************
  * Test email based identity verification - step 2.
  */
-func TestEmailIdentityVerificationStep2(testContext *utils.TestContext) {
+func TestEmailIdentityVerificationStep2(testContext *helpers.TestContext) {
 	
 	fmt.Println("\nTest suite TestEmailIdentityVerificationStep2------------------\n")
 	
@@ -1547,7 +1547,7 @@ func TestEmailIdentityVerificationStep2(testContext *utils.TestContext) {
  * Test update/replace functions.
  * Creates/uses the following:
  */
-func TestUpdateAndReplace(testContext *utils.TestContext) {
+func TestUpdateAndReplace(testContext *helpers.TestContext) {
 	
 	fmt.Println("\nTest suite TestUpdateAndReplace------------------\n")
 
@@ -1583,7 +1583,7 @@ func TestUpdateAndReplace(testContext *utils.TestContext) {
 	
 	{
 		var err error
-		tempdir, err = utils.CreateTempDir()
+		tempdir, err = helpers.CreateTempDir()
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		
 		realmXId, _, _ = testContext.TryCreateRealmAnon(
@@ -1600,17 +1600,17 @@ func TestUpdateAndReplace(testContext *utils.TestContext) {
 		realmXJohnObjId, _ = testContext.TryCreateUser(realmXJohnUserId, "John Connor",
 			"johnc@gmail.com", realmXJohnPswd, realmXId)
 		
-		dockerfilePath, err = utils.CreateTempFile(tempdir, "Dockerfile", "FROM centos\nRUN echo moo > oink")
+		dockerfilePath, err = helpers.CreateTempFile(tempdir, "Dockerfile", "FROM centos\nRUN echo moo > oink")
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfilePath)
 		
 		dockerfileId, _ = testContext.TryAddDockerfile(realmXRepo1Id, dockerfilePath,
 			"A first dockerfile")
 		
-		err = utils.DownloadFile(SealURL, flagImagePath, true)
+		err = helpers.DownloadFile(SealURL, flagImagePath, true)
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		
-		err = utils.DownloadFile(Seal2URL, flag2ImagePath, true)
+		err = helpers.DownloadFile(Seal2URL, flag2ImagePath, true)
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 
 		realmYId = testContext.TryCreateRealm(
@@ -1683,7 +1683,7 @@ func TestUpdateAndReplace(testContext *utils.TestContext) {
 /*******************************************************************************
  * Test functions that link and unlink scan configs to DockerImages.
  */
-func TestScanConfigs(testContext *utils.TestContext) {
+func TestScanConfigs(testContext *helpers.TestContext) {
 	
 	fmt.Println("\nTest suite TestScanConfigs------------------\n")
 
@@ -1713,14 +1713,14 @@ func TestScanConfigs(testContext *utils.TestContext) {
 		
 		var tempdir string
 		var err error
-		tempdir, err = utils.CreateTempDir()
+		tempdir, err = helpers.CreateTempDir()
 		if err != nil { testContext.AbortAllTests(err.Error()) }
-		dockerfile1Path, err = utils.CreateTempFile(tempdir, "Dockerfile1", "FROM centos\nRUN echo goo > oink")
+		dockerfile1Path, err = helpers.CreateTempFile(tempdir, "Dockerfile1", "FROM centos\nRUN echo goo > oink")
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfile1Path)
 		dockerfile1Id, _ = testContext.TryAddDockerfile(repoId, dockerfile1Path, "A gooey dockerfile")
 		
-		dockerfile2Path, err = utils.CreateTempFile(tempdir, "Dockerfile2", "FROM centos\nRUN echo shoo > oink")
+		dockerfile2Path, err = helpers.CreateTempFile(tempdir, "Dockerfile2", "FROM centos\nRUN echo shoo > oink")
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfile2Path)
 		dockerfile2Id, _ = testContext.TryAddDockerfile(repoId, dockerfile2Path, "A shooey dockerfile")
@@ -1821,7 +1821,7 @@ func TestScanConfigs(testContext *utils.TestContext) {
 /*******************************************************************************
  * Test deletion, diabling, etc.
  */
-func TestDelete(testContext *utils.TestContext) {
+func TestDelete(testContext *helpers.TestContext) {
 
 	fmt.Println("\nTest suite TestDelete------------------\n")
 
@@ -1866,13 +1866,13 @@ func TestDelete(testContext *utils.TestContext) {
 		realmXGroupId = testContext.TryCreateGroup(realmXId, "mygroup",
 			"For Overthrowning Skynet", false)
 		
-		var err = utils.DownloadFile(SealURL, flagImagePath, true)
+		var err = helpers.DownloadFile(SealURL, flagImagePath, true)
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		
 		var tempdir string
-		tempdir, err = utils.CreateTempDir()
+		tempdir, err = helpers.CreateTempDir()
 		if err != nil { testContext.AbortAllTests(err.Error()) }
-		dockerfile1Path, err = utils.CreateTempFile(
+		dockerfile1Path, err = helpers.CreateTempFile(
 			tempdir, "Dockerfile", "FROM centos\nRUN echo moo > oink")
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfile1Path)
@@ -2106,7 +2106,7 @@ func TestDelete(testContext *utils.TestContext) {
  * Test docker functions.
  * Creates/uses the following:
  */
-func TestDockerFunctions(testContext *utils.TestContext) {
+func TestDockerFunctions(testContext *helpers.TestContext) {
 
 	fmt.Println("\nTest suite TestDockerFunctions------------------\n")
 
@@ -2144,7 +2144,7 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 	var tempdir string
 	
 	{
-		tempdir, err = utils.CreateTempDir()
+		tempdir, err = helpers.CreateTempDir()
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		
 		realmXId, realmXAdminObjId, _ = testContext.TryCreateRealmAnon(
@@ -2158,12 +2158,12 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 		scanConfigId, _ = testContext.TryDefineScanConfig("My Config 1",
 			"A very fine config", realmXRepo1Id, "clair", "", flagImagePath, []string{}, []string{})
 
-		dockerfilePath, err = utils.CreateTempFile(tempdir, "Dockerfile", "FROM centos\nRUN echo moo > oink")
+		dockerfilePath, err = helpers.CreateTempFile(tempdir, "Dockerfile", "FROM centos\nRUN echo moo > oink")
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfilePath)
 		dockerfileId, _ = testContext.TryAddDockerfile(realmXRepo1Id, dockerfilePath, "A fine dockerfile")
 		
-		dockerfileParamPath, err = utils.CreateTempFile(tempdir, "DockerfileP",
+		dockerfileParamPath, err = helpers.CreateTempFile(tempdir, "DockerfileP",
 			"FROM centos\nARG param1=\"good doggy\"\nRUN echo $param1 > doggy.txt")
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfileParamPath)
@@ -2171,7 +2171,7 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 		dockerfileParamId, _ = testContext.TryAddDockerfile(
 			realmXRepo1Id, dockerfileParamPath, "A parameterized dockerfile")
 		
-		dockerfile2ParamPath, err = utils.CreateTempFile(tempdir, "Dockerfile2P",
+		dockerfile2ParamPath, err = helpers.CreateTempFile(tempdir, "Dockerfile2P",
 			"FROM centos\nARG param1\nARG param2=\"abc def\"\nRUN echo $param2 > $param1")
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfile2ParamPath)
@@ -2205,16 +2205,16 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 		testContext.AssertThat(contains, "Parameter param2 was not returned")
 		testContext.AssertThat(param2Value == "\"abc def\"", "Parameter param2 had wrong value: '" + param2Value + "'")
 		
-		dockerfile2Path, err = utils.CreateTempFile(tempdir, "Dockerfile2", "FROM centos\nRUN echo boo > ploink")
+		dockerfile2Path, err = helpers.CreateTempFile(tempdir, "Dockerfile2", "FROM centos\nRUN echo boo > ploink")
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfile2Path)
 		testContext.TryAddDockerfile(realmXRepo1Id, dockerfile2Path, "A finer dockerfile")
 		
-		dockerfile3Path, err = utils.CreateTempFile(tempdir, "Dockerfile3", "FROM centos\nRUN echo split > splat")
+		dockerfile3Path, err = helpers.CreateTempFile(tempdir, "Dockerfile3", "FROM centos\nRUN echo split > splat")
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfile3Path)
 
-		err = utils.DownloadFile(SealURL, flagImagePath, true)
+		err = helpers.DownloadFile(SealURL, flagImagePath, true)
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 	}
 	
@@ -2307,7 +2307,7 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 				// Check image digest.
 				var image2Digest []byte
 				var err error
-				image2Digest, err = utils.ComputeSHA512FileDigest("BooPloinkImage")
+				image2Digest, err = helpers.ComputeSHA512FileDigest("BooPloinkImage")
 				if testContext.AssertErrIsNil(err, "Unable to compute signature") {
 					var obj interface{} = responseMap["Signature"]
 					var sig, isType = obj.([]interface{})
@@ -2386,7 +2386,7 @@ func TestDockerFunctions(testContext *utils.TestContext) {
 /*******************************************************************************
  * Test REST access to Twistlock.
  */
-func TestTwistlockStandalone(testContext *utils.TestContext) {
+func TestTwistlockStandalone(testContext *helpers.TestContext) {
 
 	fmt.Println("\nTest suite TestTwistlock------------------\n")
 
@@ -2395,31 +2395,32 @@ func TestTwistlockStandalone(testContext *utils.TestContext) {
 	// Test connectivity to Twistlock.
 	{
 		// Get a ScanContext.
-		var scanService ScanService
+		var scanService scanners.ScanService
 		var err error
-		var params = map[string]interface{
+		var params = map[string]interface{}{
 			"Host": "127.0.0.1",
 			"Port": "8083",
 			"UserId": "admin",
 			"Password": "admin",
 		}
 		
-		scanService, err = CreateTwistlockService(params)
-		testContext.AssertErrIsNil(err == nil, "")
-		var scanContext ScanContext
+		scanService, err = scanners.CreateTwistlockService(params)
+		testContext.AssertErrIsNil(err, "")
+		var scanContext scanners.ScanContext
 		scanContext, err = scanService.CreateScanContext(map[string]string{})
-		testContext.AssertErrIsNil(err == nil, "")
+		testContext.AssertErrIsNil(err, "")
 		
 		// Attempt to contact Twistlock server.
-		*apitypes.Result result = scanContext.PingService()
+		var result *rest.RestResponseType = scanContext.PingService()
 		testContext.AssertThat(result.HTTPStatusCode <= 300, result.HTTPReasonPhrase)
 	}
-	
+}
+
 /*******************************************************************************
  * Test integration with Twistlock.
  * Creates/uses the following:
  */
-func TestTwistlock(testContext *utils.TestContext) {
+func TestTwistlock(testContext *helpers.TestContext) {
 
 	fmt.Println("\nTest suite TestTwistlock------------------\n")
 
@@ -2447,7 +2448,7 @@ func TestTwistlock(testContext *utils.TestContext) {
 	// Set up for SafeHarbor scanning tests using Twistlock.
 	{
 		var tempdir string
-		tempdir, err = utils.CreateTempDir()
+		tempdir, err = helpers.CreateTempDir()
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		
 		realmXId, _, _ = testContext.TryCreateRealmAnon(
@@ -2462,7 +2463,7 @@ func TestTwistlock(testContext *utils.TestContext) {
 			"A very fine config", realmXRepo1Id, "twistlock", "", flagImagePath, []string{}, []string{})
 
 		// Build docker image that we will scan.
-		dockerfilePath, err = utils.CreateTempFile(tempdir, "Dockerfile", "FROM alpine\nRUN echo goo > stink")
+		dockerfilePath, err = helpers.CreateTempFile(tempdir, "Dockerfile", "FROM alpine\nRUN echo goo > stink")
 		if err != nil { testContext.AbortAllTests(err.Error()) }
 		defer os.Remove(dockerfilePath)
 		dockerfileId, _ = testContext.TryAddDockerfile(realmXRepo1Id, dockerfilePath, "A fine dockerfile")
