@@ -48,7 +48,7 @@ func NewTestContext(scheme, hostname string, port int,
 	stopOnFirstError bool, redisPswd string, nolargefiles bool) *TestContext {
 
 	return &TestContext{
-		RestContext: *rest.CreateTCPRestContext(scheme, hostname, port, "", "", setSessionId),
+		RestContext: *rest.CreateTCPRestContext(scheme, hostname, port, "", "", nil, setSessionId),
 		SessionId: "",
 		StopOnFirstError: stopOnFirstError,
 		TestStatus:  make(map[string]string),
