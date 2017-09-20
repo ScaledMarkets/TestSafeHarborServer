@@ -2388,10 +2388,8 @@ func TestDockerFunctions(testContext *helpers.TestContext) {
  */
 func TestTwistlockStandalone(testContext *helpers.TestContext) {
 
-	fmt.Println("\nTest suite TestTwistlock------------------\n")
+	fmt.Println("\nTest suite TestTwistlockStandalone------------------\n")
 
-	defer testContext.TryClearAll()
-	
 	// Test connectivity to Twistlock.
 	{
 		// Get a ScanContext.
@@ -2413,6 +2411,7 @@ func TestTwistlockStandalone(testContext *helpers.TestContext) {
 		// Attempt to contact Twistlock server.
 		var result *rest.RestResponseType = scanContext.PingService()
 		testContext.AssertThat(result.HTTPStatusCode <= 300, result.HTTPReasonPhrase)
+		fmt.Println("Passed")
 	}
 }
 
@@ -2444,7 +2443,12 @@ func TestTwistlock(testContext *helpers.TestContext) {
 	var scanConfigId string
 	var flagImagePath = "Seal.png"
 	var err error
-
+	
+	// Verify that we can talk to SafeHarborServer.
+	{
+		testContext.TryPing()
+	}
+	
 	// Set up for SafeHarbor scanning tests using Twistlock.
 	{
 		var tempdir string

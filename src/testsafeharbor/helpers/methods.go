@@ -14,6 +14,26 @@ import (
 /*******************************************************************************
  * 
  */
+func (testContext *TestContext) TryPing() {
+	
+	testContext.StartTest("TryPing")
+	var resp *http.Response
+	var err error
+	resp, err = testContext.SendSessionGet("",
+		"ping",
+		[]string{"Log"},
+		[]string{testContext.TestDemarcation()})
+	defer resp.Body.Close()
+	if ! testContext.AssertErrIsNil(err, "") { return }
+	if ! testContext.AssertErrIsNil(err, "") { return }
+	
+	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	testContext.PassTestIfNoFailures()
+}
+
+/*******************************************************************************
+ * 
+ */
 func (testContext *TestContext) TryGetGroupDesc(groupId string) {
 	
 	testContext.StartTest("TryGetGroupDesc")
@@ -2855,6 +2875,7 @@ func (testContext *TestContext) TryClearAll() {
 		"clearAll",
 		[]string{"Log"},
 		[]string{testContext.TestDemarcation()})
+	defer resp.Body.Close()
 	if ! testContext.AssertErrIsNil(err, "") { return }
 	
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
