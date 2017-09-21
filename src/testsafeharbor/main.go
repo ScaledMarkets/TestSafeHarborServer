@@ -24,8 +24,8 @@ import (
 	"testsafeharbor/helpers"
 	"docker"
 	"scanners"
-	"utilities/utils"
-	"utilities/rest"
+	"utilities"
+	"rest"
 )
 
 const (
@@ -135,7 +135,7 @@ func TestEmail(testContext *helpers.TestContext) {
 	// -------------------------------------
 	// Test setup:
 	
-	var emailService *utils.EmailService
+	var emailService *utilities.EmailService
 	var err error
 	var emailConfigMap = map[string]interface{}{
 		"SES_SMTP_hostname": "email-smtp.us-west-2.amazonaws.com",
@@ -147,7 +147,7 @@ func TestEmail(testContext *helpers.TestContext) {
 	
 	{
 		fmt.Println("Creating EmailService...")
-		emailService, err = utils.CreateEmailService(emailConfigMap)
+		emailService, err = utilities.CreateEmailService(emailConfigMap)
 		testContext.AssertErrIsNil(err, "When instantiating email service")
 	}
 	
@@ -1781,8 +1781,8 @@ func TestScanConfigs(testContext *helpers.TestContext) {
 		if testContext.AssertThat(len(ids) == 2, fmt.Sprintf(
 			"Wrong number of image Ids returned: %d", len(ids))) {
 		
-			testContext.AssertThat(utils.Contains(dockerImage1Id, ids), "Id not in image Id list")
-			testContext.AssertThat(utils.Contains(dockerImage2Id, ids), "Id not in image Id list")
+			testContext.AssertThat(utilities.Contains(dockerImage1Id, ids), "Id not in image Id list")
+			testContext.AssertThat(utilities.Contains(dockerImage2Id, ids), "Id not in image Id list")
 		}
 		
 		scanConfigDescMap = testContext.TryGetScanConfigDesc(scanConfigBId, true)  // should be 1.
@@ -1798,7 +1798,7 @@ func TestScanConfigs(testContext *helpers.TestContext) {
 		if testContext.AssertThat(len(ids) == 1, fmt.Sprintf(
 			"Wrong number of image Ids returned: %d", len(ids))) {
 		
-			testContext.AssertThat(utils.Contains(dockerImage1Id, ids), "Id not in image Id list")
+			testContext.AssertThat(utilities.Contains(dockerImage1Id, ids), "Id not in image Id list")
 		}
 	}
 	
