@@ -38,6 +38,7 @@ CURDIR=$(shell pwd)
 src_dir = $(CURDIR)/src
 build_dir = $(CURDIR)/bin
 UTILITIESDIR:=$(realpath $(CURDIR)/../utilities)
+RESTDIR := $(realpath $(CURDIR)/../rest)
 SCANNERSDIR:=$(realpath $(CURDIR)/../scanners)
 DOCKERDIR:=$(realpath $(CURDIR)/../docker)
 SAFEHARBORSERVERDIR:=$(realpath $(CURDIR)/../SafeHarborServer)
@@ -57,7 +58,7 @@ $(build_dir)/$(EXECNAME): $(build_dir) $(src_dir)/$(PACKAGENAME)/*.go
 # The compile target depends on the main executable.
 # 'make compile' builds the executable, which is placed in <build_dir>.
 compile: $(build_dir)/$(EXECNAME)
-	GOPATH=$(CURDIR):$(SCANNERSDIR):$(UTILITIESDIR):$(DOCKERDIR):$(SAFEHARBORSERVERDIR) \
+	GOPATH=$(CURDIR):$(SCANNERSDIR):$(UTILITIESDIR):$(RESTDIR):$(DOCKERDIR):$(SAFEHARBORSERVERDIR) \
 		go install $(PACKAGENAME)
 
 # This target can only be run on a Linux system that has docker-engine installed.
