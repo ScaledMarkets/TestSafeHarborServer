@@ -144,6 +144,19 @@ func (testContext *TestContext) FailTest() {
 /*******************************************************************************
  * 
  */
+func (testContext *TestContext) FailTestWithMessage(message string) {
+	if testContext.TestStatus[testContext.testName] == "Fail" { return }
+	testContext.NoOfTestsThatFailed++
+	testContext.TestStatus[testContext.testName] = "Fail"
+	fmt.Println("Failed test", testContext.testName)
+	fmt.Println(message)
+	fmt.Println("Stack trace:")
+	debug.PrintStack()
+}
+
+/*******************************************************************************
+ * 
+ */
 func (testContext *TestContext) TestHasFailed() bool {
 	return (testContext.TestStatus[testContext.testName] == "Fail")
 }

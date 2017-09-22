@@ -630,7 +630,7 @@ func (testContext *TestContext) TryExecDockerfile(repoId string, dockerfileId st
 	defer resp.Body.Close()
 
 	fmt.Println("verifying response...")
-	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
+	if ! testContext.Verify200Response(resp) { testContext.FailTestWithMessage(resp.Status) }
 	
 	// Get the repo Id that is returned in the response body.
 	/* DockerImageVersionDesc:
