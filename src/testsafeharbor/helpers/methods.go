@@ -621,6 +621,7 @@ func (testContext *TestContext) TryExecDockerfile(repoId string, dockerfileId st
 	
 	var resp *http.Response
 	var err error
+	fmt.Println("Sending session Post, execDockerfile...")
 	resp, err = testContext.SendSessionPost(testContext.SessionId,
 		"execDockerfile",
 		[]string{"Log", "RepoId", "DockerfileId", "ImageName", "Params"},
@@ -628,6 +629,7 @@ func (testContext *TestContext) TryExecDockerfile(repoId string, dockerfileId st
 	
 	defer resp.Body.Close()
 
+	fmt.Println("verifying response...")
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
 	
 	// Get the repo Id that is returned in the response body.
@@ -653,6 +655,7 @@ func (testContext *TestContext) TryExecDockerfile(repoId string, dockerfileId st
 	var retCreationDate string = responseMap["CreationDate"].(string)
 	rest.PrintMap(responseMap)
 	
+	fmt.Println("verifying response data...")
 	testContext.AssertThat(retObjId != "", "ObjId is empty")
 	testContext.AssertThat(retImageObjId != "", "ImageObjId is empty")
 	testContext.AssertThat(retVersion != "", "Version is empty")
@@ -660,6 +663,7 @@ func (testContext *TestContext) TryExecDockerfile(repoId string, dockerfileId st
 	testContext.AssertThat(retCreationDate != "", "CreationDate is empty")
 	
 	testContext.PassTestIfNoFailures()
+	fmt.Println("returing from TryExecDockerfile...")
 	return retObjId, retImageObjId, responseMap
 }
 
