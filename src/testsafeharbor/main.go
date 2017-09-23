@@ -2438,7 +2438,7 @@ func TestTwistlock(testContext *helpers.TestContext) {
 	var realmXRepo1Id string
 	var dockerfilePath string
 	var dockerfileId string
-	var dockerImage1Version1ObjId string
+	//var dockerImage1Version1ObjId string
 	var dockerImage1ObjId string
 	var scanConfigId string
 	var flagImagePath = "Seal.png"
@@ -2472,7 +2472,7 @@ func TestTwistlock(testContext *helpers.TestContext) {
 		defer os.Remove(dockerfilePath)
 		dockerfileId, _ = testContext.TryAddDockerfile(realmXRepo1Id, dockerfilePath, "A fine dockerfile")
 		
-		dockerImage1Version1ObjId, dockerImage1ObjId, _ = testContext.TryExecDockerfile(realmXRepo1Id,
+		_, dockerImage1ObjId, _ = testContext.TryExecDockerfile(realmXRepo1Id,
 			dockerfileId, "myimage", []string{}, []string{})
 		testContext.AssertThat(dockerImage1ObjId != "", "No image obj Id returned")
 	}
