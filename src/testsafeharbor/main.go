@@ -2480,7 +2480,7 @@ func TestTwistlock(testContext *helpers.TestContext) {
 	// Test ability to scan a docker image.
 	{
 		var scanEventDescs []map[string]interface{}
-		scanEventDescs = testContext.TryScanImage(scanConfigId, dockerImage1Version1ObjId)
+		scanEventDescs = testContext.TryScanImage(scanConfigId, dockerImage1ObjId)
 		testContext.AssertThat(len(scanEventDescs) == 1, "Wrong number of scan events")
 	}
 }
