@@ -2879,7 +2879,12 @@ func (testContext *TestContext) TryClearAll() {
 		"clearAll",
 		[]string{"Log"},
 		[]string{testContext.TestDemarcation()})
-	defer resp.Body.Close()
+	if ! testContext.AssertErrIsNil(err, "When sending a clearAll to the server") {
+		return
+	}
+	
+	defer func() { if resp != nil { resp.Body.Close() } } ()
+	
 	if ! testContext.AssertErrIsNil(err, "") { return }
 	
 	if ! testContext.Verify200Response(resp) { testContext.FailTest() }
