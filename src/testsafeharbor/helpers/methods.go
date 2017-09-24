@@ -1705,7 +1705,7 @@ func (testContext *TestContext) TryScanImage(scriptId, imageObjId string) []map[
 		testContext.AssertThat(retUserId != "", "Returned UserId is empty")
 		testContext.AssertThat(retScanConfigId != "", "Returned ScanConfigId is empty")
 		testContext.AssertThat(retScore != "", "Returned Score is empty")
-		if testContext.AssertThat(len(retVulnerabilityDescs) > 0, "Vulnerabilities found") {
+		if testContext.AssertThat(len(retVulnerabilityDescs) == 0, "Vulnerabilities found") {
 		
 			var obj = retVulnerabilityDescs[0]
 			var isType bool
