@@ -1705,7 +1705,7 @@ func (testContext *TestContext) TryScanImage(scriptId, imageObjId string) []map[
 		testContext.AssertThat(retUserId != "", "Returned UserId is empty")
 		testContext.AssertThat(retScanConfigId != "", "Returned ScanConfigId is empty")
 		testContext.AssertThat(retScore != "", "Returned Score is empty")
-		if testContext.AssertThat(len(retVulnerabilityDescs) > 0, "No vulnerabilities found") {
+		if testContext.AssertThat(len(retVulnerabilityDescs) > 0, "Vulnerabilities found") {
 		
 			var obj = retVulnerabilityDescs[0]
 			var isType bool
@@ -1713,8 +1713,13 @@ func (testContext *TestContext) TryScanImage(scriptId, imageObjId string) []map[
 			vulnDesc, isType = obj.(map[string]interface{})
 			if testContext.AssertThat(isType,
 				"Vulnerability description is an unexpected type: " + reflect.TypeOf(obj).String()) {
-				testContext.AssertThat(vulnDesc["VCE_ID"] != "",
-					"No VCE_ID value found for vulnerability")
+				var vulnId = vulnDesc["VCE_ID"]
+				var vulnExplanation = vulnDesc["Description"]
+				testContext.AssertThat(vulnId != "",
+						"No VCE_ID value found for vulnerability")
+				
+				fmt.Print("vuln Id: "); fmt.Println(vulnId)
+				fmt.Print("vuln Desc: "); fmt.Println(vulnExplanation)
 			}
 		}
 	}
